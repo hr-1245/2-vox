@@ -10,11 +10,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { Settings, MessageSquare, Zap, BarChart3, Play, Pause, Info, RotateCcw, Thermometer, CheckCircle2, Search, Bot, RefreshCw, X, Sparkles, Check } from 'lucide-react';
+import { Settings, MessageSquare, Zap, BarChart3, Play, Pause, Info, RotateCcw, Thermometer, CheckCircle2, Search, Bot, RefreshCw, X, Sparkles } from 'lucide-react';
 import { ConversationSettings } from './types';
 import { getFeatureAIConfig, AI_MODELS, TEMPERATURE_PRESETS, AIConfig } from '@/utils/ai/config/aiSettings';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 interface Suggestion {
@@ -184,110 +184,106 @@ const detectConversationMessageType = (messages: ChatMessage[]): string => {
 };
 
 // Function to determine available message types based on conversation
+// const getAvailableMessageTypes = (conversationType?: string, recentMessages?: ChatMessage[]) => {
+//   // If we have a conversation type, prioritize that
+//   console.log("conversationType  .......................................--------------------",conversationType,"recentMessages:",recentMessages)
+//   if (conversationType) {
+//     console.log("1")
+//     const primaryType = SENDABLE_MESSAGE_TYPES.find(type => type.internal === conversationType);
+//     if (primaryType) {
+//        console.log("2")
+//       // Put the primary type first, then others
+//       // return primaryType;
+//       return [primaryType, ...SENDABLE_MESSAGE_TYPES.filter(type => type.internal !== conversationType)];
+//     }
+//   }
+
+//   // Try to detect from recent messages
+//   if (recentMessages && recentMessages.length > 0) {
+//       console.log("3")
+//     const messageTypes = new Set(recentMessages.map(msg => msg.messageType).filter(Boolean));
+//     const detectedTypes = SENDABLE_MESSAGE_TYPES.filter(type => messageTypes.has(type.value));
+    
+//     if (detectedTypes.length > 0) {
+//         console.log("4")
+//       const otherTypes = SENDABLE_MESSAGE_TYPES.filter(type => !messageTypes.has(type.value));
+//       return [...detectedTypes, ...otherTypes];
+//     }
+//   }
+//   console.log("5")
+//   // Default order with SMS first
+//   return SENDABLE_MESSAGE_TYPES;
+// };
 const getAvailableMessageTypes = (conversationType?: string, recentMessages?: ChatMessage[]) => {
-  // If we have a conversation type, prioritize that
+  console.log("conversationType:", conversationType, "recentMessages:", recentMessages);
+  
+  // If we have a conversation type, return only that type (disabled others)
   if (conversationType) {
-    const primaryType = SENDABLE_MESSAGE_TYPES.find(type => type.value === conversationType);
-    if (primaryType) {
-      // Put the primary type first, then others
-      return [primaryType, ...SENDABLE_MESSAGE_TYPES.filter(type => type.value !== conversationType)];
-    }
+    console.log("Filtering by conversation type:", conversationType);
+    return SENDABLE_MESSAGE_TYPES;
   }
 
   // Try to detect from recent messages
   if (recentMessages && recentMessages.length > 0) {
-    const messageTypes = new Set(recentMessages.map(msg => msg.messageType).filter(Boolean));
-    const detectedTypes = SENDABLE_MESSAGE_TYPES.filter(type => messageTypes.has(type.value));
+    console.log("Detecting from recent messages");
+    
+    // Extract message types from recent messages
+    const recentMessageTypes = recentMessages
+      .map(msg => msg.messageType)
+      .filter(Boolean);
+    
+    console.log("Recent message types found:", recentMessageTypes);
+    
+    // Find matching types (check both value and internal fields)
+    const detectedTypes = SENDABLE_MESSAGE_TYPES.filter(type => 
+      recentMessageTypes.includes(type.value) || recentMessageTypes.includes(type.internal)
+    );
+    
+    console.log("Detected types:", detectedTypes);
     
     if (detectedTypes.length > 0) {
-      const otherTypes = SENDABLE_MESSAGE_TYPES.filter(type => !messageTypes.has(type.value));
-      return [...detectedTypes, ...otherTypes];
+      return detectedTypes;
     }
   }
-
-  // Default order with SMS first
+  
+  console.log("Using default types");
+  // Return all types as fallback
   return SENDABLE_MESSAGE_TYPES;
 };
 
+// In your component
+
 // Function to auto-detect default message type
-// const getDefaultMessageType = (conversationType?: string, recentMessages?: ChatMessage[]): string => {
-//   // If conversation type is provided, use it
-//   if (conversationType && SENDABLE_MESSAGE_TYPES.some(type => type.value === conversationType)) {
-//     return conversationType;
-//   }
-
-//   // Try to detect from recent messages (use most recent outbound message type)
-//   if (recentMessages && recentMessages.length > 0) {
-//     const recentOutbound = recentMessages
-//       .filter(msg => msg.direction === 'outbound' && msg.messageType)
-//       .slice(0, 5); // Check last 5 outbound messages
-    
-//     for (const msg of recentOutbound) {
-//       if (msg.messageType && SENDABLE_MESSAGE_TYPES.some(type => type.value === msg.messageType)) {
-//         return msg.messageType;
-//       }
-//     }
-
-//     // Fallback to any recent message type
-//     const recentTypes = recentMessages
-//       .map(msg => msg.messageType)
-//       .filter((type): type is string => type !== undefined && SENDABLE_MESSAGE_TYPES.some(t => t.value === type));
-    
-//     if (recentTypes.length > 0) {
-//       return recentTypes[0];
-//     }
-//   }
-
-//   // Default to SMS
-//   return 'TYPE_SMS';
-// };
-const getDefaultMessageType = (
-  conversationType?: string,
-  recentMessages?: ChatMessage[]
-): string[] => {
-  debugger
-  // If conversation type is provided
+const getDefaultMessageType = (conversationType?: string, recentMessages?: ChatMessage[]): string => {
+  // If conversation type is provided, use it
   if (conversationType && SENDABLE_MESSAGE_TYPES.some(type => type.value === conversationType)) {
-    console.log("conversationType",[conversationType])
-    return [conversationType]; // wrap in array
-
+    return conversationType;
   }
 
-  // Detect from recent outbound messages
+  // Try to detect from recent messages (use most recent outbound message type)
   if (recentMessages && recentMessages.length > 0) {
     const recentOutbound = recentMessages
       .filter(msg => msg.direction === 'outbound' && msg.messageType)
-      .slice(0, 5);
-
-    const outboundTypes = recentOutbound
-      .map(msg => msg.messageType)
-      .filter((type): type is string =>
-        SENDABLE_MESSAGE_TYPES.some(t => t.value === type)
-      );
-
-    if (outboundTypes.length > 0) {
-          console.log("conversationType",[outboundTypes])
-
-      return outboundTypes; // return array
+      .slice(0, 5); // Check last 5 outbound messages
+    
+    for (const msg of recentOutbound) {
+      if (msg.messageType && SENDABLE_MESSAGE_TYPES.some(type => type.value === msg.messageType)) {
+        return msg.messageType;
+      }
     }
 
-    // fallback to any recent message type
+    // Fallback to any recent message type
     const recentTypes = recentMessages
       .map(msg => msg.messageType)
-      .filter((type): type is string =>
-        SENDABLE_MESSAGE_TYPES.some(t => t.value === type)
-      );
-
+      .filter((type): type is string => type !== undefined && SENDABLE_MESSAGE_TYPES.some(t => t.value === type));
+    
     if (recentTypes.length > 0) {
-          console.log("conversationType",[recentTypes])
-
-      return recentTypes;
+      return recentTypes[0];
     }
   }
-    console.log("conversationType",['TYPE_SMS'])
 
   // Default to SMS
-  return ['TYPE_SMS'];
+  return 'TYPE_SMS';
 };
 
 // Helper function to clean up suggestion text
@@ -335,11 +331,8 @@ export function MessageInput({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [aiSettings, setAISettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
   const [conversationSettings, setConversationSettings] = useState<ConversationSettings | null>(null);
-  // const [selectedMessageType, setSelectedMessageType] = useState<string>(() => 
-  //   getDefaultMessageType(conversationType, recentMessages) || 'TYPE_SMS'
-  // );
-    const [selectedMessageType, setSelectedMessageType] = useState<string[]>(() => 
-    getDefaultMessageType(conversationType, recentMessages)
+  const [selectedMessageType, setSelectedMessageType] = useState<string>(() => 
+    getDefaultMessageType(conversationType, recentMessages) || 'TYPE_SMS'
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [autopilotEnabled, setAutopilotEnabled] = useState(false); // New state for autopilot toggle
@@ -1081,12 +1074,10 @@ export function MessageInput({
         const customerInfo = getCustomerInfo(recentMessages);
         
         // Auto-detect message type if auto-detect is enabled
-        // const finalMessageType = selectedMessageType[] === 'AUTO_DETECT'
-        //   ? detectConversationMessageType(recentMessages)
-        //   : selectedMessageType;
-const finalMessageType = selectedMessageType[0] === 'AUTO_DETECT'
+        const finalMessageType = selectedMessageType === 'AUTO_DETECT' 
           ? detectConversationMessageType(recentMessages)
           : selectedMessageType;
+
         console.log('🚀 Sending message via GHL API:', {
           conversationId,
           type: finalMessageType,
@@ -1096,7 +1087,6 @@ const finalMessageType = selectedMessageType[0] === 'AUTO_DETECT'
         });
 
         // Send message via GHL API (using correct GHL format)
-        
         const sendResponse = await fetch(`/api/leadconnector/conversations/messages/send`, {
           method: 'POST',
           headers: {
@@ -1124,7 +1114,7 @@ const finalMessageType = selectedMessageType[0] === 'AUTO_DETECT'
         
         toast.success(
           <div className="space-y-1">
-            <p className="font-medium">Message sent via {SENDABLE_MESSAGE_TYPES.find(t => t.value === selectedMessageType[0])?.label || 'API'}</p>
+            <p className="font-medium">Message sent via {SENDABLE_MESSAGE_TYPES.find(t => t.value === selectedMessageType)?.label || 'API'}</p>
             <p className="text-sm text-muted-foreground">
               Message ID: {sendResult.data?.messageId?.substring(0, 12)}...
             </p>
@@ -1401,17 +1391,13 @@ Focus on relationship building and moving the conversation forward constructivel
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    debugger
-    console.log("conversationType",conversationType)
-    // if (loadingType || !message.trim()) return;
-    // handleChatMessage(false);
+    if (loadingType || !message.trim()) return;
+    handleChatMessage(false);
   };
 
   // Load conversation settings when component mounts
   useEffect(() => {
-    debugger
     const loadSettings = async () => {
-      debugger
       try {
         const response = await fetch(`/api/conversation-meta?conversationId=${conversationId}`);
         const data = await response.json();
@@ -1810,12 +1796,12 @@ Focus on relationship building and moving the conversation forward constructivel
     const defaultType = getDefaultMessageType(conversationType, recentMessages);
     setSelectedMessageType(defaultType);
     
-    console.log('🔄 Message type detection:', {
-      conversationType,
-      detectedType: defaultType,
-      recentMessagesCount: recentMessages.length,
-      availableTypes: getAvailableMessageTypes(conversationType, recentMessages).map(t => t.label)
-    });
+    // console.log('🔄 Message type detection:', {
+    //   conversationType,
+    //   detectedType: defaultType,
+    //   recentMessagesCount: recentMessages.length,
+    //   availableTypes: getAvailableMessageTypes(conversationType, recentMessages).map(t => t.label)
+    // });
   }, [conversationType, recentMessages]);
 
   // Debug logging for render state
@@ -1844,10 +1830,12 @@ Focus on relationship building and moving the conversation forward constructivel
       }
     };
   }, []);
-
+const data=getAvailableMessageTypes(conversationType, recentMessages)
+console.log("data>>>>>>>",data)
   return (
     <div className="flex flex-col gap-4">
       {/* Compact Suggestions Display */}
+
       {suggestions.length > 0 && (
         <div className="mb-3">
           <div className="bg-card rounded-lg border border-secondary/30 shadow-sm overflow-hidden max-h-[40vh]">
@@ -2052,54 +2040,58 @@ Focus on relationship building and moving the conversation forward constructivel
               
               <div className="flex flex-col gap-2 min-w-0">
                 {/* Message Type Selector */}
-                {/* <SelectGroup
+                {/* <Select
                   value={selectedMessageType}
                   onValueChange={setSelectedMessageType}
-                  
                 >
                   <SelectTrigger className="w-24 h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+
+
+
+
                     {getAvailableMessageTypes(conversationType, recentMessages).map((type) => (
                       <SelectItem key={type.internal} value={type.internal} className="text-xs">
                         {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </SelectGroup> */}
-<Select>
-  <SelectTrigger className="w-40 h-8 text-xs">
-    <SelectValue>
-      {selectedMessageType.length > 0
-        ? selectedMessageType.join(", ")
-        : "Select types"}
-    </SelectValue>
+                </Select> */}
+
+  <Select
+  value={selectedMessageType}
+  onValueChange={setSelectedMessageType}
+>
+  <SelectTrigger className="w-24 h-8 text-xs">
+    <SelectValue />
   </SelectTrigger>
   <SelectContent>
-    {getAvailableMessageTypes(conversationType, recentMessages).map(type => {
-      const checked = selectedMessageType.includes(type.internal);
+    {getAvailableMessageTypes(conversationType, recentMessages).map((type) => {
+      const isDisabled = conversationType ? type.internal !== conversationType : false;
+      
       return (
-        <div
-          key={type.internal}
-          className="flex items-center gap-2 px-2 py-1 cursor-pointer"
-          onClick={() => {
-            setSelectedMessageType(prev =>
-              checked
-                ? prev.filter(t => t !== type.internal)
-                : [...prev, type.internal]
-            );
-          }}
+        <SelectItem 
+          key={type.internal} 
+          value={type.internal} 
+          className="text-xs"
+          disabled={isDisabled}
         >
-          <Check
-            className={`h-4 w-4 ${checked ? "opacity-100" : "opacity-0"}`}
-          />
-          <span className="text-xs">{type.label}</span>
-        </div>
+          <div className="flex flex-col">
+            <span>{type.label}</span>
+            {isDisabled && (
+              <span className="text-xs text-muted-foreground">
+                Not available for this conversation type
+              </span>
+            )}
+          </div>
+        </SelectItem>
       );
     })}
   </SelectContent>
 </Select>
+
                 {/* Send Button */}
                 <Button
                   type="submit"
