@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useSearchParams } from 'next/navigation';
 import { MessageInput } from './MessageInput';
 import { QueryInput } from './QueryInput';
-import { Message } from '@/lib/leadconnector/types/messageTypes';
+import { Message, MessageList } from '@/lib/leadconnector/types/messageTypes';
 import { TrainingStatus } from './types';
 import { toast } from 'sonner';
 import { selectAgentForFeature } from '@/utils/ai/agentSelection';
@@ -24,18 +24,18 @@ import { getFeatureAIConfig } from '@/utils/ai/config/aiSettings';
 import { useMessages } from './hooks/getMessages'
 import { useSendMessage } from './hooks/useSendMessage'
 import { useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  MessageSquare, 
-  Settings, 
-  Clock, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  MessageSquare,
+  Settings,
+  Clock,
+  CheckCircle2,
   Wifi,
   WifiOff,
   Zap
 } from 'lucide-react';
 import { autoEnableForSingleConversation } from '@/utils/autopilot/voxAiAutoEnable';
-
+debugger
 
 // Enhanced debug helper with better error formatting
 const debug = {
@@ -112,12 +112,12 @@ interface Contact {
 // Helper function to get contact info from messages
 function getContactInfo(messages: Message[]): Contact {
   if (!messages.length) return {};
-  
+
   // Try to find the most recent message with contact info
-  const messageWithContact = messages.find(msg => 
+  const messageWithContact = messages.find(msg =>
     msg.contactName || msg.fullName || msg.email || msg.phone
   );
-  
+
   return {
     name: messageWithContact?.contactName || messageWithContact?.fullName,
     email: messageWithContact?.email,
@@ -132,12 +132,12 @@ function getCustomerAvatarLetter(message: Message, urlContactInfo: Contact): str
   if (name) {
     return name.charAt(0).toUpperCase();
   }
-  
+
   const email = urlContactInfo.email || message.email;
   if (email) {
     return email.charAt(0).toUpperCase();
   }
-  
+
   return 'C';
 }
 
@@ -155,15 +155,15 @@ const messageTypeLabels: Record<string, string> = {
   TYPE_ACTIVITY_CONTACT: 'Activity',
 };
 
-function MessageBubble({ message, isLast, urlContactInfo }: { 
-  message: Message; 
+function MessageBubble({ message, isLast, urlContactInfo }: {
+  message: Message;
   isLast: boolean;
   urlContactInfo: Contact;
 }) {
   const isInbound = message.direction === 'inbound';
   const formattedDate = format(new Date(message.dateAdded), 'MMM d, h:mm a');
   const isActivity = message.messageType === 'TYPE_ACTIVITY_CONTACT';
-  
+
   // Debug log for webchat messages
   if (message.messageType === 'TYPE_WEBCHAT') {
     console.log('Rendering TYPE_WEBCHAT message:', {
@@ -175,7 +175,7 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
       messageType: message.messageType
     });
   }
-  
+
   // For activity messages, show them centered with different styling
   if (isActivity) {
     return (
@@ -200,7 +200,7 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
         if (key && value) acc[key.trim()] = value.trim();
         return acc;
       }, {} as Record<string, string>);
-      
+
       console.log('Parsed webchat contact info:', {
         splitChar: splitChar === '\n' ? 'actual newlines' : 'escaped newlines',
         originalBody: message.body,
@@ -226,7 +226,7 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
           </div>
         </Avatar>
       )}
-      
+
       <div className={cn(
         "flex flex-col gap-1 min-w-0 max-w-[85%]",
         !isInbound && "items-end"
@@ -244,8 +244,8 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
         {/* Message content */}
         <div className={cn(
           "rounded-2xl px-4 py-2 break-words",
-          isInbound 
-            ? "bg-muted text-foreground" 
+          isInbound
+            ? "bg-muted text-foreground"
             : "bg-primary text-primary-foreground",
           isLast && "mb-2"
         )}>
@@ -301,7 +301,7 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
           )}
         </div>
       </div>
-      
+
       {/* System User Avatar - Right side for outbound messages */}
       {!isInbound && (
         <Avatar className="h-8 w-8 mt-2 flex-shrink-0">
@@ -324,7 +324,7 @@ function ConversationHeader({ contact, children }: ConversationHeaderProps) {
             {contact.name?.[0] || 'C'}
           </div>
         </Avatar>
-      <div className="flex flex-col">
+        <div className="flex flex-col">
           <span className="font-semibold">{contact.name || 'Unknown Contact'}</span>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {contact.email && <span>{contact.email}</span>}
@@ -334,13 +334,14 @@ function ConversationHeader({ contact, children }: ConversationHeaderProps) {
         </div>
       </div>
       <div className="flex items-center gap-3">
-      {children}
+        {children}
       </div>
     </div>
   );
 }
 
 export function ConversationDetails({ conversationId, locationId }: ConversationDetailsProps) {
+  console.log("conversationId:", conversationId, "locationId:", locationId)
   // URL params
   const searchParams = useSearchParams();
   const urlContactInfo = {
@@ -348,9 +349,10 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
     email: searchParams.get('email') || undefined,
     phone: searchParams.get('phone') || undefined,
   };
-
+  console.log("urlContactInfo:", urlContactInfo)
   // State
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesList, setMessagesList] = useState<MessageList[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(null);
   const [showQueryInput, setShowQueryInput] = useState(false);
@@ -379,7 +381,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   // Auto-refresh training status when training is in progress
   useEffect(() => {
     if (!trainingStatus?.isTraining) return;
-    
+
     const intervalId = setInterval(async () => {
       debug.log('ConversationDetails', 'Auto-refreshing training status...');
       try {
@@ -388,7 +390,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
           `/api/ai/conversation/training-status`,
           {
             method: 'POST',
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               conversationId,
               locationId,
               temperature: aiConfig.temperature,
@@ -397,7 +399,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
             })
           }
         );
-        
+
         if (statusData) {
           setTrainingStatus({
             isTrained: statusData.is_trained || false,
@@ -406,7 +408,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
             messageCount: statusData.message_count || 0,
             vectorCount: statusData.vector_count || 0
           });
-          
+
           // Stop polling if training is complete
           if (statusData.is_trained && !statusData.is_training) {
             debug.log('ConversationDetails', 'Training completed - stopping auto-refresh');
@@ -416,13 +418,13 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         debug.error('ConversationDetails', 'Failed to refresh training status:', error);
       }
     }, 30000); // Check every 30 seconds
-    
+
     return () => clearInterval(intervalId);
   }, [trainingStatus?.isTraining, conversationId, locationId]);
 
   // Add state for summary expansion
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
-  
+
   // Conversation settings state
   const [conversationSettings, setConversationSettings] = useState<any>(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
@@ -440,15 +442,15 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   // 🆕 Check FastAPI Health - moved inside component  
   const checkFastAPIHealth = async () => {
     try {
-              debug.log('ConversationDetails', 'Checking FastAPI health...');
-      
+      debug.log('ConversationDetails', 'Checking FastAPI health...');
+
       const healthResponse = await fetch('/api/ai/health', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
 
       const healthData = await healthResponse.json();
-      
+
       if (healthResponse.ok && healthData.success) {
         setFastApiStatus({
           isOnline: true,
@@ -472,7 +474,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   // Helper function to extract messages from API response
   const extractMessagesFromResponse = (messagesData: any) => {
     let pageMessages = [];
-    
+
     if (messagesData?.success && messagesData?.data) {
       // New standardized format: { success: true, data: { messages: { messages: [...] } } }
       if (messagesData.data.messages?.messages) {
@@ -515,16 +517,16 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       setLoadingSettings(true);
       const response = await fetch(`/api/conversation-meta?conversationId=${conversationId}`);
       const data = await response.json();
-      
+
       if (data.success && data.data?.data) {
         const settings = data.data.data;
         setConversationSettings(settings);
         console.log('🎯 Loaded conversation settings:', settings);
-        
+
         // If we have agent IDs, load the actual agent details
         if (settings.agents) {
           const agentPromises = [];
-          
+
           if (settings.agents.query) {
             agentPromises.push(
               fetch(`/api/ai/agents/${settings.agents.query}`)
@@ -532,7 +534,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 .then(data => ({ type: 'query', agent: data.success ? data.agent : null }))
             );
           }
-          
+
           if (settings.agents.suggestions) {
             agentPromises.push(
               fetch(`/api/ai/agents/${settings.agents.suggestions}`)
@@ -540,7 +542,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 .then(data => ({ type: 'suggestions', agent: data.success ? data.agent : null }))
             );
           }
-          
+
           if (settings.agents.autopilot) {
             agentPromises.push(
               fetch(`/api/ai/agents/${settings.agents.autopilot}`)
@@ -548,22 +550,22 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 .then(data => ({ type: 'autopilot', agent: data.success ? data.agent : null }))
             );
           }
-          
+
           if (agentPromises.length > 0) {
             const agentDetails = await Promise.all(agentPromises);
             const agentMap: any = {};
-            
+
             agentDetails.forEach(({ type, agent }) => {
               if (agent) {
                 agentMap[type] = agent;
               }
             });
-            
+
             setConversationSettings((prev: any) => ({
               ...prev,
               agentDetails: agentMap
             }));
-            
+
             console.log('🤖 Loaded agent details:', agentMap);
           }
         }
@@ -589,37 +591,37 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         setError(null);
 
         // PRIORITY 1: Load messages IMMEDIATELY for fast UX
-          const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100`;
+        const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100`;
         debug.log('ConversationDetails', 'Fetching messages (priority load):', url);
-          
-          const messagesData = await fetchWithDebug(url);
-          const pageMessages = extractMessagesFromResponse(messagesData);
+
+        const messagesData = await fetchWithDebug(url);
+        const pageMessages = extractMessagesFromResponse(messagesData);
 
         debug.log('ConversationDetails', `FAST LOAD: Messages loaded (${pageMessages.length} messages)`);
 
-          setMessages(pageMessages);
-          
-          // Set pagination state
-          if (pageMessages.length > 0) {
-            const oldestMessage = pageMessages[pageMessages.length - 1];
-            setOldestMessageId(oldestMessage?.id);
-            setHasMoreMessages(pageMessages.length === 100);
-          } else {
-            setHasMoreMessages(false);
-          }
+        setMessages(pageMessages);
+
+        // Set pagination state
+        if (pageMessages.length > 0) {
+          const oldestMessage = pageMessages[pageMessages.length - 1];
+          setOldestMessageId(oldestMessage?.id);
+          setHasMoreMessages(pageMessages.length === 100);
+        } else {
+          setHasMoreMessages(false);
+        }
 
         // Show messages immediately - user can start reading
         setIsLoading(false);
-        
+
         // BACKGROUND: Start AI features loading without blocking UI
         loadAIFeaturesInBackground(pageMessages.length);
 
-        } catch (messagesError) {
-          debug.error('ConversationDetails', 'Failed to load messages:', messagesError);
+      } catch (messagesError) {
+        debug.error('ConversationDetails', 'Failed to load messages:', messagesError);
         setError('Failed to load conversation messages');
         setIsLoading(false);
       }
-        }
+    }
 
     // Background AI features loading
     async function loadAIFeaturesInBackground(messageCount: number) {
@@ -653,95 +655,95 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       });
     }
 
-        // Start the loading process
-        loadConversationMessages();
-    }, [conversationId, locationId]);
+    // Start the loading process
+    loadConversationMessages();
+  }, [conversationId, locationId]);
 
-    // Background function to handle auto-training
-    async function handleAutoTraining(messageCount: number) {
-      try {
-        if (messageCount < 5) {
-          debug.log('ConversationDetails', 'AUTO-TRAIN: Not enough messages for training', { messageCount });
-          setTrainingStatus({
-            isTrained: false,
-            lastUpdated: new Date().toISOString(),
-            messageCount,
-            vectorCount: 0
-          });
-          return;
-        }
-
-        debug.log('ConversationDetails', 'AUTO-TRAIN: Checking training status...');
-        
-        // Check current training status
-        const aiConfig = getFeatureAIConfig('training');
-        const statusData = await fetchWithDebug(
-          `/api/ai/conversation/training-status`,
-            {
-              method: 'POST',
-              body: JSON.stringify({ 
-              conversationId,
-              locationId,
-              temperature: aiConfig.temperature,
-              model: aiConfig.model,
-              humanlikeBehavior: aiConfig.humanlikeBehavior
-              })
-            }
-          );
-        
-        const isCurrentlyTrained = statusData?.is_trained || false;
-        const lastUpdated = statusData?.last_updated;
-        
+  // Background function to handle auto-training
+  async function handleAutoTraining(messageCount: number) {
+    try {
+      if (messageCount < 5) {
+        debug.log('ConversationDetails', 'AUTO-TRAIN: Not enough messages for training', { messageCount });
         setTrainingStatus({
-          isTrained: isCurrentlyTrained,
-          lastUpdated: lastUpdated || new Date().toISOString(),
-          messageCount: statusData?.message_count || messageCount,
-          vectorCount: statusData?.vector_count || 0
+          isTrained: false,
+          lastUpdated: new Date().toISOString(),
+          messageCount,
+          vectorCount: 0
+        });
+        return;
+      }
+
+      debug.log('ConversationDetails', 'AUTO-TRAIN: Checking training status...');
+
+      // Check current training status
+      const aiConfig = getFeatureAIConfig('training');
+      const statusData = await fetchWithDebug(
+        `/api/ai/conversation/training-status`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            conversationId,
+            locationId,
+            temperature: aiConfig.temperature,
+            model: aiConfig.model,
+            humanlikeBehavior: aiConfig.humanlikeBehavior
+          })
+        }
+      );
+
+      const isCurrentlyTrained = statusData?.is_trained || false;
+      const lastUpdated = statusData?.last_updated;
+
+      setTrainingStatus({
+        isTrained: isCurrentlyTrained,
+        lastUpdated: lastUpdated || new Date().toISOString(),
+        messageCount: statusData?.message_count || messageCount,
+        vectorCount: statusData?.vector_count || 0
+      });
+
+      // Auto-train if not trained or if training is outdated (7+ days old)
+      const shouldAutoTrain = !isCurrentlyTrained ||
+        (lastUpdated && new Date(lastUpdated) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+
+      if (shouldAutoTrain) {
+        debug.log('ConversationDetails', 'AUTO-TRAIN: Starting background training...');
+
+        // Set training status to indicate training in progress
+        setTrainingStatus(prev => prev ? ({
+          ...prev,
+          isTraining: true
+        }) : {
+          isTrained: false,
+          isTraining: true,
+          lastUpdated: new Date().toISOString(),
+          messageCount,
+          vectorCount: 0
         });
 
-        // Auto-train if not trained or if training is outdated (7+ days old)
-        const shouldAutoTrain = !isCurrentlyTrained || 
-          (lastUpdated && new Date(lastUpdated) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        // Start training in background with retry logic
+        startBackgroundTrainingWithRetry(aiConfig);
+      } else {
+        debug.log('ConversationDetails', 'AUTO-TRAIN: Conversation already trained and up-to-date');
 
-        if (shouldAutoTrain) {
-          debug.log('ConversationDetails', 'AUTO-TRAIN: Starting background training...');
-          
-          // Set training status to indicate training in progress
-              setTrainingStatus(prev => prev ? ({
-                ...prev,
-            isTraining: true
-              }) : {
-            isTrained: false,
-            isTraining: true,
-                lastUpdated: new Date().toISOString(),
-            messageCount,
-                vectorCount: 0
-              });
-
-          // Start training in background with retry logic
-          startBackgroundTrainingWithRetry(aiConfig);
-        } else {
-          debug.log('ConversationDetails', 'AUTO-TRAIN: Conversation already trained and up-to-date');
-          
-          // Load summary for already trained conversation
-          debug.log('ConversationDetails', 'AUTO-TRAIN: Loading summary for trained conversation...');
-          try {
-            await loadSummaryInBackground();
-            debug.log('ConversationDetails', 'AUTO-TRAIN: Summary loaded for trained conversation');
+        // Load summary for already trained conversation
+        debug.log('ConversationDetails', 'AUTO-TRAIN: Loading summary for trained conversation...');
+        try {
+          await loadSummaryInBackground();
+          debug.log('ConversationDetails', 'AUTO-TRAIN: Summary loaded for trained conversation');
         } catch (summaryError) {
-            debug.warn('ConversationDetails', 'Failed to load summary for trained conversation:', summaryError);
-          }
+          debug.warn('ConversationDetails', 'Failed to load summary for trained conversation:', summaryError);
         }
-
-      } catch (error) {
-        debug.warn('ConversationDetails', 'Auto-training check failed:', error);
-        // Retry auto-training after a delay if it failed
-        setTimeout(() => {
-          debug.log('ConversationDetails', 'AUTO-TRAIN: Retrying after failure...');
-          handleAutoTraining(messageCount);
-        }, 10000); // Retry after 10 seconds
       }
-        }
+
+    } catch (error) {
+      debug.warn('ConversationDetails', 'Auto-training check failed:', error);
+      // Retry auto-training after a delay if it failed
+      setTimeout(() => {
+        debug.log('ConversationDetails', 'AUTO-TRAIN: Retrying after failure...');
+        handleAutoTraining(messageCount);
+      }, 10000); // Retry after 10 seconds
+    }
+  }
 
   // 🆕 Add request deduplication
   const [isTrainingInProgress, setIsTrainingInProgress] = useState(false);
@@ -751,7 +753,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   // Enhanced background training function with deduplication
   async function startBackgroundTrainingWithRetry(aiConfig: any, retryCount: number = 0) {
     const maxRetries = 3;
-    
+
     // 🆕 Prevent multiple simultaneous training calls
     if (isTrainingInProgress) {
       debug.log('ConversationDetails', '🔄 AUTO-TRAIN: Training already in progress, skipping...');
@@ -767,42 +769,44 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
     setIsTrainingInProgress(true);
     setLastTrainingAttempt(now);
-    
+
     try {
       // First, fetch messages for training
       debug.log('ConversationDetails', `📥 AUTO-TRAIN: Fetching messages for training (attempt ${retryCount + 1}/${maxRetries + 1})...`);
-      
+
       const messagesResponse = await fetchWithDebug(
         `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
         { method: 'GET' }
       );
-
+      if (messagesResponse?.messages) {
+        setMessagesList(messagesResponse?.messages ?? [])
+      }
       if (!messagesResponse?.messages?.messages?.length) {
         throw new Error('No messages found for training');
       }
 
       const messages = messagesResponse.messages.messages;
       debug.log('ConversationDetails', `🔄 AUTO-TRAIN: Training with ${messages.length} messages`);
-        
+
       const trainData = await fetchWithDebug(
         `/api/ai/conversation/train`,
-          {
-            method: 'POST',
-            body: JSON.stringify({ 
-              conversationId,
-              locationId,
-              messages,
-              temperature: aiConfig.temperature,
-              model: aiConfig.model,
-              humanlikeBehavior: aiConfig.humanlikeBehavior,
-              silent: true // Background training flag
-            })
-          }
-        );
-      
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            conversationId,
+            locationId,
+            messages,
+            temperature: aiConfig.temperature,
+            model: aiConfig.model,
+            humanlikeBehavior: aiConfig.humanlikeBehavior,
+            silent: true // Background training flag
+          })
+        }
+      );
+
       if (trainData?.success) {
         debug.log('ConversationDetails', '✅ AUTO-TRAIN: Background training completed successfully');
-        
+
         const newTrainingStatus = {
           isTrained: true,
           isTraining: false,
@@ -824,38 +828,38 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         } catch (summaryError) {
           debug.warn('ConversationDetails', 'Failed to load summary after training:', summaryError);
         }
-        
+
         // Success! Reset retry count
         retryCountRef.current = 0;
-        
+
       } else {
         throw new Error(trainData?.error || 'Training failed');
       }
-      
+
     } catch (error) {
       debug.error('ConversationDetails', `Background training error (attempt ${retryCount + 1}):`, error);
-      
+
       // Retry logic
       if (retryCount < maxRetries) {
         const retryDelay = (retryCount + 1) * 5000; // 5s, 10s, 15s delays
-        debug.log('ConversationDetails', `🔄 AUTO-TRAIN: Retrying in ${retryDelay/1000} seconds...`);
-        
+        debug.log('ConversationDetails', `🔄 AUTO-TRAIN: Retrying in ${retryDelay / 1000} seconds...`);
+
         // 🆕 Clear any existing timeout
         if (trainingTimeoutRef.current) {
           clearTimeout(trainingTimeoutRef.current);
         }
-        
+
         trainingTimeoutRef.current = setTimeout(() => {
           startBackgroundTrainingWithRetry(aiConfig, retryCount + 1);
         }, retryDelay);
-        
+
       } else {
         // All retries failed
         debug.error('ConversationDetails', '💥 AUTO-TRAIN: All retry attempts failed');
         setTrainingStatus(prev => prev ? ({ ...prev, isTraining: false }) : {
           isTrained: false, isTraining: false, lastUpdated: new Date().toISOString(), messageCount: 0, vectorCount: 0
         });
-        
+
         // Show a non-intrusive notification
         console.warn('🤖 Auto-training failed after multiple attempts. Please check your connection and try again later.');
       }
@@ -873,7 +877,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   async function syncTrainingStatusWithMetadata(trainingStatus: any, lastMessageId?: string) {
     try {
       debug.log('ConversationDetails', '🔄 SYNC: Updating conversation metadata with training status...');
-      
+
       const metadataUpdate = {
         trainingStatus,
         lastTrainingUpdate: new Date().toISOString(),
@@ -894,22 +898,22 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       debug.log('ConversationDetails', '✅ SYNC: Training status synced with metadata');
     } catch (error) {
       debug.warn('ConversationDetails', 'Failed to sync training status with metadata:', error);
-      }
+    }
   }
 
   // Background summary loading
   async function loadSummaryInBackground() {
     try {
       debug.log('ConversationDetails', '📄 BACKGROUND: Loading summary...');
-      
+
       // Get AI configuration for summary feature
       const aiConfig = getFeatureAIConfig('summary');
-      
+
       const summaryData = await fetchWithDebug(
         `/api/ai/conversation/summary`,
         {
           method: 'POST',
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             userId: 'client-user',
             conversationId,
             locationId, // Add locationId for better context
@@ -919,7 +923,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
           })
         }
       );
-    
+
       if (summaryData?.success && summaryData?.summary) {
         setSummary(summaryData.summary);
         debug.log('ConversationDetails', '✅ BACKGROUND: Summary loaded', {
@@ -930,7 +934,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         setSummary(null);
         debug.warn('ConversationDetails', '⚠️ BACKGROUND: No summary returned', summaryData);
       }
-    
+
     } catch (error) {
       debug.error('ConversationDetails', 'Failed to load summary:', error);
       setSummary(null);
@@ -941,7 +945,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   async function loadAutopilotStatusInBackground() {
     try {
       debug.log('ConversationDetails', '🤖 BACKGROUND: Loading autopilot status...');
-      
+
       const response = await fetch(`/api/autopilot/config?conversationId=${conversationId}`);
       if (response.ok) {
         const data = await response.json();
@@ -957,24 +961,24 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   async function loadActiveAgentInBackground() {
     try {
       debug.log('ConversationDetails', '🎯 BACKGROUND: Loading active agent...');
-      
+
       // Get user from a simulated API call (you may need to adjust this)
       const currentUser = { id: 'ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21' }; // Temp user ID
-      
+
       // Load global settings
       const globalResponse = await fetch('/api/ai/settings/global');
       const globalSettings = globalResponse.ok ? (await globalResponse.json()).data : null;
-      
+
       // Load conversation settings
       const convResponse = await fetch(`/api/conversation-meta?conversationId=${conversationId}`);
       const convData = convResponse.ok ? await convResponse.json() : null;
       const conversationSettings = convData?.success ? convData.data?.data : null;
-      
+
       // Load available agents
       const agentsResponse = await fetch('/api/ai/agents');
       const agentsData = agentsResponse.ok ? await agentsResponse.json() : null;
       const availableAgents = agentsData?.success ? agentsData.data?.map((a: any) => a.id) : [];
-      
+
       // Select agent using our utility (default to query feature)
       const selectedAgentId = selectAgentForFeature(
         'query',
@@ -982,7 +986,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         conversationSettings,
         availableAgents
       );
-      
+
       if (selectedAgentId && agentsData?.success) {
         const agentDetails = agentsData.data.find((a: any) => a.id === selectedAgentId);
         if (agentDetails) {
@@ -1002,7 +1006,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   async function checkVoxAiAndAutoEnableAutopilot() {
     try {
       debug.log('ConversationDetails', '🤖 BACKGROUND: Checking for vox-ai tag...');
-      
+
       // We need to get conversation details including tags
       // This might require calling the conversations search API or a conversation details endpoint
       const response = await fetch(`/api/leadconnector/conversations/search?conversationId=${conversationId}&limit=1`);
@@ -1010,10 +1014,10 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         debug.warn('ConversationDetails', 'Could not fetch conversation details for vox-ai check');
         return;
       }
-      
+
       const data = await response.json();
       const conversation = data.data?.conversations?.[0];
-      
+
       if (conversation && locationId) {
         await autoEnableForSingleConversation(conversation, locationId);
         debug.log('ConversationDetails', '✅ BACKGROUND: Vox-AI check completed');
@@ -1051,10 +1055,10 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
     try {
       setIsLoadingMore(true);
-      
+
       const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100&lastMessageId=${oldestMessageId}`;
       debug.log('ConversationDetails', 'Loading more messages:', url);
-      
+
       const messagesData = await fetchWithDebug(url);
       const newMessages = extractMessagesFromResponse(messagesData);
 
@@ -1063,14 +1067,14 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       if (newMessages.length > 0) {
         // Prepend older messages to the beginning of the array (they're older)
         setMessages(prev => [...newMessages, ...prev]);
-        
+
         // Update pagination state
         const newOldestMessage = newMessages[newMessages.length - 1];
         setOldestMessageId(newOldestMessage?.id);
-        
+
         // If we got fewer than 100 messages, there are no more to load
         setHasMoreMessages(newMessages.length === 100);
-        
+
         toast.success(`Loaded ${newMessages.length} more messages`);
       } else {
         setHasMoreMessages(false);
@@ -1095,12 +1099,12 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
       // Get AI configuration
       const aiConfig = getFeatureAIConfig('training');
-      
+
       // Start manual training
       await startBackgroundTrainingWithRetry(aiConfig);
-      
+
       toast.success('Training started manually!');
-      
+
     } catch (err) {
       debug.error('ConversationDetails', 'Manual training failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to start training';
@@ -1128,7 +1132,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
       // Get AI configuration for summary feature
       const aiConfig = getFeatureAIConfig('summary');
-      
+
       console.log('📝 Summary generation request:', {
         conversationId,
         locationId,
@@ -1142,7 +1146,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       // Call FastAPI directly to generate a fresh summary with AI configuration
       const summaryData = await fetchWithDebug(`/api/ai/conversation/summary`, {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           userId: 'client-user',
           conversationId,
           locationId,
@@ -1152,7 +1156,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
           humanlikeBehavior: aiConfig.humanlikeBehavior
         })
       });
-      
+
       if (summaryData?.success && summaryData?.summary) {
         setSummary(summaryData.summary);
         const modelInfo = ` [${aiConfig.model}@${aiConfig.temperature}]`;
@@ -1161,7 +1165,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       } else {
         throw new Error(summaryData?.error || 'Failed to regenerate summary');
       }
-      
+
     } catch (err) {
       debug.error('ConversationDetails', 'Summary regeneration error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to regenerate summary';
@@ -1193,11 +1197,11 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button 
+        <Button
           onClick={() => {
             retryCountRef.current = 0;
             window.location.reload();
-          }} 
+          }}
           variant="outline"
         >
           Retry
@@ -1213,7 +1217,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         <LoadingSpinner className="w-8 h-8" />
         <div className="mt-4 text-muted-foreground">
           Loading conversation{retryCountRef.current > 0 ? ` (retry ${retryCountRef.current})` : ''}...
-      </div>
+        </div>
       </Card>
     );
   }
@@ -1238,7 +1242,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
     try {
       console.log('MANUAL TRAIN: Button clicked!', { conversationId, locationId });
       debug.log('ConversationDetails', 'Manual training triggered');
-      
+
       // Show loading state
       setTrainingStatus(prev => prev ? ({
         ...prev,
@@ -1256,12 +1260,12 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       // Get AI configuration
       const aiConfig = getFeatureAIConfig('training');
       console.log('MANUAL TRAIN: AI config:', aiConfig);
-      
+
       // Try to fetch messages for training
       let trainingMessages = [];
       try {
         console.log('MANUAL TRAIN: Fetching messages from:', `/api/leadconnector/conversations/${conversationId}/messages?limit=100`);
-        
+
         const messagesResponse = await fetchWithDebug(
           `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
           { method: 'GET' }
@@ -1350,11 +1354,11 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         // If no valid messages found, create synthetic messages with customer details
         if (trainingMessages.length === 0) {
           console.log('MANUAL TRAIN: No valid messages found, creating synthetic messages with customer details');
-          
+
           const customerName = urlContactInfo?.name || 'Customer';
           const customerEmail = urlContactInfo?.email || '';
           const customerPhone = urlContactInfo?.phone || '';
-          
+
           // Create synthetic messages with customer information
           trainingMessages = [
             {
@@ -1460,7 +1464,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       });
 
       console.log('MANUAL TRAIN: Calling training endpoint...');
-        
+
       const trainData = await fetchWithDebug(
         `/api/ai/conversation/train`,
         {
@@ -1468,13 +1472,13 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
           body: JSON.stringify(trainingPayload)
         }
       );
-      
+
       console.log('MANUAL TRAIN: Training response:', trainData);
-      
+
       if (trainData?.success) {
         debug.log('ConversationDetails', 'Manual training completed successfully');
         console.log('MANUAL TRAIN: Training successful!');
-        
+
         const newTrainingStatus = {
           isTrained: true,
           isTraining: false,
@@ -1485,25 +1489,25 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
         setTrainingStatus(newTrainingStatus);
         toast.success('Conversation trained successfully!');
-        
+
         // Load summary after successful training
         try {
           await loadSummaryInBackground();
         } catch (summaryError) {
           debug.warn('ConversationDetails', 'Failed to load summary after manual training:', summaryError);
         }
-        
+
       } else {
         throw new Error(trainData?.error || 'Training failed');
       }
-      
+
     } catch (error) {
       console.error('MANUAL TRAIN: Training failed:', error);
       debug.error('ConversationDetails', 'Manual training failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Training failed';
       setError(errorMessage);
       toast.error(`Training failed: ${errorMessage}`);
-      
+
       setTrainingStatus(prev => prev ? ({ ...prev, isTraining: false }) : {
         isTrained: false, isTraining: false, lastUpdated: new Date().toISOString(), messageCount: 0, vectorCount: 0
       });
@@ -1516,101 +1520,101 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
       {/* Header Section */}
       <ConversationHeader contact={urlContactInfo}>
         <div className="flex items-center gap-1">
-            {/* Autopilot Floating Button */}
-            <AutopilotFloatingButton conversationId={conversationId} />
-            
-            {/* Manual Train Button */}
+          {/* Autopilot Floating Button */}
+          <AutopilotFloatingButton conversationId={conversationId} />
+
+          {/* Manual Train Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant={trainingStatus?.isTrained ? "outline" : "default"}
+                onClick={() => {
+                  console.log('TRAIN BUTTON CLICKED!');
+                  console.log('Button state:', {
+                    isTraining: trainingStatus?.isTraining,
+                    fastApiOnline: fastApiStatus.isOnline,
+                    disabled: trainingStatus?.isTraining || !fastApiStatus.isOnline
+                  });
+                  handleManualTrain();
+                }}
+                disabled={trainingStatus?.isTraining || !fastApiStatus.isOnline}
+                className={cn(
+                  "h-8 px-3",
+                  trainingStatus?.isTrained && "border-green-500 text-green-700 hover:bg-green-50"
+                )}
+              >
+                {trainingStatus?.isTraining ? (
+                  <>
+                    <LoadingSpinner className="w-3 h-3 mr-1" />
+                    Training...
+                  </>
+                ) : (
+                  <>
+                    <Train className="w-3 h-3 mr-1" />
+                    Train
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                <p><strong>Train Conversation</strong></p>
+                <p>Enable AI features for this conversation</p>
+                <p className="text-muted-foreground mt-1">
+                  {trainingStatus?.isTrained ? 'Trained' : 'Not trained'}
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Active AI Agent Indicator */}
+          {activeAgent && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={trainingStatus?.isTrained ? "outline" : "default"}
-                  onClick={() => {
-                    console.log('TRAIN BUTTON CLICKED!');
-                    console.log('Button state:', {
-                      isTraining: trainingStatus?.isTraining,
-                      fastApiOnline: fastApiStatus.isOnline,
-                      disabled: trainingStatus?.isTraining || !fastApiStatus.isOnline
-                    });
-                    handleManualTrain();
-                  }}
-                  disabled={trainingStatus?.isTraining || !fastApiStatus.isOnline}
-                  className={cn(
-                    "h-8 px-3",
-                    trainingStatus?.isTrained && "border-green-500 text-green-700 hover:bg-green-50"
-                  )}
-                >
-                  {trainingStatus?.isTraining ? (
-                    <>
-                      <LoadingSpinner className="w-3 h-3 mr-1" />
-                      Training...
-                    </>
-                  ) : (
-                    <>
-                      <Train className="w-3 h-3 mr-1" />
-                      Train
-                    </>
-                  )}
-                </Button>
+                <Badge variant="outline" className="text-xs px-2 py-1 h-6 border-purple-200 text-purple-700 bg-purple-50">
+                  <Bot className="w-3 h-3 mr-1" />
+                  {activeAgent.name.length > 12 ? activeAgent.name.slice(0, 12) + '...' : activeAgent.name}
+                </Badge>
               </TooltipTrigger>
               <TooltipContent>
                 <div className="text-xs">
-                  <p><strong>Train Conversation</strong></p>
-                  <p>Enable AI features for this conversation</p>
-                  <p className="text-muted-foreground mt-1">
-                    {trainingStatus?.isTrained ? 'Trained' : 'Not trained'}
-                  </p>
+                  <p><strong>Active AI Agent</strong></p>
+                  <p>{activeAgent.name}</p>
+                  <p className="text-muted-foreground mt-1">This agent handles AI features for this conversation</p>
                 </div>
               </TooltipContent>
             </Tooltip>
+          )}
 
-            {/* Active AI Agent Indicator */}
-            {activeAgent && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs px-2 py-1 h-6 border-purple-200 text-purple-700 bg-purple-50">
-                    <Bot className="w-3 h-3 mr-1" />
-                    {activeAgent.name.length > 12 ? activeAgent.name.slice(0, 12) + '...' : activeAgent.name}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="text-xs">
-                    <p><strong>Active AI Agent</strong></p>
-                    <p>{activeAgent.name}</p>
-                    <p className="text-muted-foreground mt-1">This agent handles AI features for this conversation</p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          
           {/* AI Training Status Dot */}
-            <Tooltip>
-              <TooltipTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <div className="flex items-center gap-1">
                 {/* Status dots removed for simplicity */}
               </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-xs space-y-2">
-                  {/* Training Status */}
-                  <div>
-                    <p><strong>Training Status</strong></p>
-                    {trainingStatus?.isTraining ? (
-                      <p>Training in progress...</p>
-                    ) : trainingStatus?.isTrained ? (
-                      <p>Conversation trained</p>
-                    ) : (
-                      <p>Conversation not trained</p>
-                    )}
-                    {trainingStatus?.lastUpdated && (
-                      <p className="text-muted-foreground">
-                        Last updated: {new Date(trainingStatus.lastUpdated).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs space-y-2">
+                {/* Training Status */}
+                <div>
+                  <p><strong>Training Status</strong></p>
+                  {trainingStatus?.isTraining ? (
+                    <p>Training in progress...</p>
+                  ) : trainingStatus?.isTrained ? (
+                    <p>Conversation trained</p>
+                  ) : (
+                    <p>Conversation not trained</p>
+                  )}
+                  {trainingStatus?.lastUpdated && (
+                    <p className="text-muted-foreground">
+                      Last updated: {new Date(trainingStatus.lastUpdated).toLocaleString()}
+                    </p>
+                  )}
                 </div>
-              </TooltipContent>
-            </Tooltip>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </ConversationHeader>
 
@@ -1620,9 +1624,9 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">Summary:</span>
-                {trainingStatus?.isTrained && (
-                  <CheckCircle className="w-3 h-3 text-green-500" />
-                )}
+              {trainingStatus?.isTrained && (
+                <CheckCircle className="w-3 h-3 text-green-500" />
+              )}
             </div>
             <Button
               variant="ghost"
@@ -1635,15 +1639,15 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 <>
                   <LoadingSpinner className="w-3 h-3 mr-1" />
                   Regenerating...
-                    </>
+                </>
               ) : 'Regenerate'}
-                </Button>
+            </Button>
           </div>
           <div className="mt-1 text-sm text-foreground">
             {summary}
           </div>
-              </div>
-            )}
+        </div>
+      )}
 
       {/* Main Messages Container */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -1685,15 +1689,15 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 </div>
               ) : (
                 messages.map((msg, index) => (
-                  <MessageBubble 
-                    key={msg.id} 
-                    message={msg} 
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
                     isLast={index === messages.length - 1}
                     urlContactInfo={urlContactInfo}
                   />
                 ))
               )}
-              
+
               {/* Auto-scroll anchor */}
               <div ref={messagesEndRef} />
             </div>
@@ -1722,7 +1726,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <QueryInput 
+            <QueryInput
               conversationId={conversationId}
               locationId={locationId}
               disabled={disabled}
@@ -1748,10 +1752,11 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
             phone: urlContactInfo?.phone,
           }}
           conversationType={
-            messages.length > 0 
-              ? messages.find(msg => msg.messageType)?.messageType 
+            messages.length > 0
+              ? messages.find(msg => msg.messageType)?.messageType
               : undefined
           }
+          messagesList={messagesList}
         />
       </div>
     </Card>
