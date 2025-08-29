@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useSearchParams } from 'next/navigation';
 import { MessageInput } from './MessageInput';
 import { QueryInput } from './QueryInput';
-import { Message, MessageList } from '@/lib/leadconnector/types/messageTypes';
+import { Message } from '@/lib/leadconnector/types/messageTypes';
 import { TrainingStatus } from './types';
 import { toast } from 'sonner';
 import { selectAgentForFeature } from '@/utils/ai/agentSelection';
@@ -352,7 +352,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   console.log("urlContactInfo:", urlContactInfo)
   // State
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messagesList, setMessagesList] = useState<MessageList[]>([]);
+  const [messagesList, setMessagesList] = useState<Message[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(null);
   const [showQueryInput, setShowQueryInput] = useState(false);
@@ -778,8 +778,10 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
         { method: 'GET' }
       );
-      if (messagesResponse?.messages) {
-        setMessagesList(messagesResponse?.messages ?? [])
+      
+      if (messagesResponse?.data.messages?.messages) {
+        
+        setMessagesList(messagesResponse?.data.messages?.messages as Message[]);
       }
       if (!messagesResponse?.messages?.messages?.length) {
         throw new Error('No messages found for training');
@@ -1756,7 +1758,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
               ? messages.find(msg => msg.messageType)?.messageType
               : undefined
           }
-          messagesList={messagesList}
+          messagesList={messagesList as any}
         />
       </div>
     </Card>

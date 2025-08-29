@@ -138,15 +138,15 @@ const STORAGE_CONFIG = {
 };
 
 // Available message types for sending (aligned with GHL API)
-const SENDABLE_MESSAGE_TYPES = [
-  { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
-  { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
-  { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
-  { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
-  { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
-  { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
-  { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
-] as const;
+// const SENDABLE_MESSAGE_TYPES = [
+//   { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
+//   { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
+//   { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
+//   { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
+//   { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
+//   { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
+//   { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
+// ] as const;
 
 // Helper function to map internal message type to GHL API type
 const mapInternalToGHLType = (internalType: string): string => {
@@ -259,17 +259,38 @@ interface Messagess {
   messageType: string;
   // add other properties if needed
 }
-const getAvailableMessageTypes = (messagesList: any[]) => {
+
+const SENDABLE_MESSAGE_TYPES = [
+  { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
+  { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
+  { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
+  { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
+  { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
+  { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
+  { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
+] as const;
+
+interface MessageTypeOption {
+  value: string;
+  internal: string;
+  label: string;
+  description: string;
+}
+const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
   if (!messagesList || messagesList.length === 0) {
-    // Return some default types when no messages exist
     return [
-      { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
-      { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' }
+      { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' }
     ];
   }
   
   const existingTypes = new Set(messagesList.map(msg => msg.messageType));
-  return SENDABLE_MESSAGE_TYPES.filter(type => existingTypes.has(type.internal));
+  
+  // Filter to only include types that exist in messages AND are in SENDABLE_MESSAGE_TYPES
+  const result = SENDABLE_MESSAGE_TYPES.filter(type => {
+    return existingTypes.has(type.internal);
+  });
+  
+  return result as MessageTypeOption[];
 };
 
 // const getAvailableMessageTypes = (
