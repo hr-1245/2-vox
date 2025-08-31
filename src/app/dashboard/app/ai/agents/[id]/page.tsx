@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,7 +52,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+  const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>([]);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -60,7 +61,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
     additionalInformation: '',
     isActive: true
   });
-  
+
   const [testInput, setTestInput] = useState('');
   const [testResult, setTestResult] = useState<string | null>(null);
 
@@ -105,12 +106,12 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       setLoading(true);
       const response = await fetch(`/api/ai/agents/${agentId}`);
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         // Transform database format to expected format
         const agent = data.data;
         const agentData = agent.data || {}; // Extract the data field containing personality, intent, etc.
-        
+
         const transformedAgent = {
           id: agent.id,
           userId: agent.user_id,
@@ -162,12 +163,12 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         // Transform the updated agent data
         const agent = data.data;
         const agentData = agent.data || {};
-        
+
         const transformedAgent = {
           id: agent.id,
           userId: agent.user_id,
@@ -218,10 +219,10 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setTestResult(data.data.answer || data.data.response || 'Agent responded successfully');
-      toast.success('Agent test completed');
+        toast.success('Agent test completed');
       } else {
         // Fallback for when testing backend is not available
         setTestResult(`Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`);
@@ -245,7 +246,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success('Agent deleted successfully');
         router.push('/dashboard/app/ai/agents');
@@ -303,7 +304,15 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
   }
 
   const typeInfo = getAgentTypeInfo(agent.agentType);
-
+  const SENDABLE_MESSAGE_TYPES = [
+    { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
+    { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
+    { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
+    { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
+    { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
+    { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
+    { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
+  ] as const;
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -320,7 +329,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {!editing ? (
             <>
@@ -328,7 +337,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="text-destructive hover:text-destructive">
@@ -424,7 +433,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                     </div>
                   )}
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
                   {editing ? (
@@ -440,7 +449,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                     </div>
                   )}
                 </div>
-                
+
                 <div className="grid gap-4">
                   {/* Personality Field */}
                   <div className="grid gap-2">
@@ -508,7 +517,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                     </div>
                   )}
                 </div>
-                
+
                 {editing && (
                   <div className="flex items-center space-x-2">
                     <input
@@ -524,7 +533,28 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
               </div>
             </CardContent>
           </Card>
-
+          <Card className="p-4 space-y-3">
+            {SENDABLE_MESSAGE_TYPES.map((type) => (
+              <label
+                key={type.value}
+                className="flex items-center space-x-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selectedMessageTypes.includes(type.value)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedMessageTypes((prev) => [...prev, type.value]);
+                    } else {
+                      setSelectedMessageTypes((prev) =>
+                        prev.filter((v) => v !== type.value)
+                      );
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium">{type.label}</span>
+              </label>
+            ))}
+          </Card>
           {/* Test Agent */}
           <Card>
             <CardHeader>
@@ -547,7 +577,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                   rows={3}
                 />
               </div>
-              
+
               <Button onClick={testAgent} disabled={testing || !testInput.trim()}>
                 {testing ? (
                   <>
@@ -561,7 +591,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                   </>
                 )}
               </Button>
-              
+
               {testResult && (
                 <div className="grid gap-2">
                   <Label>Agent Response</Label>
@@ -593,13 +623,13 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                   <span className="text-muted-foreground">User ID:</span>
                   <span className="font-mono text-xs">{agent.userId}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-sm">
                   <Bot className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Agent ID:</span>
                   <span className="font-mono text-xs">{agent.id}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-sm">
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Type:</span>
@@ -607,15 +637,15 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                     {typeInfo.label}
                   </Badge>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Created:</span>
                   <span>{new Date(agent.createdAt).toLocaleDateString()}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Updated:</span>
@@ -635,14 +665,14 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
                 <Edit className="h-4 w-4 mr-2" />
                 {editing ? 'Cancel Edit' : 'Edit Agent'}
               </Button>
-              
+
               <Button variant="outline" className="w-full justify-start" onClick={() => {
                 setTestInput('Hello, can you help me?');
               }}>
                 <TestTube className="h-4 w-4 mr-2" />
                 Quick Test
               </Button>
-              
+
               <Button variant="outline" className="w-full justify-start" onClick={() => {
                 navigator.clipboard.writeText(agent.id);
                 toast.success('Agent ID copied to clipboard');
