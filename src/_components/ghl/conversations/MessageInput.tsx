@@ -1169,7 +1169,7 @@ export function MessageInput({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            type: finalMessageType,
+            type: finalMessageType.split("_")[1],
             message: message.trim(),
             contactId: customerInfo.contactId
           }),
