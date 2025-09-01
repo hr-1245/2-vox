@@ -28,6 +28,7 @@ interface Agent {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  channels: string[];
 }
 
 // Remove hardcoded user ID for production readiness
@@ -124,9 +125,11 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
           systemPrompt: agent.system_prompt || '',
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
-          updatedAt: agent.updated_at || agent.created_at
+          updatedAt: agent.updated_at || agent.created_at,
+          channels: agent.channels || []
         };
         setAgent(transformedAgent);
+        setSelectedMessageTypes(agent.channels || []);
       } else {
         throw new Error(data.error || 'Failed to load agent');
       }
@@ -158,7 +161,15 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
             intent: editForm.intent,
             additionalInformation: editForm.additionalInformation
           },
-          is_active: editForm.isActive
+          is_active: editForm.isActive,
+          channels: selectedMessageTypes.map((t) => {
+            switch (t) {
+              case 'SMS': return 'sms';
+              case 'FB': return 'facebook';
+              case 'IG': return 'instagram';
+              default: return null;
+            }
+          }).filter(Boolean)
         })
       });
 
@@ -181,7 +192,8 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
           systemPrompt: agent.system_prompt || '',
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
-          updatedAt: agent.updated_at || agent.created_at
+          updatedAt: agent.updated_at || agent.created_at,
+          channels: agent.channels || [] 
         };
         setAgent(transformedAgent);
         setEditing(false);

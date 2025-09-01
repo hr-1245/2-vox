@@ -78,7 +78,16 @@ export default function CreateAgentPage() {
   const [kbSearchTerm, setKbSearchTerm] = useState('');
   const [kbTypeFilter, setKbTypeFilter] = useState<number | 'all'>('all');
   const [kbSortBy, setKbSortBy] = useState<'name' | 'created' | 'type'>('name');
-
+   const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>([]);
+  const SENDABLE_MESSAGE_TYPES = [
+    { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
+    { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
+    { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
+    { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
+    { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
+    { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
+    { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
+  ] as const;
   const [formData, setFormData] = useState<CreateAgentForm>({
     name: '',
     description: '',
@@ -160,7 +169,8 @@ export default function CreateAgentPage() {
         // AI Configuration (required by FastAPI)
         temperature: formData.temperature,
         model: formData.model,
-        humanlikeBehavior: formData.humanlikeBehavior
+        humanlikeBehavior: formData.humanlikeBehavior,
+        channels: selectedMessageTypes
       };
 
       console.log('Creating agent with payload:', payload);
@@ -381,7 +391,28 @@ export default function CreateAgentPage() {
                   </div>
                 </div>
               </div>
-              
+                <Card className="p-4 space-y-3">
+            {SENDABLE_MESSAGE_TYPES.map((type) => (
+              <label
+                key={type.value}
+                className="flex items-center space-x-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selectedMessageTypes.includes(type.value)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedMessageTypes((prev) => [...prev, type.value]);
+                    } else {
+                      setSelectedMessageTypes((prev) =>
+                        prev.filter((v) => v !== type.value)
+                      );
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium">{type.label}</span>
+              </label>
+            ))}
+          </Card>
               {/* AI Configuration */}
               <Card className="border">
                 <CardHeader className="pb-3">
