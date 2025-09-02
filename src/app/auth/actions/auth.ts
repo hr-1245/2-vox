@@ -22,7 +22,6 @@ function isNextRedirectError(error: unknown): error is NextRedirectError {
 
 export async function login(formData: FormData) {
   try {
-    debugger
     const result = await authLogin(formData)
 
     if ('success' in result && result.success) {

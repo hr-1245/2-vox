@@ -35,7 +35,6 @@ import {
   Zap
 } from 'lucide-react';
 import { autoEnableForSingleConversation } from '@/utils/autopilot/voxAiAutoEnable';
-debugger
 
 // Enhanced debug helper with better error formatting
 const debug = {
