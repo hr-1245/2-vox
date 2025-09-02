@@ -90,6 +90,7 @@ export interface AIAgentUpdate {
   metadata?: Record<string, any>;
   data?: Record<string, any>;
   updated_at?: string;
+  channels?: Record<string, { enabled: boolean; settings?: any }>;
 }
 
 // Knowledge Base Type Settings

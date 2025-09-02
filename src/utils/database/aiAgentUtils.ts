@@ -15,7 +15,6 @@ import {
   generateSystemPrompt,
   mergeAgentData
 } from '@/utils/ai/agentDataUtils';
-import { DEFAULT_AGENT_TEMPLATES } from '@/utils/database/knowledgebase';
 
 interface ErrorResponse {
   success: false;
@@ -240,7 +239,8 @@ export async function createAgent(agentData: AIAgentInsert): Promise<AgentRespon
       data: fullData,
       is_active: agentData.is_active !== undefined ? agentData.is_active : true,
       configuration: agentData.configuration || {},
-      metadata: agentData.metadata || {}
+      metadata: agentData.metadata || {},
+      channels: agentData.channels || {} // Add channels support
     };
     
     const { data, error } = await supabase
@@ -306,6 +306,12 @@ export async function updateAgent(
     if (updates.knowledge_base_ids !== undefined) updateData.knowledge_base_ids = updates.knowledge_base_ids;
     if (updates.configuration !== undefined) updateData.configuration = updates.configuration;
     if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
+    
+    // Handle channels field updates
+    if (updates.channels !== undefined) {
+      console.log('Processing channels update in updateAgent:', updates.channels);
+      updateData.channels = updates.channels;
+    }
     
     // Handle data field updates
     if (updates.data) {
@@ -446,8 +452,6 @@ export async function getDefaultAgentForType(
   }
 }
 
-// Removed ensureUserHasDefaultAgents - users create their own agents
-
 /**
  * Convert FastAPI agent format to database format with new schema
  */
@@ -502,6 +506,23 @@ export function convertFastAPIAgentToDatabase(
     agentData.knowledgeBase.preferredSources = fastApiAgent.knowledgeBaseIds;
   }
   
+  // Handle channels if provided
+  let channels: Record<string, { enabled: boolean; settings?: any }> = {};
+  if (fastApiAgent.channels) {
+    if (Array.isArray(fastApiAgent.channels)) {
+      // Convert array format to object format
+      const allPossibleChannels = ['sms', 'facebook', 'instagram', 'web', 'whatsapp', 'email'];
+      allPossibleChannels.forEach(channel => {
+        channels[channel] = {
+          enabled: fastApiAgent.channels.includes(channel),
+          settings: {}
+        };
+      });
+    } else if (typeof fastApiAgent.channels === 'object') {
+      channels = fastApiAgent.channels;
+    }
+  }
+  
   // Set metadata
   agentData.metadata = {
     ...agentData.metadata,
@@ -529,7 +550,8 @@ export function convertFastAPIAgentToDatabase(
     knowledge_base_ids: fastApiAgent.knowledgeBaseIds,
     description: fastApiAgent.description || agentData.additionalInformation,
     data: agentData,
-    configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {}, // Store configuration directly
+    channels: channels, // Add channels support
+    configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {},
     is_active: fastApiAgent.isActive !== undefined ? fastApiAgent.isActive : true
   };
 }
@@ -544,6 +566,12 @@ export function convertDatabaseAgentToFastAPI(dbAgent: AIAgent): any {
   const metadata = data.metadata || {};
   const agentType = metadata.category || getAgentTypeString(dbAgent.type);
   
+  // Convert channels object to array for frontend
+  const channelsArray = dbAgent.channels ? 
+    Object.entries(dbAgent.channels)
+      .filter(([_, config]) => config.enabled)
+      .map(([channel]) => channel) : [];
+
   return {
     id: dbAgent.id,
     name: dbAgent.name,
@@ -558,6 +586,7 @@ export function convertDatabaseAgentToFastAPI(dbAgent: AIAgent): any {
     createdAt: dbAgent.created_at,
     updatedAt: dbAgent.updated_at,
     knowledgeBaseIds: data.knowledgeBase?.preferredSources || dbAgent.knowledge_base_ids || [],
+    channels: channelsArray, // Add channels to response
     modelConfig: {
       model: 'gpt-4o-mini',
       temperature: data.responseConfig?.temperature || 0.7,
@@ -583,4 +612,4 @@ function getAgentTypeString(type: AgentType): string {
     case AGENT_TYPES.AUTOPILOT: return 'autopilot';
     default: return 'custom';
   }
-} 
+}

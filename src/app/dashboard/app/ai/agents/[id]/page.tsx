@@ -31,9 +31,6 @@ interface Agent {
   channels: string[];
 }
 
-// Remove hardcoded user ID for production readiness
-// const USER_ID = 'ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21';
-
 const AGENT_TYPES = {
   query: { label: 'Query Agent', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
   suggestions: { label: 'Suggestions Agent', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
@@ -76,6 +73,61 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
     }
   };
 
+ // Helper function to convert channels object to array
+const convertChannelsObjectToArray = (channels: Record<string, { enabled: boolean; settings?: any }>): string[] => {
+  if (!channels) return [];
+  
+  const channelMappings = {
+    'sms': 'SMS',
+    'email': 'Email',
+    'whatsapp': 'WhatsApp',
+    'facebook': 'FB',
+    'instagram': 'IG',
+    'web': 'Live_Chat',
+    'gmb': 'Custom'
+  };
+  
+  return Object.entries(channels)
+    .filter(([backendValue, config]) => config.enabled && channelMappings[backendValue as keyof typeof channelMappings])
+    .map(([backendValue]) => channelMappings[backendValue as keyof typeof channelMappings]);
+};
+
+  // Helper function to convert array to channels object
+ // Helper function to convert array to channels object
+const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, { enabled: boolean; settings?: any }> => {
+  const channelsObject: Record<string, { enabled: boolean; settings?: any }> = {};
+  
+  // Map frontend values to backend values
+  const channelMappings = {
+    'SMS': 'sms',
+    'Email': 'email',
+    'WhatsApp': 'whatsapp',
+    'FB': 'facebook',
+    'IG': 'instagram',
+    'Live_Chat': 'web',
+    'Custom': 'gmb'
+  };
+  
+  // Initialize all channels as disabled
+  const allChannels = ['sms', 'facebook', 'instagram', 'web', 'whatsapp', 'email', 'gmb'];
+  allChannels.forEach(channel => {
+    channelsObject[channel] = {
+      enabled: false,
+      settings: {}
+    };
+  });
+  
+  // Enable only the selected channels
+  channelsArray.forEach(frontendValue => {
+    const backendValue = channelMappings[frontendValue as keyof typeof channelMappings];
+    if (backendValue && channelsObject[backendValue]) {
+      channelsObject[backendValue].enabled = true;
+    }
+  });
+  
+  return channelsObject;
+};
+
   useEffect(() => {
     // Resolve params promise
     params.then(resolvedParams => {
@@ -111,7 +163,10 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       if (data.success && data.data) {
         // Transform database format to expected format
         const agent = data.data;
-        const agentData = agent.data || {}; // Extract the data field containing personality, intent, etc.
+        const agentData = agent.data || {};
+
+        // Convert channels object to array for the frontend
+        const channelsArray = convertChannelsObjectToArray(agent.channels);
 
         const transformedAgent = {
           id: agent.id,
@@ -126,10 +181,10 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
           updatedAt: agent.updated_at || agent.created_at,
-          channels: agent.channels || []
+          channels: channelsArray
         };
         setAgent(transformedAgent);
-        setSelectedMessageTypes(agent.channels || []);
+        setSelectedMessageTypes(channelsArray);
       } else {
         throw new Error(data.error || 'Failed to load agent');
       }
@@ -150,6 +205,10 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
 
     try {
       setSaving(true);
+      
+      // Convert selected message types to object format for backend
+      const channelsObject = convertArrayToChannelsObject(selectedMessageTypes);
+
       const response = await fetch(`/api/ai/agents/${agentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -162,14 +221,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
             additionalInformation: editForm.additionalInformation
           },
           is_active: editForm.isActive,
-          channels: selectedMessageTypes.map((t) => {
-            switch (t) {
-              case 'SMS': return 'sms';
-              case 'FB': return 'facebook';
-              case 'IG': return 'instagram';
-              default: return null;
-            }
-          }).filter(Boolean)
+          channels: channelsObject
         })
       });
 
@@ -179,6 +231,9 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
         // Transform the updated agent data
         const agent = data.data;
         const agentData = agent.data || {};
+
+        // Convert channels object back to array format for the frontend
+        const channelsArray = convertChannelsObjectToArray(agent.channels);
 
         const transformedAgent = {
           id: agent.id,
@@ -193,9 +248,10 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
           updatedAt: agent.updated_at || agent.created_at,
-          channels: agent.channels || [] 
+          channels: channelsArray
         };
         setAgent(transformedAgent);
+        setSelectedMessageTypes(channelsArray);
         setEditing(false);
         toast.success('Agent updated successfully');
       } else {
@@ -217,7 +273,6 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
 
     try {
       setTesting(true);
-      // Use the agent conversation API for testing
       const response = await fetch('/api/ai/agents/conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,13 +291,11 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
         setTestResult(data.data.answer || data.data.response || 'Agent responded successfully');
         toast.success('Agent test completed');
       } else {
-        // Fallback for when testing backend is not available
         setTestResult(`Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`);
         toast.warning('AI backend unavailable - showing demo response');
       }
     } catch (error) {
       console.error('Error testing agent:', error);
-      // Provide a fallback response
       setTestResult(`Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`);
       toast.warning('AI backend unavailable - showing demo response');
     } finally {
@@ -278,11 +331,12 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
       setEditForm({
         name: agent.name,
         description: agent.description,
-        personality: '', // Placeholder, will be updated
-        intent: '', // Placeholder, will be updated
-        additionalInformation: '', // Placeholder, will be updated
+        personality: agent.personality,
+        intent: agent.intent,
+        additionalInformation: agent.additionalInformation,
         isActive: agent.isActive
       });
+      setSelectedMessageTypes(agent.channels || []);
     }
     setEditing(false);
   };
@@ -317,14 +371,15 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
 
   const typeInfo = getAgentTypeInfo(agent.agentType);
   const SENDABLE_MESSAGE_TYPES = [
-    { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
-    { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
-    { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
-    { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook Messenger', description: 'Facebook message' },
-    { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram Direct', description: 'Instagram message' },
-    { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
-    { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business Messages', description: 'Google My Business message' }
+    { value: 'SMS', backendValue: 'sms', label: 'SMS', description: 'Text message' },
+    { value: 'Email', backendValue: 'email', label: 'Email', description: 'Email message' },
+    { value: 'WhatsApp', backendValue: 'whatsapp', label: 'WhatsApp', description: 'WhatsApp message' },
+    { value: 'FB', backendValue: 'facebook', label: 'Facebook Messenger', description: 'Facebook message' },
+    { value: 'IG', backendValue: 'instagram', label: 'Instagram Direct', description: 'Instagram message' },
+    { value: 'Live_Chat', backendValue: 'web', label: 'Web Chat', description: 'Website chat message' },
+    { value: 'Custom', backendValue: 'gmb', label: 'Google Business Messages', description: 'Google My Business message' }
   ] as const;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -569,6 +624,7 @@ function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) 
               </label>
             ))}
           </Card>
+          
           {/* Test Agent */}
           <Card>
             <CardHeader>

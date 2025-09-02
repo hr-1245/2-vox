@@ -113,6 +113,7 @@ export interface AgentDataSchema {
       url: string;
       events: string[];
       enabled: boolean;
+      headers?: Record<string, string>;
     }>;
     apiKeys?: Record<string, string>;
   };
@@ -358,6 +359,7 @@ export interface AIAgent {
   is_active?: boolean;
   metadata?: Record<string, any>;
   data?: Record<string, any>;
+  channels?: Record<string, { enabled: boolean; settings?: any }>;
   created_at?: string;
   updated_at?: string;
 }
@@ -374,6 +376,7 @@ export interface AIAgentInsert {
   configuration?: Record<string, any>;
   is_active?: boolean;
   metadata?: Record<string, any>;
+  channels?: Record<string, { enabled: boolean; settings?: any }>;
 }
 
 export interface AIAgentUpdate {
@@ -387,6 +390,7 @@ export interface AIAgentUpdate {
   is_active?: boolean;
   metadata?: Record<string, any>;
   updated_at?: string;
+  channels?: Record<string, { enabled: boolean; settings?: any }>;
 }
 
 /**
@@ -476,4 +480,4 @@ export const AGENT_VALIDATION_RULES: AgentValidationRules = {
   intent: { minLength: 10, maxLength: 10000, required: true },
   additionalInformation: { maxLength: 10000, required: false },
   systemPrompt: { minLength: 20, maxLength: 10000, required: true }
-}; 
+};

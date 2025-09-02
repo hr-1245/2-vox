@@ -118,7 +118,8 @@ export async function PUT(
     console.log('AI agent update request:', {
       userId: user.id,
       agentId: id,
-      updates: Object.keys(body)
+      updates: Object.keys(body),
+      channels: body.channels
     });
 
     // Handle both FastAPI format and direct database format
@@ -136,12 +137,42 @@ export async function PUT(
         knowledge_base_ids: converted.knowledge_base_ids,
         is_active: converted.is_active,
         metadata: converted.metadata,
-        data: converted.data
+        data: converted.data,
+        channels: converted.channels,
       };
     } else {
-      // Direct database format
-      updateData = body as AIAgentUpdate;
+      // Direct database format - handle channels conversion
+      updateData = { ...body } as AIAgentUpdate;
+      
+      // Convert channels from array format to object format if needed
+      if (body.channels !== undefined) {
+        if (Array.isArray(body.channels)) {
+          // Convert array format to object format
+          console.log('Converting channels array to object format:', body.channels);
+          
+          const channelsObject: Record<string, any> = {};
+          const allPossibleChannels = ['sms', 'facebook', 'instagram', 'web', 'whatsapp', 'email'];
+          
+          allPossibleChannels.forEach(channel => {
+            channelsObject[channel] = {
+              enabled: body.channels.includes(channel),
+              settings: {}
+            };
+          });
+          
+          updateData.channels = channelsObject;
+        } else if (typeof body.channels === 'object' && body.channels !== null) {
+          // Already in object format, use as-is
+          updateData.channels = body.channels;
+        } else {
+          // Invalid format, set to empty object
+          console.warn('Invalid channels format, setting to empty object');
+          updateData.channels = {};
+        }
+      }
     }
+
+    console.log('Final update data channels:', updateData.channels);
 
     const result = await updateAgent(id, user.id, updateData);
     
@@ -336,4 +367,4 @@ export async function DELETE(
       error: error instanceof Error ? error.message : 'Internal server error'
     } satisfies ErrorResponse, { status: 500 });
   }
-} 
+}
