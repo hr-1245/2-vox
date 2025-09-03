@@ -130,7 +130,24 @@ export default function CreateAgentPage() {
 
     loadKnowledgeBases();
   }, []);
+const convertArrayToChannelsObject = (selected: string[]) => {
+  const channelMappings = {
+    SMS: 'sms',
+    Email: 'email',
+    WhatsApp: 'whatsapp',
+    FB: 'facebook',
+    IG: 'instagram',
+    Live_Chat: 'web',
+    Custom: 'gmb',
+  };
 
+  return Object.fromEntries(
+    Object.entries(channelMappings).map(([frontend, backend]) => [
+      backend,
+      { enabled: selected.includes(frontend), settings: {} },
+    ])
+  );
+};
   const createAgent = async () => {
     // Prevent multiple submissions
     if (creating) {
@@ -154,7 +171,7 @@ export default function CreateAgentPage() {
           default: return 'generic';
         }
       };
-
+debugger
       const payload = {
         userId: USER_ID,
         name: formData.name,
@@ -170,7 +187,8 @@ export default function CreateAgentPage() {
         temperature: formData.temperature,
         model: formData.model,
         humanlikeBehavior: formData.humanlikeBehavior,
-        channels: selectedMessageTypes
+        channels: convertArrayToChannelsObject(selectedMessageTypes),
+
       };
 
       console.log('Creating agent with payload:', payload);

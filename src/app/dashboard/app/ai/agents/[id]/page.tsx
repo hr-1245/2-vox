@@ -619,8 +619,14 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                       );
                     }
                   }}
+                  disabled={!editing}
                 />
-                <span className="text-sm font-medium">{type.label}</span>
+                      <div className="flex flex-col">
+        <span className="text-sm font-medium">{type.label}</span>
+        <span className="text-xs text-muted-foreground">{type.description}</span>
+      </div>
+
+                {/* <span className="text-sm font-medium">{type.label}</span> */}
               </label>
             ))}
           </Card>

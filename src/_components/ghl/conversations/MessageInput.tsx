@@ -1583,6 +1583,7 @@ Focus on relationship building and moving the conversation forward constructivel
   // Handle autopilot toggle - actually save the setting and fetch conversation metadata
   const handleAutopilotToggle = async () => {
     try {
+      debugger
       const newAutopilotState = !autopilotEnabled;
       console.log('🔄 Toggling autopilot:', { from: autopilotEnabled, to: newAutopilotState });
 
