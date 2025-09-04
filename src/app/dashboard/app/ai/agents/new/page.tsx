@@ -171,7 +171,6 @@ const convertArrayToChannelsObject = (selected: string[]) => {
           default: return 'generic';
         }
       };
-debugger
       const payload = {
         userId: USER_ID,
         name: formData.name,

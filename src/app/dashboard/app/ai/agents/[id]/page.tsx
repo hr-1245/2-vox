@@ -1,19 +1,47 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { LoadingSpinner } from '@/components/loading/LoadingSpinner';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { Bot, Edit, Save, ArrowLeft, TestTube, Activity, Calendar, User, MessageSquare, Settings, Trash2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import {
+  Bot,
+  Edit,
+  Save,
+  ArrowLeft,
+  TestTube,
+  Activity,
+  Calendar,
+  User,
+  MessageSquare,
+  Settings,
+  Trash2,
+} from "lucide-react";
 
 interface Agent {
   id: string;
@@ -32,105 +60,150 @@ interface Agent {
 }
 
 const AGENT_TYPES = {
-  query: { label: 'Query Agent', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-  suggestions: { label: 'Suggestions Agent', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-  response: { label: 'Response Agent', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }
+  query: {
+    label: "Query Agent",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  },
+  suggestions: {
+    label: "Suggestions Agent",
+    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  },
+  response: {
+    label: "Response Agent",
+    color:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  },
 };
 
-export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function AgentDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return <AgentDetailClientPage params={params} />;
 }
 
-function AgentDetailClientPage({ params }: { params: Promise<{ id: string }> }) {
+function AgentDetailClientPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const [agent, setAgent] = useState<Agent | null>(null);
-  const [agentId, setAgentId] = useState<string>('');
+  const [agentId, setAgentId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>([]);
+  const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(
+    []
+  );
   const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
-    personality: '',
-    intent: '',
-    additionalInformation: '',
-    isActive: true
+    name: "",
+    description: "",
+    personality: "",
+    intent: "",
+    additionalInformation: "",
+    isActive: true,
   });
 
-  const [testInput, setTestInput] = useState('');
+  const [testInput, setTestInput] = useState("");
   const [testResult, setTestResult] = useState<string | null>(null);
 
   // Helper function to convert agent type number to string
   const getAgentTypeString = (type: number): string => {
     switch (type) {
-      case 1: return 'query';
-      case 2: return 'suggestions';
-      case 3: return 'response';
-      default: return 'query';
+      case 1:
+        return "query";
+      case 2:
+        return "suggestions";
+      case 3:
+        return "response";
+      default:
+        return "query";
     }
   };
 
- // Helper function to convert channels object to array
-const convertChannelsObjectToArray = (channels: Record<string, { enabled: boolean; settings?: any }>): string[] => {
-  if (!channels) return [];
-  
-  const channelMappings = {
-    'sms': 'SMS',
-    'email': 'Email',
-    'whatsapp': 'WhatsApp',
-    'facebook': 'FB',
-    'instagram': 'IG',
-    'web': 'Live_Chat',
-    'gmb': 'Custom'
+  // Helper function to convert channels object to array
+  const convertChannelsObjectToArray = (
+    channels: Record<string, { enabled: boolean; settings?: any }>
+  ): string[] => {
+    if (!channels) return [];
+
+    const channelMappings = {
+      sms: "SMS",
+      email: "Email",
+      whatsapp: "WhatsApp",
+      facebook: "FB",
+      instagram: "IG",
+      web: "Live_Chat",
+      gmb: "Custom",
+    };
+
+    return Object.entries(channels)
+      .filter(
+        ([backendValue, config]) =>
+          config.enabled &&
+          channelMappings[backendValue as keyof typeof channelMappings]
+      )
+      .map(
+        ([backendValue]) =>
+          channelMappings[backendValue as keyof typeof channelMappings]
+      );
   };
-  
-  return Object.entries(channels)
-    .filter(([backendValue, config]) => config.enabled && channelMappings[backendValue as keyof typeof channelMappings])
-    .map(([backendValue]) => channelMappings[backendValue as keyof typeof channelMappings]);
-};
 
   // Helper function to convert array to channels object
- // Helper function to convert array to channels object
-const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, { enabled: boolean; settings?: any }> => {
-  const channelsObject: Record<string, { enabled: boolean; settings?: any }> = {};
-  
-  // Map frontend values to backend values
-  const channelMappings = {
-    'SMS': 'sms',
-    'Email': 'email',
-    'WhatsApp': 'whatsapp',
-    'FB': 'facebook',
-    'IG': 'instagram',
-    'Live_Chat': 'web',
-    'Custom': 'gmb'
-  };
-  
-  // Initialize all channels as disabled
-  const allChannels = ['sms', 'facebook', 'instagram', 'web', 'whatsapp', 'email', 'gmb'];
-  allChannels.forEach(channel => {
-    channelsObject[channel] = {
-      enabled: false,
-      settings: {}
+  // Helper function to convert array to channels object
+  const convertArrayToChannelsObject = (
+    channelsArray: string[]
+  ): Record<string, { enabled: boolean; settings?: any }> => {
+    const channelsObject: Record<string, { enabled: boolean; settings?: any }> =
+      {};
+
+    // Map frontend values to backend values
+    const channelMappings = {
+      SMS: "sms",
+      Email: "email",
+      WhatsApp: "whatsapp",
+      FB: "facebook",
+      IG: "instagram",
+      Live_Chat: "web",
+      Custom: "gmb",
     };
-  });
-  
-  // Enable only the selected channels
-  channelsArray.forEach(frontendValue => {
-    const backendValue = channelMappings[frontendValue as keyof typeof channelMappings];
-    if (backendValue && channelsObject[backendValue]) {
-      channelsObject[backendValue].enabled = true;
-    }
-  });
-  
-  return channelsObject;
-};
+
+    // Initialize all channels as disabled
+    const allChannels = [
+      "sms",
+      "facebook",
+      "instagram",
+      "web",
+      "whatsapp",
+      "email",
+      "gmb",
+    ];
+    allChannels.forEach((channel) => {
+      channelsObject[channel] = {
+        enabled: false,
+        settings: {},
+      };
+    });
+
+    // Enable only the selected channels
+    channelsArray.forEach((frontendValue) => {
+      const backendValue =
+        channelMappings[frontendValue as keyof typeof channelMappings];
+      if (backendValue && channelsObject[backendValue]) {
+        channelsObject[backendValue].enabled = true;
+      }
+    });
+
+    return channelsObject;
+  };
 
   useEffect(() => {
     // Resolve params promise
-    params.then(resolvedParams => {
+    params.then((resolvedParams) => {
       setAgentId(resolvedParams.id);
     });
   }, [params]);
@@ -149,7 +222,7 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
         personality: agent.personality,
         intent: agent.intent,
         additionalInformation: agent.additionalInformation,
-        isActive: agent.isActive
+        isActive: agent.isActive,
       });
     }
   }, [agent]);
@@ -172,57 +245,61 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
           id: agent.id,
           userId: agent.user_id,
           name: agent.name,
-          description: agent.description || '',
+          description: agent.description || "",
           agentType: getAgentTypeString(agent.type),
-          personality: agentData.personality || '',
-          intent: agentData.intent || '',
-          additionalInformation: agentData.additionalInformation || '',
-          systemPrompt: agent.system_prompt || '',
+          personality: agentData.personality || "",
+          intent: agentData.intent || "",
+          additionalInformation: agentData.additionalInformation || "",
+          systemPrompt: agent.system_prompt || "",
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
           updatedAt: agent.updated_at || agent.created_at,
-          channels: channelsArray
+          channels: channelsArray,
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
       } else {
-        throw new Error(data.error || 'Failed to load agent');
+        throw new Error(data.error || "Failed to load agent");
       }
     } catch (error) {
-      console.error('Error loading agent:', error);
-      toast.error('Failed to load agent');
-      router.push('/dashboard/app/ai/agents');
+      console.error("Error loading agent:", error);
+      toast.error("Failed to load agent");
+      router.push("/dashboard/app/ai/agents");
     } finally {
       setLoading(false);
     }
   };
 
   const saveAgent = async () => {
-    if (!editForm.name.trim() || !editForm.personality.trim() || !editForm.intent.trim()) {
-      toast.error('Name, personality, and intent are required');
+    if (
+      !editForm.name.trim() ||
+      !editForm.personality.trim() ||
+      !editForm.intent.trim()
+    ) {
+      toast.error("Name, personality, and intent are required");
       return;
     }
 
     try {
       setSaving(true);
-      
+
       // Convert selected message types to object format for backend
       const channelsObject = convertArrayToChannelsObject(selectedMessageTypes);
 
       const response = await fetch(`/api/ai/agents/${agentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editForm.name,
           description: editForm.description,
           data: {
             personality: editForm.personality,
             intent: editForm.intent,
-            additionalInformation: editForm.additionalInformation
+            additionalInformation: editForm.additionalInformation,
           },
           is_active: editForm.isActive,
-          channels: channelsObject
-        })
+          channels: channelsObject,
+        }),
       });
 
       const data = await response.json();
@@ -239,27 +316,27 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
           id: agent.id,
           userId: agent.user_id,
           name: agent.name,
-          description: agent.description || '',
+          description: agent.description || "",
           agentType: getAgentTypeString(agent.type),
-          personality: agentData.personality || '',
-          intent: agentData.intent || '',
-          additionalInformation: agentData.additionalInformation || '',
-          systemPrompt: agent.system_prompt || '',
+          personality: agentData.personality || "",
+          intent: agentData.intent || "",
+          additionalInformation: agentData.additionalInformation || "",
+          systemPrompt: agent.system_prompt || "",
           isActive: agent.is_active !== false,
           createdAt: agent.created_at,
           updatedAt: agent.updated_at || agent.created_at,
-          channels: channelsArray
+          channels: channelsArray,
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
         setEditing(false);
-        toast.success('Agent updated successfully');
+        toast.success("Agent updated successfully");
       } else {
-        throw new Error(data.error || 'Failed to update agent');
+        throw new Error(data.error || "Failed to update agent");
       }
     } catch (error) {
-      console.error('Error updating agent:', error);
-      toast.error('Failed to update agent');
+      console.error("Error updating agent:", error);
+      toast.error("Failed to update agent");
     } finally {
       setSaving(false);
     }
@@ -267,37 +344,45 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
 
   const testAgent = async () => {
     if (!testInput.trim()) {
-      toast.error('Please enter test input');
+      toast.error("Please enter test input");
       return;
     }
 
     try {
       setTesting(true);
-      const response = await fetch('/api/ai/agents/conversation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/ai/agents/conversation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agentId: agentId,
-          conversationId: 'test-conversation',
+          conversationId: "test-conversation",
           query: testInput,
-          mode: 'query',
-          context: 'Testing agent functionality'
-        })
+          mode: "query",
+          context: "Testing agent functionality",
+        }),
       });
 
       const data = await response.json();
 
       if (data.success && data.data) {
-        setTestResult(data.data.answer || data.data.response || 'Agent responded successfully');
-        toast.success('Agent test completed');
+        setTestResult(
+          data.data.answer ||
+            data.data.response ||
+            "Agent responded successfully"
+        );
+        toast.success("Agent test completed");
       } else {
-        setTestResult(`Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`);
-        toast.warning('AI backend unavailable - showing demo response');
+        setTestResult(
+          `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
+        );
+        toast.warning("AI backend unavailable - showing demo response");
       }
     } catch (error) {
-      console.error('Error testing agent:', error);
-      setTestResult(`Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`);
-      toast.warning('AI backend unavailable - showing demo response');
+      console.error("Error testing agent:", error);
+      setTestResult(
+        `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
+      );
+      toast.warning("AI backend unavailable - showing demo response");
     } finally {
       setTesting(false);
     }
@@ -307,20 +392,20 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
     try {
       setDeleting(true);
       const response = await fetch(`/api/ai/agents/${agentId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Agent deleted successfully');
-        router.push('/dashboard/app/ai/agents');
+        toast.success("Agent deleted successfully");
+        router.push("/dashboard/app/ai/agents");
       } else {
-        throw new Error(data.error || 'Failed to delete agent');
+        throw new Error(data.error || "Failed to delete agent");
       }
     } catch (error) {
-      console.error('Error deleting agent:', error);
-      toast.error('Failed to delete agent');
+      console.error("Error deleting agent:", error);
+      toast.error("Failed to delete agent");
     } finally {
       setDeleting(false);
     }
@@ -334,7 +419,7 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
         personality: agent.personality,
         intent: agent.intent,
         additionalInformation: agent.additionalInformation,
-        isActive: agent.isActive
+        isActive: agent.isActive,
       });
       setSelectedMessageTypes(agent.channels || []);
     }
@@ -361,7 +446,7 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
         <p className="text-muted-foreground mb-4">
           The requested agent could not be found.
         </p>
-        <Button onClick={() => router.push('/dashboard/app/ai/agents')}>
+        <Button onClick={() => router.push("/dashboard/app/ai/agents")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Agents
         </Button>
@@ -371,13 +456,48 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
 
   const typeInfo = getAgentTypeInfo(agent.agentType);
   const SENDABLE_MESSAGE_TYPES = [
-    { value: 'SMS', backendValue: 'sms', label: 'SMS', description: 'Text message' },
-    { value: 'Email', backendValue: 'email', label: 'Email', description: 'Email message' },
-    { value: 'WhatsApp', backendValue: 'whatsapp', label: 'WhatsApp', description: 'WhatsApp message' },
-    { value: 'FB', backendValue: 'facebook', label: 'Facebook Messenger', description: 'Facebook message' },
-    { value: 'IG', backendValue: 'instagram', label: 'Instagram Direct', description: 'Instagram message' },
-    { value: 'Live_Chat', backendValue: 'web', label: 'Web Chat', description: 'Website chat message' },
-    { value: 'Custom', backendValue: 'gmb', label: 'Google Business Messages', description: 'Google My Business message' }
+    {
+      value: "SMS",
+      backendValue: "sms",
+      label: "SMS",
+      description: "Text message",
+    },
+    {
+      value: "Email",
+      backendValue: "email",
+      label: "Email",
+      description: "Email message",
+    },
+    {
+      value: "WhatsApp",
+      backendValue: "whatsapp",
+      label: "WhatsApp",
+      description: "WhatsApp message",
+    },
+    {
+      value: "FB",
+      backendValue: "facebook",
+      label: "Facebook Messenger",
+      description: "Facebook message",
+    },
+    {
+      value: "IG",
+      backendValue: "instagram",
+      label: "Instagram Direct",
+      description: "Instagram message",
+    },
+    {
+      value: "Live_Chat",
+      backendValue: "web",
+      label: "Web Chat",
+      description: "Website chat message",
+    },
+    {
+      value: "Custom",
+      backendValue: "gmb",
+      label: "Google Business Messages",
+      description: "Google My Business message",
+    },
   ] as const;
 
   return (
@@ -385,14 +505,18 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/app/ai/agents')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard/app/ai/agents")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Agents
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{agent.name}</h1>
             <p className="text-muted-foreground">
-              {agent.description || 'No description provided'}
+              {agent.description || "No description provided"}
             </p>
           </div>
         </div>
@@ -407,7 +531,10 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-destructive hover:text-destructive">
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                  >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
@@ -416,7 +543,8 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Agent</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete "{agent.name}"? This action cannot be undone.
+                      Are you sure you want to delete "{agent.name}"? This
+                      action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -432,7 +560,7 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                           Deleting...
                         </>
                       ) : (
-                        'Delete'
+                        "Delete"
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -474,12 +602,10 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                   Agent Configuration
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant={agent.isActive ? 'default' : 'secondary'}>
-                    {agent.isActive ? 'Active' : 'Inactive'}
+                  <Badge variant={agent.isActive ? "default" : "secondary"}>
+                    {agent.isActive ? "Active" : "Inactive"}
                   </Badge>
-                  <Badge className={typeInfo.color}>
-                    {typeInfo.label}
-                  </Badge>
+                  <Badge className={typeInfo.color}>{typeInfo.label}</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -491,13 +617,16 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                     <Input
                       id="name"
                       value={editForm.name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
                       placeholder="Enter agent name..."
                     />
                   ) : (
-                    <div className="p-2 bg-muted rounded-md">
-                      {agent.name}
-                    </div>
+                    <div className="p-2 bg-muted rounded-md">{agent.name}</div>
                   )}
                 </div>
 
@@ -507,12 +636,17 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                     <Input
                       id="description"
                       value={editForm.description}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
                       placeholder="Brief description of the agent's purpose..."
                     />
                   ) : (
                     <div className="p-2 bg-muted rounded-md">
-                      {agent.description || 'No description provided'}
+                      {agent.description || "No description provided"}
                     </div>
                   )}
                 </div>
@@ -525,13 +659,20 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                       <Textarea
                         id="personality"
                         value={editForm.personality}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, personality: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            personality: e.target.value,
+                          }))
+                        }
                         placeholder="Define the AI's personality and role..."
                         rows={3}
                       />
                     ) : (
                       <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">{agent.personality || 'No personality defined'}</p>
+                        <p className="text-sm">
+                          {agent.personality || "No personality defined"}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -543,31 +684,48 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                       <Textarea
                         id="intent"
                         value={editForm.intent}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, intent: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            intent: e.target.value,
+                          }))
+                        }
                         placeholder="Define the primary goal and intent..."
                         rows={3}
                       />
                     ) : (
                       <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">{agent.intent || 'No intent defined'}</p>
+                        <p className="text-sm">
+                          {agent.intent || "No intent defined"}
+                        </p>
                       </div>
                     )}
                   </div>
 
                   {/* Additional Information Field */}
                   <div className="grid gap-2">
-                    <Label htmlFor="additionalInformation">Additional Guidelines</Label>
+                    <Label htmlFor="additionalInformation">
+                      Additional Guidelines
+                    </Label>
                     {editing ? (
                       <Textarea
                         id="additionalInformation"
                         value={editForm.additionalInformation}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, additionalInformation: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            additionalInformation: e.target.value,
+                          }))
+                        }
                         placeholder="Additional guidelines and instructions..."
                         rows={4}
                       />
                     ) : (
                       <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">{agent.additionalInformation || 'No additional guidelines'}</p>
+                        <p className="text-sm">
+                          {agent.additionalInformation ||
+                            "No additional guidelines"}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -578,7 +736,7 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                       <Label>Generated System Prompt</Label>
                       <div className="p-3 bg-muted rounded-md">
                         <pre className="whitespace-pre-wrap text-sm font-mono">
-                          {agent.systemPrompt || 'No system prompt generated'}
+                          {agent.systemPrompt || "No system prompt generated"}
                         </pre>
                       </div>
                     </div>
@@ -591,7 +749,12 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                       type="checkbox"
                       id="isActive"
                       checked={editForm.isActive}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
+                      }
                       className="rounded border-gray-300"
                     />
                     <Label htmlFor="isActive">Agent is active</Label>
@@ -600,9 +763,9 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="px-7">
-            <h1 className='font-bold'>Available channels</h1>
+            <h1 className="font-bold">Available channels</h1>
             {SENDABLE_MESSAGE_TYPES.map((type) => (
               <label
                 key={type.value}
@@ -621,16 +784,15 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                   }}
                   disabled={!editing}
                 />
-                      <div className="flex flex-col">
-        <span className="text-sm font-medium">{type.label}</span>
-        <span className="text-xs text-muted-foreground">{type.description}</span>
-      </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{type.label}</span>
+                </div>
 
                 {/* <span className="text-sm font-medium">{type.label}</span> */}
               </label>
             ))}
           </Card>
-          
+
           {/* Test Agent */}
           <Card>
             <CardHeader>
@@ -654,7 +816,10 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                 />
               </div>
 
-              <Button onClick={testAgent} disabled={testing || !testInput.trim()}>
+              <Button
+                onClick={testAgent}
+                disabled={testing || !testInput.trim()}
+              >
                 {testing ? (
                   <>
                     <LoadingSpinner className="h-4 w-4 mr-2" />
@@ -673,7 +838,9 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
                   <Label>Agent Response</Label>
                   <div className="p-4 bg-card border border-border rounded-lg max-h-64 overflow-y-auto shadow-sm">
                     <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <pre className="whitespace-pre-wrap text-sm text-foreground leading-relaxed font-sans bg-transparent border-0 p-0 m-0">{testResult}</pre>
+                      <pre className="whitespace-pre-wrap text-sm text-foreground leading-relaxed font-sans bg-transparent border-0 p-0 m-0">
+                        {testResult}
+                      </pre>
                     </div>
                   </div>
                 </div>
@@ -737,22 +904,34 @@ const convertArrayToChannelsObject = (channelsArray: string[]): Record<string, {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" onClick={() => setEditing(!editing)}>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setEditing(!editing)}
+              >
                 <Edit className="h-4 w-4 mr-2" />
-                {editing ? 'Cancel Edit' : 'Edit Agent'}
+                {editing ? "Cancel Edit" : "Edit Agent"}
               </Button>
 
-              <Button variant="outline" className="w-full justify-start" onClick={() => {
-                setTestInput('Hello, can you help me?');
-              }}>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setTestInput("Hello, can you help me?");
+                }}
+              >
                 <TestTube className="h-4 w-4 mr-2" />
                 Quick Test
               </Button>
 
-              <Button variant="outline" className="w-full justify-start" onClick={() => {
-                navigator.clipboard.writeText(agent.id);
-                toast.success('Agent ID copied to clipboard');
-              }}>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  navigator.clipboard.writeText(agent.id);
+                  toast.success("Agent ID copied to clipboard");
+                }}
+              >
                 <Bot className="h-4 w-4 mr-2" />
                 Copy Agent ID
               </Button>
