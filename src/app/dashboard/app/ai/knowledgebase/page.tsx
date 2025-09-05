@@ -123,7 +123,6 @@ export default function KnowledgeBasePage() {
       setLoading(true);
       const response = await fetch('/api/ai/knowledgebase');
       const data: KnowledgeBasesResponse = await response.json();
-      
       if (data.success && data.data) {
         // Ensure knowledgeBases is always an array
         const kbData = Array.isArray(data.data) ? data.data : [];

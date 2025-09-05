@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageType } from '@/_components/actions/ghl/types';
 import { debug } from 'console';
+import { Card } from '@/components/ui/card';
 // import {  } from '@/lib/leadconnector/types/messageTypes';
 
 
@@ -67,7 +68,7 @@ interface MessageInputProps {
     phone?: string;
   };
   conversationType?: string; // e.g., 'TYPE_SMS', 'TYPE_EMAIL', etc.
-  messagesList: MessageList
+  messagesList: MessageList,isTrainingInProgresss:boolean;
 }
 
 interface ApiResponse<T> {
@@ -397,9 +398,9 @@ export function MessageInput({
   showQueryInput,
   isConversationTrained = false,
   contactInfo: urlContactInfo,
-  conversationType, messagesList
+  conversationType, messagesList,isTrainingInProgresss
 }: MessageInputProps) {
-  console.log("messagesList--------------------", messagesList)
+  // console.log("messagesList--------------------", messagesList)
   const [message, setMessage] = useState('');
   const [loadingType, setLoadingType] = useState<'send' | 'auto' | 'suggest' | 'apply' | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -1977,6 +1978,16 @@ Focus on relationship building and moving the conversation forward constructivel
   }, []);
   // const data=getAvailableMessageTypes(conversationType, recentMessages)
   // console.log("data>>>>>>>",data)
+  //   if (isTrainingInProgresss) {
+  //   return (
+  //     <Card className="flex flex-col h-full items-center justify-center p-8">
+  //       <LoadingSpinner className="w-8 h-8" />
+  //       <div className="mt-4 text-muted-foreground">
+  //         Loading conversation...
+  //       </div>
+  //     </Card>
+  //   );
+  // }
   return (
     <div className="flex flex-col gap-4">
       {/* Compact Suggestions Display */}

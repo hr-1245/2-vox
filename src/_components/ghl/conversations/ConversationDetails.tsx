@@ -151,7 +151,11 @@ const messageTypeLabels: Record<string, string> = {
   TYPE_WEBCHAT: 'Web Chat',
   TYPE_EMAIL: 'Email',
   TYPE_PHONE: 'Phone',
-  TYPE_ACTIVITY_CONTACT: 'Activity',
+  TYPE_FACEBOOK: "FaceBooK",
+  TYPE_INSTAGRAM: "Instagram",
+  TYPE_GMB: "Custom",
+  // TYPE_ACTIVITY_CONTACT: 'Activity',
+  TYPE_WHATSAPP: "WhatsApp",
 };
 
 function MessageBubble({ message, isLast, urlContactInfo }: {
@@ -235,9 +239,24 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
           "flex items-center gap-2 mb-1 text-xs",
           !isInbound && "flex-row-reverse"
         )}>
-          <Badge variant="outline" className="h-5 px-2">
+          {Array.isArray(message.messageType)
+            ? message.messageType
+              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+              .map((type) => (
+                <Badge key={type} variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[type]}
+                </Badge>
+              ))
+            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
+              <Badge variant="outline" className="h-5 px-2">
+                {messageTypeLabels[message.messageType]}
+              </Badge>
+            )
+          }
+          {/* <Badge variant="outline" className="h-5 px-2">
+
             {messageTypeLabels[message.messageType] || message.messageType}
-          </Badge>
+          </Badge> */}
         </div>
 
         {/* Message content */}
@@ -471,45 +490,87 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   };
 
   // Helper function to extract messages from API response
-  const extractMessagesFromResponse = (messagesData: any) => {
-    let pageMessages = [];
+  // const extractMessagesFromResponse = (messagesData: any) => {
+  //   let pageMessages = [];
 
-    if (messagesData?.success && messagesData?.data) {
-      // New standardized format: { success: true, data: { messages: { messages: [...] } } }
-      if (messagesData.data.messages?.messages) {
-        pageMessages = messagesData.data.messages.messages;
-        debug.log('ConversationDetails', 'Using standardized format - nested messages');
-      }
-      // Alternative format: { success: true, data: { messages: [...] } }
-      else if (Array.isArray(messagesData.data.messages)) {
-        pageMessages = messagesData.data.messages;
-        debug.log('ConversationDetails', 'Using standardized format - direct messages array');
-      }
-      // Direct data format: { success: true, data: [...] }
-      else if (Array.isArray(messagesData.data)) {
-        pageMessages = messagesData.data;
-        debug.log('ConversationDetails', 'Using standardized format - data is messages array');
-      }
-    }
-    // Legacy format: { messages: { messages: [...] } }
-    else if (messagesData?.messages?.messages) {
-      pageMessages = messagesData.messages.messages;
-      debug.log('ConversationDetails', 'Using legacy format');
-    }
-    // Direct messages array
-    else if (Array.isArray(messagesData?.messages)) {
-      pageMessages = messagesData.messages;
-      debug.log('ConversationDetails', 'Using direct messages array');
-    }
-    // Root level messages array
-    else if (Array.isArray(messagesData)) {
-      pageMessages = messagesData;
-      debug.log('ConversationDetails', 'Using root level messages array');
-    }
+  //   if (messagesData?.success && messagesData?.data) {
+  //     // New standardized format: { success: true, data: { messages: { messages: [...] } } }
+  //     if (messagesData.data.messages?.messages) {
+  //       pageMessages = messagesData.data.messages.messages;
+  //       debug.log('ConversationDetails', 'Using standardized format - nested messages');
+  //     }
+  //     // Alternative format: { success: true, data: { messages: [...] } }
+  //     else if (Array.isArray(messagesData.data.messages)) {
+  //       pageMessages = messagesData.data.messages;
+  //       debug.log('ConversationDetails', 'Using standardized format - direct messages array');
+  //     }
+  //     // Direct data format: { success: true, data: [...] }
+  //     else if (Array.isArray(messagesData.data)) {
+  //       pageMessages = messagesData.data;
+  //       debug.log('ConversationDetails', 'Using standardized format - data is messages array');
+  //     }
+  //   }
+  //   // Legacy format: { messages: { messages: [...] } }
+  //   else if (messagesData?.messages?.messages) {
+  //     pageMessages = messagesData.messages.messages;
+  //     debug.log('ConversationDetails', 'Using legacy format');
+  //   }
+  //   // Direct messages array
+  //   else if (Array.isArray(messagesData?.messages)) {
+  //     pageMessages = messagesData.messages;
+  //     debug.log('ConversationDetails', 'Using direct messages array');
+  //   }
+  //   // Root level messages array
+  //   else if (Array.isArray(messagesData)) {
+  //     pageMessages = messagesData;
+  //     debug.log('ConversationDetails', 'Using root level messages array');
+  //   }
 
-    return pageMessages;
-  };
+  //   return pageMessages;
+  // };
+const extractMessagesFromResponse = (messagesData: any) => {
+  let pageMessages = [];
 
+  if (messagesData?.success && messagesData?.data) {
+    // New standardized format: { success: true, data: { messages: { messages: [...] } } }
+    if (messagesData.data.messages?.messages) {
+      pageMessages = messagesData.data.messages.messages;
+      debug.log('ConversationDetails', 'Using standardized format - nested messages');
+    }
+    // Alternative format: { success: true, data: { messages: [...] } }
+    else if (Array.isArray(messagesData.data.messages)) {
+      pageMessages = messagesData.data.messages;
+      debug.log('ConversationDetails', 'Using standardized format - direct messages array');
+    }
+    // Direct data format: { success: true, data: [...] }
+    else if (Array.isArray(messagesData.data)) {
+      pageMessages = messagesData.data;
+      debug.log('ConversationDetails', 'Using standardized format - data is messages array');
+    }
+  }
+  // Legacy format: { messages: { messages: [...] } }
+  else if (messagesData?.messages?.messages) {
+    pageMessages = messagesData.messages.messages;
+    debug.log('ConversationDetails', 'Using legacy format');
+  }
+  // Direct messages array
+  else if (Array.isArray(messagesData?.messages)) {
+    pageMessages = messagesData.messages;
+    debug.log('ConversationDetails', 'Using direct messages array');
+  }
+  // Root level messages array
+  else if (Array.isArray(messagesData)) {
+    pageMessages = messagesData;
+    debug.log('ConversationDetails', 'Using root level messages array');
+  }
+
+  // Sort messages by dateAdded in ASCENDING order (oldest first, newest last)
+  return pageMessages.sort((a:any, b:any) => {
+    const dateA = new Date(a.dateAdded || a.dateAdded || 0).getTime();
+    const dateB = new Date(b.dateAdded || b.dateAdded || 0).getTime();
+    return dateA - dateB;
+  });
+};
   // Load conversation settings
   const loadConversationSettings = async () => {
     try {
@@ -777,9 +838,9 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
         `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
         { method: 'GET' }
       );
-      
+
       if (messagesResponse?.data.messages?.messages) {
-        
+
         setMessagesList(messagesResponse?.data.messages?.messages as Message[]);
       }
       if (!messagesResponse?.messages?.messages?.length) {
@@ -1758,6 +1819,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
               : undefined
           }
           messagesList={messagesList as any}
+          isTrainingInProgresss={isTrainingInProgress}
         />
       </div>
     </Card>
