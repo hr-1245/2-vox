@@ -230,7 +230,7 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
   }
 
   return (
-    <div className={cn(
+  <div className={cn(
       "flex gap-3 w-full",
       isInbound ? "justify-start" : "justify-end"
     )}>
@@ -252,6 +252,35 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
           "flex items-center gap-2 mb-1 text-xs",
           !isInbound && "flex-row-reverse"
         )}>
+          {Array.isArray(message.messageType)
+            ? message.messageType
+              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+              .map((type) => (
+                <Badge key={type} variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[type]}
+                </Badge>
+              ))
+            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
+              <Badge variant="outline" className="h-5 px-2">
+                {messageTypeLabels[message.messageType]}
+              </Badge>
+            )
+          }
+          {/* <Badge variant="outline" className="h-5 px-2">
+
+            {messageTypeLabels[message.messageType] || message.messageType}
+          </Badge> */}
+        </div>
+
+        {/* Message content */}
+        <div className={cn(
+          "rounded-2xl px-4 py-2 break-words",
+          isInbound
+            ? "bg-muted text-foreground"
+            : "bg-primary text-primary-foreground",
+          isLast && "mb-2"
+        )}>
+          {/* For webchat contact info, format it nicely */}
           {/* For email messages, show the fetched email content */}
           {message.messageType === 'TYPE_EMAIL' && emailBody ? (
             <div className="space-y-2">
