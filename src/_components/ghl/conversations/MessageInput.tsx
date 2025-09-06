@@ -408,16 +408,18 @@ export function MessageInput({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [aiSettings, setAISettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
   const [conversationSettings, setConversationSettings] = useState<ConversationSettings | null>(null);
-  const [selectedMessageType, setSelectedMessageType] = useState<string>(() =>
-    getDefaultMessageType(conversationType, recentMessages) || 'TYPE_SMS'
-  );
-  //   const [selectedMessageType, setSelectedMessageType] = useState<string>(() => {
-  //   const available = getAvailableMessageTypes(recentMessages);
-  //   if (available.length > 0) {
-  //     return available[available.length - 1].internal; // last channel
-  //   }
-  //   return "TYPE_SMS";
-  // });
+  // const [selectedMessageType, setSelectedMessageType] = useState<string>(() =>
+  //   getDefaultMessageType(conversationType, recentMessages) || 'TYPE_EMAIL'|| 'TYPE_EMAIL'
+  // );
+  const [selectedMessageType, setSelectedMessageType] = useState<string>("");
+
+  useEffect(() => {
+  const availableTypes = getAvailableMessageTypes(messagesList);
+  if (availableTypes.length > 0 && !selectedMessageType) {
+    setSelectedMessageType(availableTypes[0].internal);
+  }
+}, [messagesList, selectedMessageType]);
+
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [autopilotEnabled, setAutopilotEnabled] = useState(false); // New state for autopilot toggle

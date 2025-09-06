@@ -35,6 +35,7 @@ import {
   Zap
 } from 'lucide-react';
 import { autoEnableForSingleConversation } from '@/utils/autopilot/voxAiAutoEnable';
+import { fetchEmailContent } from '@/lib/leadconnector/fetchApi';
 
 // Enhanced debug helper with better error formatting
 const debug = {
@@ -166,7 +167,19 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
   const isInbound = message.direction === 'inbound';
   const formattedDate = format(new Date(message.dateAdded), 'MMM d, h:mm a');
   const isActivity = message.messageType === 'TYPE_ACTIVITY_CONTACT';
-
+  const [emailBody, setEmailBody] = useState<string | null>(null);
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+    useEffect(() => {
+    if (message.messageType === "TYPE_EMAIL" && message.meta?.email?.messageIds?.length) {
+      setIsLoadingEmail(true);
+      fetchEmailContent(message.meta.email.messageIds[0], "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21")
+        .then((res) => {
+          setEmailBody(res?.data?.body || "[No content]");
+        })
+        .catch(() => setEmailBody("[Failed to load email]"))
+        .finally(() => setIsLoadingEmail(false));
+    }
+  }, [message]);
   // Debug log for webchat messages
   if (message.messageType === 'TYPE_WEBCHAT') {
     console.log('Rendering TYPE_WEBCHAT message:', {
@@ -239,36 +252,22 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
           "flex items-center gap-2 mb-1 text-xs",
           !isInbound && "flex-row-reverse"
         )}>
-          {Array.isArray(message.messageType)
-            ? message.messageType
-              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
-              .map((type) => (
-                <Badge key={type} variant="outline" className="h-5 px-2">
-                  {messageTypeLabels[type]}
-                </Badge>
-              ))
-            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
-              <Badge variant="outline" className="h-5 px-2">
-                {messageTypeLabels[message.messageType]}
-              </Badge>
-            )
-          }
-          {/* <Badge variant="outline" className="h-5 px-2">
-
-            {messageTypeLabels[message.messageType] || message.messageType}
-          </Badge> */}
-        </div>
-
-        {/* Message content */}
-        <div className={cn(
-          "rounded-2xl px-4 py-2 break-words",
-          isInbound
-            ? "bg-muted text-foreground"
-            : "bg-primary text-primary-foreground",
-          isLast && "mb-2"
-        )}>
-          {/* For webchat contact info, format it nicely */}
-          {contactInfo ? (
+          {/* For email messages, show the fetched email content */}
+          {message.messageType === 'TYPE_EMAIL' && emailBody ? (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground opacity-75">Email Content</div>
+              {isLoadingEmail ? (
+                <div className="flex items-center justify-center py-4">
+                  <LoadingSpinner className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Loading email...</span>
+                </div>
+              ) : (
+                <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {emailBody}
+                </div>
+              )}
+            </div>
+          ) : contactInfo ? (
             <div className="space-y-2">
               <div className="text-xs text-muted-foreground opacity-75">Contact Form Submission</div>
               {contactInfo.Name && (
@@ -439,6 +438,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
 
     return () => clearInterval(intervalId);
   }, [trainingStatus?.isTraining, conversationId, locationId]);
+
 
   // Add state for summary expansion
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -660,7 +660,7 @@ const extractMessagesFromResponse = (messagesData: any) => {
         debug.log('ConversationDetails', `FAST LOAD: Messages loaded (${pageMessages.length} messages)`);
 
         setMessages(pageMessages);
-
+console.log("pageMessages iiiiiiiiiiiiiii",pageMessages)
         // Set pagination state
         if (pageMessages.length > 0) {
           const oldestMessage = pageMessages[pageMessages.length - 1];
@@ -1818,7 +1818,9 @@ const extractMessagesFromResponse = (messagesData: any) => {
               ? messages.find(msg => msg.messageType)?.messageType
               : undefined
           }
-          messagesList={messagesList as any}
+          messagesList={messages as any}
+
+          // messagesList={messagesList as any}
           isTrainingInProgresss={isTrainingInProgress}
         />
       </div>
