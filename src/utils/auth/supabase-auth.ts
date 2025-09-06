@@ -114,13 +114,9 @@ async function createUserProfile(
 
   // User profile created successfully - no automatic agent creation
 }
-
 export async function handleLogin(formData: FormData): Promise<AuthResult> {
-
   const supabase = await getSupabase()
-
   const rawData = getFormData(formData, ["email", "password"])
-
   const result = LoginSchema.safeParse(rawData)
 
   if (!result.success) return getFirstIssue(result.error)
@@ -130,12 +126,39 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
     if (error) throw error
     if (!data.user) throw new Error("Authentication failed")
 
+    // Verify session exists by checking for access token
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      throw new Error("Session not established properly")
+    }
+
     return { success: true, user: data.user }
   } catch (error: any) {
     console.error("Login error:", error)
     return { error: error.message || "Login failed" }
   }
 }
+// export async function handleLogin(formData: FormData): Promise<AuthResult> {
+
+//   const supabase = await getSupabase()
+
+//   const rawData = getFormData(formData, ["email", "password"])
+
+//   const result = LoginSchema.safeParse(rawData)
+
+//   if (!result.success) return getFirstIssue(result.error)
+
+//   try {
+//     const { data, error } = await supabase.auth.signInWithPassword(result.data)
+//     if (error) throw error
+//     if (!data.user) throw new Error("Authentication failed")
+
+//     return { success: true, user: data.user }
+//   } catch (error: any) {
+//     console.error("Login error:", error)
+//     return { error: error.message || "Login failed" }
+//   }
+// }
 
 export async function handleSignup(formData: FormData): Promise<AuthResult> {
   const supabase = await getSupabase()

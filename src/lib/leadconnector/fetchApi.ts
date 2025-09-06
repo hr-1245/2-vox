@@ -77,36 +77,6 @@ export async function fetchGhlApiLegacy<T = any>(
  *   const email = await fetchEmailContent("yvupnErNZd8u2rGblLFu", userId);
  *   console.log(email.data); // contains HTML email body
  */
-export async function fetchEmailContent(messageId: string, userId: string) {
-  if (!messageId) {
-    throw new Error("Email messageId is required");
-  }
-
-  const endpoint = `/conversations/messages/email/${messageId}`;
-
-  try {
-    const response = await fetchGhlApi(endpoint, userId, {
-      method: "GET",
-      headers: {
-        Version: "2021-07-28",
-      },
-    });
-
-    console.log("📧 Email content fetched:", {
-      messageId,
-      hasData: !!response?.data,
-      keys: response?.data ? Object.keys(response.data) : [],
-    });
-
-    return response;
-  } catch (error) {
-    console.error("❌ Failed to fetch email content:", {
-      messageId,
-      error: error instanceof Error ? error.message : error,
-    });
-    throw error;
-  }
-}
 
 /**
  * Enhanced GHL API client with automatic token refresh and retry logic

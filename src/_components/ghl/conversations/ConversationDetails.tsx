@@ -35,7 +35,8 @@ import {
   Zap
 } from 'lucide-react';
 import { autoEnableForSingleConversation } from '@/utils/autopilot/voxAiAutoEnable';
-import { fetchEmailContent } from '@/lib/leadconnector/fetchApi';
+import { EmailContent, loadEmailContent } from '@/lib/leadconnector/emailUtils';
+
 
 // Enhanced debug helper with better error formatting
 const debug = {
@@ -97,6 +98,7 @@ async function fetchWithDebug(url: string, options?: RequestInit) {
     throw error;
   }
 }
+
 
 interface ConversationDetailsProps {
   conversationId: string;
@@ -168,18 +170,40 @@ function MessageBubble({ message, isLast, urlContactInfo }: {
   const formattedDate = format(new Date(message.dateAdded), 'MMM d, h:mm a');
   const isActivity = message.messageType === 'TYPE_ACTIVITY_CONTACT';
   const [emailBody, setEmailBody] = useState<string | null>(null);
+  // const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+    const [emailContent, setEmailContent] = useState<EmailContent | null>(null);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
-    useEffect(() => {
-    if (message.messageType === "TYPE_EMAIL" && message.meta?.email?.messageIds?.length) {
-      setIsLoadingEmail(true);
-      fetchEmailContent(message.meta.email.messageIds[0], "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21")
-        .then((res) => {
-          setEmailBody(res?.data?.body || "[No content]");
-        })
-        .catch(() => setEmailBody("[Failed to load email]"))
-        .finally(() => setIsLoadingEmail(false));
-    }
-  }, [message]);
+
+  // Load email content for TYPE_EMAIL messages
+  useEffect(() => {
+    // const loadEmail = async () => {
+    //   if (message.messageType === "TYPE_EMAIL" && message.meta?.email?.messageIds?.length) {
+    //     const emailId = message.meta.email.messageIds[0];
+        
+    //     // Only load if not already loaded or loading
+    //     if (emailContent || isLoadingEmail) return;
+
+    //     setIsLoadingEmail(true);
+    //     try {
+    //       const content = await loadEmailContent(emailId);
+    //       setEmailContent(content);
+    //     } catch (error) {
+    //       console.error('Failed to load email content:', error);
+    //       setEmailContent({
+    //         body: "[Failed to load email content]",
+    //         subject: "",
+    //         from: "",
+    //         to: "",
+    //         date: ""
+    //       });
+    //     } finally {
+    //       setIsLoadingEmail(false);
+    //     }
+    //   }
+    // };
+
+    // loadEmail();
+  }, [message.messageType, message.meta?.email?.messageIds]);
   // Debug log for webchat messages
   if (message.messageType === 'TYPE_WEBCHAT') {
     console.log('Rendering TYPE_WEBCHAT message:', {
@@ -396,6 +420,11 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
     phone: searchParams.get('phone') || undefined,
   };
   console.log("urlContactInfo:", urlContactInfo)
+  // Add these constants near the top of the component
+
+// Add these state variables
+
+const [pollingIntervalId, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
   // State
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesList, setMessagesList] = useState<Message[]>([]);
@@ -420,6 +449,7 @@ export function ConversationDetails({ conversationId, locationId }: Conversation
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const retryCountRef = useRef(0);
+
 
   // Add disabled state for UI interactions
   const disabled = isLoading || isTraining || isRegeneratingSummary;
