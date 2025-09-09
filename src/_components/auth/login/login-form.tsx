@@ -101,8 +101,13 @@ export function LoginForm() {
         setErrorMessage(getErrorMessage(result.error));
       }
       // Login action handles redirect on success
+          // ✅ Successful login
+    console.log("Login successful, connecting WebSocket...");
+
+   
     });
   };
+// Example WebSocket connection
 
   const handleResetPassword = async (values: ResetPasswordFormValues) => {
     setIsResetPending(true);

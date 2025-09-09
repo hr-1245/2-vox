@@ -1536,11 +1536,14 @@ Focus on relationship building and moving the conversation forward constructivel
       setLoadingType(null);
     }
   };
+ const handlePost=()=>{
 
+ }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (loadingType || !message.trim()) return;
-    handleChatMessage(false);
+    // handleChatMessage(false);
+    handlePost()
   };
 
   // Load conversation settings when component mounts

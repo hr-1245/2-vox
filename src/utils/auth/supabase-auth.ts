@@ -123,6 +123,7 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword(result.data)
+     connectWebSocket(); // pass token if needed
     if (error) throw error
     if (!data.user) throw new Error("Authentication failed")
 
@@ -138,6 +139,25 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
     return { error: error.message || "Login failed" }
   }
 }
+const connectWebSocket = () => {
+  const ws = new WebSocket(`ws://127.0.0.1:8000/ai/conversation/ws/train`);
+
+  ws.onopen = () => {
+    console.log("WebSocket connected");
+  };
+
+  ws.onmessage = (event) => {
+    console.log("Message from server:", event.data);
+  };
+
+  ws.onclose = () => {
+    console.log("WebSocket disconnected");
+  };
+
+  ws.onerror = (err) => {
+    console.error("WebSocket error:", err);
+  };
+};
 // export async function handleLogin(formData: FormData): Promise<AuthResult> {
 
 //   const supabase = await getSupabase()
