@@ -2485,7 +2485,7 @@ debugger
                 {/* Send Button */}
                 <Button
                   type="submit"
-                  disabled={disabled || !message.trim() || loadingType !== null}
+                  disabled={disabled || loadingType !== null}
                   size="sm"
                   className="h-8 px-3 min-w-[60px]"
                 >
