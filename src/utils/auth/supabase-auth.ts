@@ -123,7 +123,7 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword(result.data)
-     connectWebSocket(); // pass token if needed
+    //  connectWebSocket(); // pass token if needed
     if (error) throw error
     if (!data.user) throw new Error("Authentication failed")
 

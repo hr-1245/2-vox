@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -18,8 +18,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MessageType } from '@/_components/actions/ghl/types';
 import { debug } from 'console';
 import { Card } from '@/components/ui/card';
+import useWebSocket from './hooks/useWebSocket';
 // import {  } from '@/lib/leadconnector/types/messageTypes';
 
+import { useGhlWebSocket } from './hooks/useGhlWebSocket';
 
 interface Suggestion {
   text: string;
@@ -68,7 +70,7 @@ interface MessageInputProps {
     phone?: string;
   };
   conversationType?: string; // e.g., 'TYPE_SMS', 'TYPE_EMAIL', etc.
-  messagesList: MessageList,isTrainingInProgresss:boolean;
+  messagesList: MessageList, isTrainingInProgresss: boolean;
 }
 
 interface ApiResponse<T> {
@@ -398,7 +400,7 @@ export function MessageInput({
   showQueryInput,
   isConversationTrained = false,
   contactInfo: urlContactInfo,
-  conversationType, messagesList,isTrainingInProgresss
+  conversationType, messagesList, isTrainingInProgresss
 }: MessageInputProps) {
   // console.log("messagesList--------------------", messagesList)
   const [message, setMessage] = useState('');
@@ -407,18 +409,60 @@ export function MessageInput({
   const [autoPilotResponse, setAutoPilotResponse] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [aiSettings, setAISettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
+  const { sendToGhlWebSocket } = useGhlWebSocket();
   const [conversationSettings, setConversationSettings] = useState<ConversationSettings | null>(null);
+  const [messagess, setMessagess] = useState<string[]>([]);
+  const [input, setInput] = useState<string>('');
+  const getCustomerInfoForRequest = (messages: any[]): {
+    name: string;
+    email: string;
+    phone: string;
+    contactId: string;
+  } => {
+    const customerInfo = getCustomerInfo(messages);
+    return {
+      name: customerInfo.name || customerInfo.contactName || customerInfo.fullName || '',
+      email: customerInfo.email || '',
+      phone: customerInfo.phone || '',
+      contactId: customerInfo.contactId || ''
+    };
+  };
+  const handleNewMessage = (data: string) => {
+    setMessagess((prev) => [...prev, data]);
+  };
+
+  // Connect to external WebSocket server
+  const { sendMessage } = useWebSocket(
+    'ws://127.0.0.1:8000/ai/conversation/ws/train', 
+    handleNewMessage,
+    {
+      reconnect: true,
+      reconnectInterval: 3000
+    }
+  );
+
+  const handleSubmits = (e: FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage(input);
+      setInput('');
+    }
+  };
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
   // const [selectedMessageType, setSelectedMessageType] = useState<string>(() =>
   //   getDefaultMessageType(conversationType, recentMessages) || 'TYPE_EMAIL'|| 'TYPE_EMAIL'
   // );
   const [selectedMessageType, setSelectedMessageType] = useState<string>("");
 
   useEffect(() => {
-  const availableTypes = getAvailableMessageTypes(messagesList);
-  if (availableTypes.length > 0 && !selectedMessageType) {
-    setSelectedMessageType(availableTypes[0].internal);
-  }
-}, [messagesList, selectedMessageType]);
+    const availableTypes = getAvailableMessageTypes(messagesList);
+    if (availableTypes.length > 0 && !selectedMessageType) {
+      setSelectedMessageType(availableTypes[0].internal);
+    }
+  }, [messagesList, selectedMessageType]);
 
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1181,8 +1225,9 @@ export function MessageInput({
                 message: message.trim(),
                 contactId: customerInfo.contactId,
                 attachments: [{
-                  "url":"",
-                  "name":""}
+                  "url": "",
+                  "name": ""
+                }
                 ], // optional
               };
 
@@ -1222,12 +1267,12 @@ export function MessageInput({
 
         // Send message via GHL API (using correct GHL format)
         const sendResponse = await fetch(`/api/leadconnector/conversations/messages/send`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(payload),
-});
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
         // const sendResponse = await fetch(`/api/leadconnector/conversations/messages/send`, {
         //   method: 'POST',
         //   headers: {
@@ -1536,14 +1581,183 @@ Focus on relationship building and moving the conversation forward constructivel
       setLoadingType(null);
     }
   };
- const handlePost=()=>{
+  const handleChatMessagess = async (isAutonomous: boolean = false) => {
+  if (loadingType) return;
+debugger
+  try {
+    setLoadingType(isAutonomous ? 'auto' : 'send');
 
- }
+    // Get customer info at the start
+    const customerInfo = getCustomerInfo(recentMessages);
+    const customerInfoForRequest = {
+      name: customerInfo.name || customerInfo.contactName || customerInfo.fullName || '',
+      email: customerInfo.email || '',
+      phone: customerInfo.phone || '',
+      contactId: customerInfo.contactId || ''
+    };
+
+    let messageToProcess = null;
+
+    if (isAutonomous) {
+      // Filter out messages without body content first
+      const validMessages = getValidMessages(recentMessages);
+
+      // ... your existing autonomous logic ...
+
+    }
+
+    // For manual message sending (not auto-pilot), send the message directly via GHL API
+    if (!isAutonomous && message.trim()) {
+      // ... your existing manual message logic ...
+    }
+
+    // Continue with AI/autopilot logic only for autonomous mode or when message is empty
+    if (!isAutonomous && !message.trim()) {
+      throw new Error('Please enter a message');
+    }
+ let enhancedContext = '';
+  let enhancedQuery = isAutonomous ? messageToProcess : message.trim();
+    // Filter valid messages for auto-pilot context using extended depth
+    const validMsgsForContext = getValidMessages(recentMessages);
+   const isNewConversation = validMsgsForContext.length === 0;
+      const hasMinimalContext = validMsgsForContext.length < 3 && validMsgsForContext.length > 0;
+
+    // ... your existing message processing logic ...
+
+    // Get recent messages ensuring minimum count
+    const recentMsgsFiltered = getMessagesWithMinimum(recentMessages, aiSettings.recentMessagesCount, isAutonomous);
+
+    const recentMsgs = recentMsgsFiltered.map(msg => ({
+      // ... your message mapping logic ...
+    }));
+
+    // ... your existing request payload construction ...
+
+    const requestPayload = {
+      userId: USER_ID,
+      conversationId,
+      knowledgebaseId: conversationId,
+      context: enhancedContext || (() => {
+        const contextMsgs = getMessagesWithMinimum(recentMessages, aiSettings.contextDepth, isAutonomous);
+        return contextMsgs.length > 0
+          ? contextMsgs.map(msg =>
+            `${msg.direction === 'inbound' ? 'Customer' : 'Agent'}: ${msg.body}`
+          ).join('\n')
+          : 'No message content available';
+      })(),
+      lastCustomerMessage: enhancedQuery,
+      customerInfo: customerInfoForRequest,
+      recentMessages: recentMsgs,
+      autopilot: isAutonomous,
+      limit: aiSettings.suggestionsLimit,
+      agentId: '', // Will be set below
+      conversationMetadata: {
+        isNew: isNewConversation,
+        hasMinimalContext: hasMinimalContext,
+        validMessageCount: validMsgsForContext.length,
+        enhancedPrompting: isAutonomous && (isNewConversation || hasMinimalContext),
+        autopilotMode: isAutonomous
+      }
+    };
+
+    // Use agent-aware endpoint if we have a selected agent
+    let endpoint = '/api/ai/conversation/response-suggestions';
+    let agentRequestPayload = requestPayload;
+
+    // Get the agent ID for autopilot feature
+    const autopilotAgentId = conversationSettings?.agents?.autopilot ||
+      (conversationSettings?.agentType === 'response' ? conversationSettings?.selectedAgentId : null);
+
+    // if (autopilotAgentId && (isAutonomous ? conversationSettings?.features?.autopilot?.enabled !== false : true)) {
+    //   endpoint = '/api/ai/agents/conversation';
+    //   agentRequestPayload = {
+    //     ...requestPayload,
+    //     agentId: autopilotAgentId,
+    //     query: isAutonomous ? messageToProcess : message.trim(),
+    //     mode: isAutonomous ? 'autopilot' : 'response'
+    //   } as any;
+    // } else {
+    //   (requestPayload as any).agentId = autopilotAgentId || null;
+    // }
+
+    // 🔥 THIS IS WHERE data COMES FROM - THE API RESPONSE
+    const data = await callApi<ChatResponse>(endpoint, agentRequestPayload, isAutonomous ? 'autopilot' : 'suggestions');
+
+    // ✅ NOW data IS DEFINED AND YOU CAN USE IT
+    if (isAutonomous && (data.data?.autopilot_response || data.data?.response_suggestion)) {
+      const formattedResponse = (data.data.autopilot_response || data.data.response_suggestion || '').trim();
+
+      // Check confidence threshold
+      const confidence = data.data.confidence_score || 0;
+      if (confidence < aiSettings.confidenceThreshold) {
+        toast.warning(`AI response generated with low confidence (${Math.round(confidence * 100)}%). Consider reviewing before sending.`);
+      }
+
+      setAutoPilotResponse(formattedResponse);
+      setMessage(formattedResponse);
+
+      // Send to GHL WebSocket
+      sendToGhlWebSocket({
+        event: "accept_text",
+        data: {
+          message: formattedResponse,
+          conversationId,
+          contactId: customerInfoForRequest.contactId,
+          isAutonomous: true,
+          timestamp: new Date().toISOString(),
+          confidence: confidence
+        }
+      });
+
+      const agentInfo = conversationSettings?.selectedAgentId ? ' (using selected agent)' : '';
+      const modelInfo = ` [${aiSettings.aiConfig.model}@${aiSettings.aiConfig.temperature}]`;
+      debugger
+      toast.success(
+        <div className="space-y-2 max-w-[350px]">
+          <p className="font-medium">AI Response Generated{agentInfo}{modelInfo}</p>
+          <p className="text-sm opacity-90 line-clamp-4 leading-relaxed">{formattedResponse}</p>
+          <div className="text-xs opacity-75 space-y-1">
+            {customerInfoForRequest.name && (
+              <p>• Customer: {customerInfoForRequest.name}</p>
+            )}
+            <p>• Using {recentMsgs.length} valid messages (of {recentMessages.length} total)</p>
+            {/* <p>• Latest message: {recentMsgs[0]?.body?.slice(0, 50)}...</p> */}
+            {confidence && (
+              <p>• Confidence: {Math.round(confidence * 100)}%</p>
+            )}
+            <p>• Model: {aiSettings.aiConfig.model}</p>
+            <p>• Temperature: {aiSettings.aiConfig.temperature}</p>
+            {conversationSettings?.selectedAgentId && (
+              <p>• Agent: {conversationSettings.selectedAgentId.substring(0, 8)}...</p>
+            )}
+          </div>
+        </div>
+      );
+    } else if (!isAutonomous) {
+      // Handle regular message sending (not auto-pilot)
+      setSuggestions([]);
+      setMessage('');
+      setAutoPilotResponse(null);
+      toast.success('Message sent');
+    } else {
+      // Auto-pilot mode but no response received
+      throw new Error('No response received from AI service');
+    }
+
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Failed to process message');
+  } finally {
+    setLoadingType(null);
+  }
+  };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (loadingType || !message.trim()) return;
     // handleChatMessage(false);
-    handlePost()
+     handleChatMessagess(false);
+   
+    // handleSubmits(e)
+
   };
 
   // Load conversation settings when component mounts
