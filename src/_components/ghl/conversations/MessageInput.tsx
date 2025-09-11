@@ -22,6 +22,7 @@ import useWebSocket from './hooks/useWebSocket';
 // import {  } from '@/lib/leadconnector/types/messageTypes';
 
 import { useGhlWebSocket } from './hooks/useGhlWebSocket';
+import ChatPage from './ChatPage';
 
 interface Suggestion {
   text: string;
@@ -433,7 +434,7 @@ export function MessageInput({
 
   // Connect to external WebSocket server
   const { sendMessage } = useWebSocket(
-    'ws://127.0.0.1:8000/ai/conversation/ws/train', 
+    'ws://localhost:4000/ai/conversation/chat', 
     handleNewMessage,
     {
       reconnect: true,
@@ -2390,6 +2391,7 @@ debugger
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex gap-3">
               <div className="flex-1 min-w-0">
+                <ChatPage/>
                 <Textarea
                   ref={textareaRef}
                   value={message}

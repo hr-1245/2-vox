@@ -21,7 +21,7 @@ export const useGhlWebSocketEnhanced = (): UseGhlWebSocketReturn => {
     setConnectionStatus('connecting');
     
     try {
-      ws.current = new WebSocket('ws://127.0.0.1:8000/ai/conversation/ws/train');
+      ws.current = new WebSocket('ws://127.0.0.1:4000/ai/conversation/chat');
       
       ws.current.onopen = () => {
         console.log('✅ Connected to GHL WebSocket');

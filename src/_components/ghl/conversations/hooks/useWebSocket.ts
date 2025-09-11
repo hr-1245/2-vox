@@ -1,12 +1,12 @@
 // hooks/useWebSocket.ts
 import { useEffect, useRef, useCallback, useState } from 'react';
-
+import io from 'socket.io-client';
 interface UseWebSocketReturn {
   sendMessage: (message: string | ArrayBufferLike | Blob | ArrayBufferView) => void;
   readyState: number;
   lastMessage: string | null;
 }
-
+const socket = io('ws://127.0.0.1:4000/ai/conversation/chat');
 const useWebSocket = (
   url: string, 
   onMessage: (data: string) => void, 
@@ -56,20 +56,42 @@ const useWebSocket = (
     };
   }, [url, onMessage, options]);
 
+  // useEffect(() => {
+  //   connect();
+
+  //   // Cleanup on unmount
+  //   return () => {
+  //     if (reconnectTimeout.current) {
+  //       clearTimeout(reconnectTimeout.current);
+  //     }
+  //     if (ws.current?.readyState === WebSocket.OPEN) {
+  //       ws.current.close();
+  //     }
+  //   };
+  // }, [connect]);
+const socketRef = useRef<WebSocket | null>(null);
+
   useEffect(() => {
-    connect();
+    // connect to FastAPI WebSocket
+    const socket = new WebSocket("ws://localhost:4000/ws/chat");
+    socketRef.current = socket;
 
-    // Cleanup on unmount
-    return () => {
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.close();
-      }
+    socket.onopen = () => {
+      console.log("✅ Connected to WebSocket server");
     };
-  }, [connect]);
 
+    socket.onmessage = (event) => {
+      // setMessages((prev) => [...prev, "🤖 " + event.data]);
+    };
+
+    socket.onclose = () => {
+      console.log("⚠ Disconnected from WebSocket server");
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
   // Function to send messages
   const sendMessage = useCallback((message: string | ArrayBufferLike | Blob | ArrayBufferView) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
