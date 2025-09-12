@@ -78,7 +78,7 @@ function getFirstIssue(error: z.ZodError): AuthResult {
 
 // Auth Functions
 export type AuthResult =
-  | { success: true; user: any }
+  | { success: true; user: any; access_token: string }
   | { error: string; field?: string };
 
 async function createUserProfile(
@@ -139,21 +139,16 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    console.log("session => ", session);
 
     if (!session?.access_token) {
       throw new Error("Session not established properly");
     }
 
-    // ✅ store token in cookie (not localStorage!)
-    (await cookies()).set("access_token_vox", session.access_token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      path: "/",
-    });
-
-    return { success: true, user: data.user };
+    return {
+      success: true,
+      user: data.user,
+      access_token: data.session.access_token,
+    };
   } catch (error: any) {
     console.error("Login error:", error);
     return { error: error.message || "Login failed" };
@@ -185,7 +180,11 @@ export async function handleSignup(formData: FormData): Promise<AuthResult> {
     // Create user profile with additional data
     await createUserProfile(supabase, data.user.id, email, profileData);
 
-    return { success: true, user: data.user };
+    return {
+      success: true,
+      user: data.user,
+      access_token: data?.session?.access_token as string,
+    };
   } catch (error: any) {
     console.error("Signup error:", error);
     return { error: error.message || "Signup failed" };

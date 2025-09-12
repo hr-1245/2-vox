@@ -18,9 +18,25 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { login, resetPassword } from "@/app/auth/actions/auth";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useSocket } from "../../../../context/SocketProvider";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -36,16 +52,16 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 // Better error message mapping
 const getErrorMessage = (error: string): string => {
-  if (error.includes('Invalid login credentials')) {
+  if (error.includes("Invalid login credentials")) {
     return "Invalid email or password. Please check your credentials and try again.";
   }
-  if (error.includes('Email not confirmed')) {
+  if (error.includes("Email not confirmed")) {
     return "Please check your email and click the confirmation link before signing in.";
   }
-  if (error.includes('Too many requests')) {
+  if (error.includes("Too many requests")) {
     return "Too many login attempts. Please wait a few minutes and try again.";
   }
-  if (error.includes('Network')) {
+  if (error.includes("Network")) {
     return "Network error. Please check your connection and try again.";
   }
   return error || "Something went wrong. Please try again.";
@@ -59,6 +75,8 @@ export function LoginForm() {
   const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
   const [isResetPending, setIsResetPending] = React.useState(false);
   const [resetSuccess, setResetSuccess] = React.useState(false);
+
+  const { connectWithSocket } = useSocket();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -83,31 +101,32 @@ export function LoginForm() {
   }, []);
 
   const onSubmit = async (values: LoginFormValues) => {
-    console.log("logingin in .....")
-    
+    console.log("logingin in .....");
+
     setErrorMessage(null);
     startTransition(async () => {
       const formData = new FormData();
       formData.append("email", values.email);
       formData.append("password", values.password);
 
-      console.log("before login")
+      console.log("before login");
 
       const result = await login(formData);
 
-      console.log("after login")
+      console.log("after login", result);
 
-      if (result && 'error' in result) {
+      if (result && "success" in result) {
+        connectWithSocket(result.access_token);
+
+        // ✅ Navigate from client component
+        router.push("/dashboard"); // or ROUTES.dashboard
+      }
+
+      if (result && "error" in result) {
         setErrorMessage(getErrorMessage(result.error));
       }
-      // Login action handles redirect on success
-          // ✅ Successful login
-    console.log("Login successful, connecting WebSocket...");
-
-   
     });
   };
-// Example WebSocket connection
 
   const handleResetPassword = async (values: ResetPasswordFormValues) => {
     setIsResetPending(true);
@@ -118,7 +137,7 @@ export function LoginForm() {
     try {
       const result = await resetPassword(formData);
 
-      if (result && 'error' in result) {
+      if (result && "error" in result) {
         toast.error(getErrorMessage(result.error));
       } else {
         setResetSuccess(true);
@@ -210,9 +229,15 @@ export function LoginForm() {
 
           <div className="flex items-center justify-between text-sm">
             <div /> {/* Spacer */}
-            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+            <Dialog
+              open={isResetDialogOpen}
+              onOpenChange={setIsResetDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button variant="link" className="p-0 h-auto text-sm text-primary hover:underline">
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-sm text-primary hover:underline"
+                >
                   Forgot password?
                 </Button>
               </DialogTrigger>
@@ -220,7 +245,8 @@ export function LoginForm() {
                 <DialogHeader>
                   <DialogTitle>Reset Password</DialogTitle>
                   <DialogDescription>
-                    Enter your email address and we'll send you a link to reset your password.
+                    Enter your email address and we'll send you a link to reset
+                    your password.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -236,7 +262,10 @@ export function LoginForm() {
                   </div>
                 ) : (
                   <Form {...resetForm}>
-                    <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
+                    <form
+                      onSubmit={resetForm.handleSubmit(handleResetPassword)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={resetForm.control}
                         name="email"
