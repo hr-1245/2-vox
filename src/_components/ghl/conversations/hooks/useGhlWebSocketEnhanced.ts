@@ -2,7 +2,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 
 interface UseGhlWebSocketReturn {
-  sendToGhlWebSocket: (data: any) => void;
+  // sendToGhlWebSocket: (data: any) => void;
   isConnected: boolean;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
 }
@@ -78,29 +78,29 @@ export const useGhlWebSocketEnhanced = (): UseGhlWebSocketReturn => {
     };
   }, [connect]);
 
-  const sendToGhlWebSocket = useCallback((data: any) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      try {
-        const message = JSON.stringify({
-          ...data,
-          timestamp: new Date().toISOString(),
-          messageId: Math.random().toString(36).substring(7)
-        });
-        ws.current.send(message);
-        console.log('📤 Sent to GHL WebSocket:', data);
-        return true;
-      } catch (error) {
-        console.error('Failed to send message to WebSocket:', error);
-        return false;
-      }
-    } else {
-      console.warn('WebSocket not connected, cannot send message');
-      return false;
-    }
-  }, []);
+  // const sendToGhlWebSocket = useCallback((data: any) => {
+  //   if (ws.current?.readyState === WebSocket.OPEN) {
+  //     try {
+  //       const message = JSON.stringify({
+  //         ...data,
+  //         timestamp: new Date().toISOString(),
+  //         messageId: Math.random().toString(36).substring(7)
+  //       });
+  //       ws.current.send(message);
+  //       console.log('📤 Sent to GHL WebSocket:', data);
+  //       return true;
+  //     } catch (error) {
+  //       console.error('Failed to send message to WebSocket:', error);
+  //       return false;
+  //     }
+  //   } else {
+  //     console.warn('WebSocket not connected, cannot send message');
+  //     return false;
+  //   }
+  // }, []);
 
   return {
-    sendToGhlWebSocket,
+    // sendToGhlWebSocket,
     isConnected: connectionStatus === 'connected',
     connectionStatus
   };
