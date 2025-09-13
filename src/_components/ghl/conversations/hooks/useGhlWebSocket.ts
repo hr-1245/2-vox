@@ -2,7 +2,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 
 interface UseGhlWebSocketReturn {
-  sendToGhlWebSocket: (data: any) => void;
+  // sendToGhlWebSocket: (data: any) => void;
   isConnected: boolean;
 }
 
@@ -53,22 +53,22 @@ export const useGhlWebSocket = (): UseGhlWebSocketReturn => {
     };
   }, [connect]);
 
-  const sendToGhlWebSocket = useCallback((data: any) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      try {
-        const message = JSON.stringify(data);
-        ws.current.send(message);
-        console.log('📤 Sent to GHL WebSocket:', data);
-      } catch (error) {
-        console.error('Failed to send message to WebSocket:', error);
-      }
-    } else {
-      console.warn('WebSocket not connected, cannot send message');
-    }
-  }, []);
+  // const sendToGhlWebSocket = useCallback((data: any) => {
+  //   if (ws.current?.readyState === WebSocket.OPEN) {
+  //     try {
+  //       const message = JSON.stringify(data);
+  //       ws.current.send(message);
+  //       console.log('📤 Sent to GHL WebSocket:', data);
+  //     } catch (error) {
+  //       console.error('Failed to send message to WebSocket:', error);
+  //     }
+  //   } else {
+  //     console.warn('WebSocket not connected, cannot send message');
+  //   }
+  // }, []);
 
   return {
-    sendToGhlWebSocket,
+    // sendToGhlWebSocket,
     isConnected: isConnected.current
   };
 };

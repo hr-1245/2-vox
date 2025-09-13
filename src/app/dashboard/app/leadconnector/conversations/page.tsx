@@ -8,7 +8,7 @@ export default async function ConversationsRoute() {
   // Get current user
   const user = await getCurrentUser();
   if (!user) {
-    redirect('/auth/login');
+    redirect("/auth/login");
   }
 
   // Get GHL provider data
@@ -18,7 +18,7 @@ export default async function ConversationsRoute() {
   );
 
   if (!providerData?.data?.location_id) {
-    redirect('/dashboard/app/leadconnector');
+    redirect("/dashboard/app/leadconnector");
   }
 
   return (

@@ -39,25 +39,26 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Chat with FastAPI</h2>
-      <div style={{ border: "1px solid #ccc", height: 300, overflowY: "auto", padding: 10 }}>
-        {messages.map((msg, idx) => (
-          <div key={idx}>{msg}</div>
-        ))}
-      </div>
+    <></>
+    //     <div style={{ padding: 20 }}>
+    //       <h2>Chat with FastAPI</h2>
+    //       <div style={{ border: "1px solid #ccc", height: 300, overflowY: "auto", padding: 10 }}>
+    //         {messages.map((msg, idx) => (
+    //           <div key={idx}>{msg}</div>
+    //         ))}
+    //       </div>
 
-      <form onSubmit={sendMessage} style={{ marginTop: 10 }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          style={{ padding: 8, width: "70%" }}
-        />
-        <button type="submit" style={{ padding: 8, marginLeft: 8 }}>
-          Send
-        </button>
-      </form>
-    </div>
-  );
+    //       <form onSubmit={sendMessage} style={{ marginTop: 10 }}>
+    //         <input
+    //           type="text"
+    //           value={input}
+    //           onChange={(e) => setInput(e.target.value)}
+    //           style={{ padding: 8, width: "70%" }}
+    //         />
+    //         <button type="submit" style={{ padding: 8, marginLeft: 8 }}>
+    //           Send
+    //         </button>
+    //       </form>
+    //     </div>
+  );
 }

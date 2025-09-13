@@ -1,23 +1,28 @@
-import { ConversationDetails } from '@/_components/ghl/conversations/ConversationDetails';
-import { getCurrentUserProviderData } from '@/utils/providers/providerUtils';
-import { PROVIDER_TYPE } from '@/utils/config/providerTypes';
-import { notFound } from 'next/navigation';
+import { ConversationDetails } from "@/_components/ghl/conversations/ConversationDetails";
+import { getCurrentUserProviderData } from "@/utils/providers/providerUtils";
+import { PROVIDER_TYPE } from "@/utils/config/providerTypes";
+import { notFound } from "next/navigation";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ 
+  searchParams: Promise<{
     contact?: string;
     email?: string;
     phone?: string;
   }>;
 }
 
-export default async function ConversationPage({ params, searchParams }: ConversationPageProps) {
+export default async function ConversationPage({
+  params,
+  searchParams,
+}: ConversationPageProps) {
   const { id } = await params;
   const { contact, email, phone } = await searchParams;
 
   // Get provider data to get location ID
-  const providerData = await getCurrentUserProviderData(PROVIDER_TYPE.GHL_LOCATION);
+  const providerData = await getCurrentUserProviderData(
+    PROVIDER_TYPE.GHL_LOCATION
+  );
   if (!providerData?.data?.location_id) {
     notFound();
   }
@@ -26,7 +31,7 @@ export default async function ConversationPage({ params, searchParams }: Convers
   const searchParamsString = new URLSearchParams({
     ...(contact && { contact }),
     ...(email && { email }),
-    ...(phone && { phone })
+    ...(phone && { phone }),
   }).toString();
 
   return (
