@@ -27,10 +27,10 @@ export async function login(formData: FormData) {
   try {
     const result = await authLogin(formData);
 
-    // if ('success' in result && result.success) {
-    //   revalidatePath("/", "layout")
-    //   redirect(ROUTES.dashboard)
-    // }
+    if ('success' in result && result.success) {
+      revalidatePath("/", "layout")
+      redirect(ROUTES.dashboard)
+    }
     return result;
   } catch (e) {
     if (isNextRedirectError(e)) {

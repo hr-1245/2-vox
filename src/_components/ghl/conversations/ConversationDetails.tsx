@@ -58,6 +58,8 @@ import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnab
 import { loadEmailContent } from "@/utils/ghl/emailClient";
 
 
+import { useSocket } from "../../../../context/SocketProvider";
+
 // Enhanced debug helper with better error formatting
 const debug = {
   log: (component: string, message: string, data?: any) => {
@@ -563,6 +565,22 @@ export function ConversationDetails({
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const retryCountRef = useRef(0);
+
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const ghlResponse = (response: any) => {
+      console.log("Real time response from socket: ", response);
+    };
+
+    socket.on("ghl_response", ghlResponse);
+
+    return () => {
+      socket.off("ghl_response", ghlResponse);
+    };
+  }, [socket]);
 
   // Add disabled state for UI interactions
   const disabled = isLoading || isTraining || isRegeneratingSummary;

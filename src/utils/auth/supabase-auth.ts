@@ -78,7 +78,11 @@ function getFirstIssue(error: z.ZodError): AuthResult {
 
 // Auth Functions
 export type AuthResult =
-  | { success: true; user: any; access_token: string }
+  | {
+      success: true;
+      user: any;
+      // access_token: string
+    }
   | { error: string; field?: string };
 
 async function createUserProfile(
@@ -147,7 +151,7 @@ export async function handleLogin(formData: FormData): Promise<AuthResult> {
     return {
       success: true,
       user: data.user,
-      access_token: data.session.access_token,
+      // access_token: data.session.access_token,
     };
   } catch (error: any) {
     console.error("Login error:", error);
@@ -183,7 +187,7 @@ export async function handleSignup(formData: FormData): Promise<AuthResult> {
     return {
       success: true,
       user: data.user,
-      access_token: data?.session?.access_token as string,
+      // access_token: data?.session?.access_token as string,
     };
   } catch (error: any) {
     console.error("Signup error:", error);
