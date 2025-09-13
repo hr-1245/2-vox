@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
+// import { getSupabase } from "@/utils/supabase/getSupabase";
 import {
   Tooltip,
   TooltipContent,
@@ -501,6 +502,7 @@ export interface Message {
   [key: string]: any;
 }
 export type MessageList = Message[];
+
 export function MessageInput({
   conversationId,
   recentMessages = [],
@@ -1958,11 +1960,18 @@ Focus on relationship building and moving the conversation forward constructivel
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loadingType || !message.trim()) return;
 
-    sendMessage({ message, selectedMessageType, conversationId });
+    // handleChatMessage(false); // existing logic
+
+    // via socket
+    sendMessage({
+      message,
+      type: selectedMessageType.split("_")[1],
+      contactId: conversationId,
+    });
   };
 
   // Load conversation settings when component mounts

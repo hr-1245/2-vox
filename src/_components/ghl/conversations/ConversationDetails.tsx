@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnable";
 import { EmailContent, loadEmailContent } from "@/lib/leadconnector/emailUtils";
+import { useSocket } from "../../../../context/SocketProvider";
 
 // Enhanced debug helper with better error formatting
 const debug = {
@@ -507,6 +508,22 @@ export function ConversationDetails({
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const retryCountRef = useRef(0);
+
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const ghlResponse = (response: any) => {
+      console.log("Real time response from socket: ", response);
+    };
+
+    socket.on("ghl_response", ghlResponse);
+
+    return () => {
+      socket.off("ghl_response", ghlResponse);
+    };
+  }, [socket]);
 
   // Add disabled state for UI interactions
   const disabled = isLoading || isTraining || isRegeneratingSummary;

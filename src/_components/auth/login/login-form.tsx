@@ -76,7 +76,7 @@ export function LoginForm() {
   const [isResetPending, setIsResetPending] = React.useState(false);
   const [resetSuccess, setResetSuccess] = React.useState(false);
 
-  const { connectWithSocket } = useSocket();
+  // const { connectWithSocket } = useSocket();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -115,12 +115,12 @@ export function LoginForm() {
 
       console.log("after login", result);
 
-      if (result && "success" in result) {
-        connectWithSocket(result.access_token);
+      // if (result && "success" in result) {
+      //   connectWithSocket(result.access_token);
 
-        // ✅ Navigate from client component
-        router.push("/dashboard"); // or ROUTES.dashboard
-      }
+      //   // ✅ Navigate from client component
+      //   router.push("/dashboard"); // or ROUTES.dashboard
+      // }
 
       if (result && "error" in result) {
         setErrorMessage(getErrorMessage(result.error));
