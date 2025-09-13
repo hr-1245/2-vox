@@ -73,6 +73,9 @@ import useWebSocket from "./hooks/useWebSocket";
 import { useGhlWebSocket } from "./hooks/useGhlWebSocket";
 import ChatPage from "./ChatPage";
 import { useSocket } from "../../../../context/SocketProvider";
+import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
+
+// import { getGhlTokenForUser } from "@/utils/ghl/tokenUtils";
 
 interface Suggestion {
   text: string;
@@ -1965,12 +1968,16 @@ Focus on relationship building and moving the conversation forward constructivel
     if (loadingType || !message.trim()) return;
 
     // handleChatMessage(false); // existing logic
+      // const token = await getGhlTokenForUser();
+      const token = await getClientGhlToken();
 
+  console.log("token in client component.......",token,"conversationId...................",conversationId)
     // via socket
     sendMessage({
       message,
       type: selectedMessageType.split("_")[1],
       contactId: conversationId,
+      token:token
     });
   };
 
