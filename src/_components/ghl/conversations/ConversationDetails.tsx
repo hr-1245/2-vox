@@ -53,7 +53,10 @@ import {
   Zap,
 } from "lucide-react";
 import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnable";
-import { EmailContent, loadEmailContent } from "@/lib/leadconnector/emailUtils";
+// import { EmailContent, loadEmailContent } from "@/lib/leadconnector/emailUtils";
+// import { EmailContent } from "@/lib/leadconnector/emailUtils";
+import { loadEmailContent } from "@/utils/ghl/emailClient";
+
 
 // Enhanced debug helper with better error formatting
 const debug = {
@@ -172,6 +175,18 @@ interface ConversationHeaderProps {
   contact: Contact;
   children?: React.ReactNode;
 }
+// api/email.ts
+export interface EmailContent {
+  subject: string;
+  body: string;
+  from: string;
+  to: string[];
+  date: string;
+  direction: string;
+  status: string;
+}
+
+
 
 // Message type labels only (removed icons for cleaner UI)
 const messageTypeLabels: Record<string, string> = {
@@ -202,6 +217,26 @@ function MessageBubble({
   // const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailContent, setEmailContent] = useState<EmailContent | null>(null);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (message.messageType === "TYPE_EMAIL" && message.meta?.email?.messageIds?.length) {
+        const emailId = message.meta.email.messageIds[0];
+        if (emailContent || isLoadingEmail) return;
+        setIsLoadingEmail(true);
+        try {
+          const content = await loadEmailContent(emailId);
+          setEmailContent(content);
+        } catch (err) {
+          console.error("Failed to load email:", err);
+          // setEmailContent({ subject: "", body: "[Error loading email]", from: "", to:"", date: "" });
+        } finally {
+          setIsLoadingEmail(false);
+        }
+      }
+    };
+    load();
+  }, [message]);
 
   // Load email content for TYPE_EMAIL messages
   useEffect(() => {
@@ -313,17 +348,17 @@ function MessageBubble({
         >
           {Array.isArray(message.messageType)
             ? message.messageType
-                .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
-                .map((type) => (
-                  <Badge key={type} variant="outline" className="h-5 px-2">
-                    {messageTypeLabels[type]}
-                  </Badge>
-                ))
-            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
-                <Badge variant="outline" className="h-5 px-2">
-                  {messageTypeLabels[message.messageType]}
+              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+              .map((type) => (
+                <Badge key={type} variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[type]}
                 </Badge>
-              )}
+              ))
+            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
+              <Badge variant="outline" className="h-5 px-2">
+                {messageTypeLabels[message.messageType]}
+              </Badge>
+            )}
           {/* <Badge variant="outline" className="h-5 px-2">
 
             {messageTypeLabels[message.messageType] || message.messageType}
@@ -342,20 +377,41 @@ function MessageBubble({
         >
           {/* For webchat contact info, format it nicely */}
           {/* For email messages, show the fetched email content */}
-          {message.messageType === "TYPE_EMAIL" && emailBody ? (
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground opacity-75">
-                Email Content
-              </div>
+
+
+
+
+          {message.messageType === "TYPE_EMAIL"  ? (
+            <div className="space-y-3">
               {isLoadingEmail ? (
-                <div className="flex items-center justify-center py-4">
-                  <LoadingSpinner className="w-4 h-4 mr-2" />
+                <div className="flex items-center justify-center">
+                  {/* <LoadingSpinner className="w-4 mr-2" /> */}
                   <span className="text-sm">Loading email...</span>
                 </div>
-              ) : (
-                <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {emailBody}
+              ) : emailContent ? (
+                <div className="max-w-full">
+                  {/* Email header */}
+          
+
+                  {/* Email body */}
+                  <div
+                    className="prose prose-sm max-w-none  email-content"
+                    style={{
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      fontSize: '14px',
+                      lineHeight: '1.4'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: emailContent.body }}
+                  />
+
+                  {/* Email status */}
+                  {/* <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-gray-100">
+                    Status: {emailContent.status} | Direction: {emailContent.direction}
+                  </div> */}
                 </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No email content available</div>
               )}
             </div>
           ) : contactInfo ? (
@@ -936,7 +992,7 @@ export function ConversationDetails({
         !isCurrentlyTrained ||
         (lastUpdated &&
           new Date(lastUpdated) <
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
       if (shouldAutoTrain) {
         debug.log(
@@ -948,16 +1004,16 @@ export function ConversationDetails({
         setTrainingStatus((prev) =>
           prev
             ? {
-                ...prev,
-                isTraining: true,
-              }
+              ...prev,
+              isTraining: true,
+            }
             : {
-                isTrained: false,
-                isTraining: true,
-                lastUpdated: new Date().toISOString(),
-                messageCount,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: true,
+              lastUpdated: new Date().toISOString(),
+              messageCount,
+              vectorCount: 0,
+            }
         );
 
         // Start training in background with retry logic
@@ -1038,8 +1094,7 @@ export function ConversationDetails({
       // First, fetch messages for training
       debug.log(
         "ConversationDetails",
-        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
-          retryCount + 1
+        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${retryCount + 1
         }/${maxRetries + 1})...`
       );
 
@@ -1153,12 +1208,12 @@ export function ConversationDetails({
           prev
             ? { ...prev, isTraining: false }
             : {
-                isTrained: false,
-                isTraining: false,
-                lastUpdated: new Date().toISOString(),
-                messageCount: 0,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: false,
+              lastUpdated: new Date().toISOString(),
+              messageCount: 0,
+              vectorCount: 0,
+            }
         );
 
         // Show a non-intrusive notification
@@ -1486,12 +1541,12 @@ export function ConversationDetails({
         prev
           ? { ...prev, isTraining: false }
           : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: false,
+            lastUpdated: new Date().toISOString(),
+            messageCount: 0,
+            vectorCount: 0,
+          }
       );
     }
   }
@@ -1645,16 +1700,16 @@ export function ConversationDetails({
       setTrainingStatus((prev) =>
         prev
           ? {
-              ...prev,
-              isTraining: true,
-            }
+            ...prev,
+            isTraining: true,
+          }
           : {
-              isTrained: false,
-              isTraining: true,
-              lastUpdated: new Date().toISOString(),
-              messageCount: messages.length,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: true,
+            lastUpdated: new Date().toISOString(),
+            messageCount: messages.length,
+            vectorCount: 0,
+          }
       );
 
       // console.log("MANUAL TRAIN: Loading state set, fetching messages...");
@@ -1934,12 +1989,12 @@ export function ConversationDetails({
         prev
           ? { ...prev, isTraining: false }
           : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: false,
+            lastUpdated: new Date().toISOString(),
+            messageCount: 0,
+            vectorCount: 0,
+          }
       );
     }
   };
@@ -1973,7 +2028,7 @@ export function ConversationDetails({
                 className={cn(
                   "h-8 px-3",
                   trainingStatus?.isTrained &&
-                    "border-green-500 text-green-700 hover:bg-green-50"
+                  "border-green-500 text-green-700 hover:bg-green-50"
                 )}
               >
                 {trainingStatus?.isTraining ? (
