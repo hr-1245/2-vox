@@ -59,6 +59,45 @@ import { loadEmailContent } from "@/utils/ghl/emailClient";
 
 import { useSocket } from "../../../../context/SocketProvider";
 
+interface ConversationHeaderProps {
+  contact: Contact;
+  children?: React.ReactNode;
+}
+// api/email.ts
+export interface EmailContent {
+  subject: string;
+  body: string;
+  from: string;
+  to: string[];
+  date: string;
+  direction: string;
+  status: string;
+}
+
+// Message type labels only (removed icons for cleaner UI)
+const messageTypeLabels: Record<string, string> = {
+  TYPE_SMS: "SMS",
+  TYPE_WEBCHAT: "Web Chat",
+  TYPE_EMAIL: "Email",
+  TYPE_PHONE: "Phone",
+  TYPE_FACEBOOK: "FaceBooK",
+  TYPE_INSTAGRAM: "Instagram",
+  TYPE_GMB: "Custom",
+  // TYPE_ACTIVITY_CONTACT: 'Activity',
+  TYPE_WHATSAPP: "WhatsApp",
+};
+
+interface ConversationDetailsProps {
+  conversationId: string;
+  locationId: string;
+}
+
+interface Contact {
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
 // Enhanced debug helper with better error formatting
 const debug = {
   log: (component: string, message: string, data?: any) => {
@@ -126,17 +165,6 @@ async function fetchWithDebug(url: string, options?: RequestInit) {
   }
 }
 
-interface ConversationDetailsProps {
-  conversationId: string;
-  locationId: string;
-}
-
-interface Contact {
-  name?: string;
-  email?: string;
-  phone?: string;
-}
-
 // Helper function to get contact info from messages
 function getContactInfo(messages: Message[]): Contact {
   if (!messages.length) return {};
@@ -171,34 +199,6 @@ function getCustomerAvatarLetter(
 
   return "C";
 }
-
-interface ConversationHeaderProps {
-  contact: Contact;
-  children?: React.ReactNode;
-}
-// api/email.ts
-export interface EmailContent {
-  subject: string;
-  body: string;
-  from: string;
-  to: string[];
-  date: string;
-  direction: string;
-  status: string;
-}
-
-// Message type labels only (removed icons for cleaner UI)
-const messageTypeLabels: Record<string, string> = {
-  TYPE_SMS: "SMS",
-  TYPE_WEBCHAT: "Web Chat",
-  TYPE_EMAIL: "Email",
-  TYPE_PHONE: "Phone",
-  TYPE_FACEBOOK: "FaceBooK",
-  TYPE_INSTAGRAM: "Instagram",
-  TYPE_GMB: "Custom",
-  // TYPE_ACTIVITY_CONTACT: 'Activity',
-  TYPE_WHATSAPP: "WhatsApp",
-};
 
 function MessageBubble({
   message,
@@ -540,7 +540,7 @@ export function ConversationDetails({
   const [pollingIntervalId, setPollingIntervalId] =
     useState<NodeJS.Timeout | null>(null);
   // State
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [messagesList, setMessagesList] = useState<Message[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(
@@ -568,73 +568,8 @@ export function ConversationDetails({
 
   const { socket } = useSocket();
 
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (response: any) => {
-      console.log("Real time new message response from socket: ", response);
-    };
-
-    socket.on("new_message", handleNewMessage);
-
-    return () => {
-      socket.off("new_message", handleNewMessage);
-    };
-  }, [socket]);
-
   // Add disabled state for UI interactions
   const disabled = isLoading || isTraining || isRegeneratingSummary;
-
-  // Auto-refresh training status when training is in progress
-  useEffect(() => {
-    if (!trainingStatus?.isTraining) return;
-
-    const intervalId = setInterval(async () => {
-      debug.log("ConversationDetails", "Auto-refreshing training status...");
-      try {
-        const aiConfig = getFeatureAIConfig("training");
-        const statusData = await fetchWithDebug(
-          `/api/ai/conversation/training-status`,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              conversationId,
-              locationId,
-              temperature: aiConfig.temperature,
-              model: aiConfig.model,
-              humanlikeBehavior: aiConfig.humanlikeBehavior,
-            }),
-          }
-        );
-
-        if (statusData) {
-          setTrainingStatus({
-            isTrained: statusData.is_trained || false,
-            isTraining: statusData.is_training || false,
-            lastUpdated: statusData.last_updated || new Date().toISOString(),
-            messageCount: statusData.message_count || 0,
-            vectorCount: statusData.vector_count || 0,
-          });
-
-          // Stop polling if training is complete
-          if (statusData.is_trained && !statusData.is_training) {
-            debug.log(
-              "ConversationDetails",
-              "Training completed - stopping auto-refresh"
-            );
-          }
-        }
-      } catch (error) {
-        debug.error(
-          "ConversationDetails",
-          "Failed to refresh training status:",
-          error
-        );
-      }
-    }, 30000); // Check every 30 seconds
-
-    return () => clearInterval(intervalId);
-  }, [trainingStatus?.isTraining, conversationId, locationId]);
 
   // Add state for summary expansion
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -863,98 +798,6 @@ export function ConversationDetails({
       setLoadingSettings(false);
     }
   };
-
-  // Load initial data - FAST LOADING: Messages first, AI features in background
-  useEffect(() => {
-    async function loadConversationMessages() {
-      debug.log(
-        "ConversationDetails",
-        "FAST LOAD: Starting conversation messages load",
-        { conversationId, locationId }
-      );
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // PRIORITY 1: Load messages IMMEDIATELY for fast UX
-        const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100`;
-        debug.log(
-          "ConversationDetails",
-          "Fetching messages (priority load):",
-          url
-        );
-
-        const messagesData = await fetchWithDebug(url);
-        const pageMessages = extractMessagesFromResponse(messagesData);
-
-        debug.log(
-          "ConversationDetails",
-          `FAST LOAD: Messages loaded (${pageMessages.length} messages)`
-        );
-
-        setMessages(pageMessages);
-        // console.log("pageMessages iiiiiiiiiiiiiii", pageMessages);
-        // Set pagination state
-        if (pageMessages.length > 0) {
-          const oldestMessage = pageMessages[pageMessages.length - 1];
-          setOldestMessageId(oldestMessage?.id);
-          setHasMoreMessages(pageMessages.length === 100);
-        } else {
-          setHasMoreMessages(false);
-        }
-
-        // Show messages immediately - user can start reading
-        setIsLoading(false);
-
-        // BACKGROUND: Start AI features loading without blocking UI
-        loadAIFeaturesInBackground(pageMessages.length);
-      } catch (messagesError) {
-        debug.error(
-          "ConversationDetails",
-          "Failed to load messages:",
-          messagesError
-        );
-        setError("Failed to load conversation messages");
-        setIsLoading(false);
-      }
-    }
-
-    // Background AI features loading
-    async function loadAIFeaturesInBackground(messageCount: number) {
-      debug.log("ConversationDetails", "BACKGROUND: Starting AI features load");
-
-      // 🆕 Check FastAPI health FIRST - this is critical for AI functionality
-      await checkFastAPIHealth();
-
-      // Load conversation settings first (for agent info)
-      loadConversationSettings();
-
-      // Auto-training logic: Check if conversation needs training
-      await handleAutoTraining(messageCount);
-
-      // Load other AI features in parallel (non-blocking)
-      // Note: Summary loading is now handled after training completes
-      Promise.allSettled([
-        loadAutopilotStatusInBackground(),
-        loadActiveAgentInBackground(),
-        checkVoxAiAndAutoEnableAutopilot(), // Critical vox-ai feature
-        // Only load summary if not currently training (to avoid race condition)
-        ...(trainingStatus?.isTraining ? [] : [loadSummaryInBackground()]),
-      ]).then((results) => {
-        debug.log("ConversationDetails", "BACKGROUND: AI features loaded", {
-          autopilot: results[0].status,
-          activeAgent: results[1].status,
-          voxAiCheck: results[2].status,
-          summary: results[3]?.status || "skipped (training in progress)",
-          fastApiStatus: fastApiStatus.isOnline ? "online" : "offline",
-        });
-      });
-    }
-
-    // Start the loading process
-    loadConversationMessages();
-  }, [conversationId, locationId]);
 
   // Background function to handle auto-training
   async function handleAutoTraining(messageCount: number) {
@@ -1464,21 +1307,6 @@ export function ConversationDetails({
     }
   }
 
-  // Load conversation settings (moved from old useEffect)
-  useEffect(() => {
-    loadConversationSettings();
-  }, [conversationId]);
-
-  // Auto-scroll to bottom when new messages arrive (latest messages)
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }
-  }, [messages.length]);
-
   // Load more messages function
   const loadMoreMessages = async () => {
     if (!hasMoreMessages || isLoadingMore || !oldestMessageId) {
@@ -1637,73 +1465,6 @@ export function ConversationDetails({
     } finally {
       setIsRegeneratingSummary(false);
     }
-  }
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    const scrollToBottom = () => {
-      const scrollArea = messagesEndRef.current?.closest(
-        "[data-radix-scroll-area-viewport]"
-      );
-      if (scrollArea) {
-        scrollArea.scrollTop = scrollArea.scrollHeight;
-      }
-    };
-
-    // Small delay to ensure DOM is updated
-    const timeoutId = setTimeout(scrollToBottom, 100);
-    return () => clearTimeout(timeoutId);
-  }, [messages]);
-
-  // Error state
-  if (error) {
-    return (
-      <Card className="flex flex-col h-full items-center justify-center gap-4 p-8">
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => {
-            retryCountRef.current = 0;
-            window.location.reload();
-          }}
-          variant="outline"
-        >
-          Retry
-        </Button>
-      </Card>
-    );
-  }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <Card className="flex flex-col h-full items-center justify-center p-8">
-        <LoadingSpinner className="w-8 h-8" />
-        <div className="mt-4 text-muted-foreground">
-          Loading conversation
-          {retryCountRef.current > 0 ? ` (retry ${retryCountRef.current})` : ""}
-          ...
-        </div>
-      </Card>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <Card className="flex flex-col h-full items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <div className="text-red-500 font-medium">
-            Failed to load conversation
-          </div>
-          <div className="text-sm text-muted-foreground">{error}</div>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Try Again
-          </Button>
-        </div>
-      </Card>
-    );
   }
 
   // Simple manual training function
@@ -2018,6 +1779,275 @@ export function ConversationDetails({
     }
   };
 
+  // Auto-scroll to bottom
+  // useEffect(() => {
+  //   const scrollToBottom = () => {
+  //     const scrollArea = messagesEndRef.current?.closest(
+  //       "[data-radix-scroll-area-viewport]"
+  //     );
+  //     if (scrollArea) {
+  //       scrollArea.scrollTop = scrollArea.scrollHeight;
+  //     }
+  //   };
+
+  //   // Small delay to ensure DOM is updated
+  //   const timeoutId = setTimeout(scrollToBottom, 100);
+  //   return () => clearTimeout(timeoutId);
+  // }, [messages]);
+
+  // Load conversation settings (moved from old useEffect)
+  useEffect(() => {
+    loadConversationSettings();
+  }, [conversationId]);
+
+  // Auto-scroll to bottom when new messages arrive (latest messages)
+  // useEffect(() => {
+  //   if (messages.length > 0) {
+  //     // Small delay to ensure DOM is updated
+  //     setTimeout(() => {
+  //       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  //     }, 100);
+  //   }
+  // }, [messages.length]);
+
+  // Load initial data - FAST LOADING: Messages first, AI features in background
+  useEffect(() => {
+    async function loadConversationMessages() {
+      debug.log(
+        "ConversationDetails",
+        "FAST LOAD: Starting conversation messages load",
+        { conversationId, locationId }
+      );
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // PRIORITY 1: Load messages IMMEDIATELY for fast UX
+        const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100`;
+        debug.log(
+          "ConversationDetails",
+          "Fetching messages (priority load):",
+          url
+        );
+
+        const messagesData = await fetchWithDebug(url);
+        const pageMessages = extractMessagesFromResponse(messagesData);
+
+        debug.log(
+          "ConversationDetails",
+          `FAST LOAD: Messages loaded (${pageMessages.length} messages)`
+        );
+
+        setMessages(pageMessages);
+        // console.log("pageMessages iiiiiiiiiiiiiii", pageMessages);
+        // Set pagination state
+        if (pageMessages.length > 0) {
+          const oldestMessage = pageMessages[pageMessages.length - 1];
+          setOldestMessageId(oldestMessage?.id);
+          setHasMoreMessages(pageMessages.length === 100);
+        } else {
+          setHasMoreMessages(false);
+        }
+
+        // Show messages immediately - user can start reading
+        setIsLoading(false);
+
+        // BACKGROUND: Start AI features loading without blocking UI
+        loadAIFeaturesInBackground(pageMessages.length);
+      } catch (messagesError) {
+        debug.error(
+          "ConversationDetails",
+          "Failed to load messages:",
+          messagesError
+        );
+        setError("Failed to load conversation messages");
+        setIsLoading(false);
+      }
+    }
+
+    // Background AI features loading
+    async function loadAIFeaturesInBackground(messageCount: number) {
+      debug.log("ConversationDetails", "BACKGROUND: Starting AI features load");
+
+      // 🆕 Check FastAPI health FIRST - this is critical for AI functionality
+      await checkFastAPIHealth();
+
+      // Load conversation settings first (for agent info)
+      loadConversationSettings();
+
+      // Auto-training logic: Check if conversation needs training
+      await handleAutoTraining(messageCount);
+
+      // Load other AI features in parallel (non-blocking)
+      // Note: Summary loading is now handled after training completes
+      Promise.allSettled([
+        loadAutopilotStatusInBackground(),
+        loadActiveAgentInBackground(),
+        checkVoxAiAndAutoEnableAutopilot(), // Critical vox-ai feature
+        // Only load summary if not currently training (to avoid race condition)
+        ...(trainingStatus?.isTraining ? [] : [loadSummaryInBackground()]),
+      ]).then((results) => {
+        debug.log("ConversationDetails", "BACKGROUND: AI features loaded", {
+          autopilot: results[0].status,
+          activeAgent: results[1].status,
+          voxAiCheck: results[2].status,
+          summary: results[3]?.status || "skipped (training in progress)",
+          fastApiStatus: fastApiStatus.isOnline ? "online" : "offline",
+        });
+      });
+    }
+
+    // Start the loading process
+    loadConversationMessages();
+  }, [conversationId, locationId]);
+
+  // Auto-refresh training status when training is in progress
+  useEffect(() => {
+    if (!trainingStatus?.isTraining) return;
+
+    const intervalId = setInterval(async () => {
+      debug.log("ConversationDetails", "Auto-refreshing training status...");
+      try {
+        const aiConfig = getFeatureAIConfig("training");
+        const statusData = await fetchWithDebug(
+          `/api/ai/conversation/training-status`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              conversationId,
+              locationId,
+              temperature: aiConfig.temperature,
+              model: aiConfig.model,
+              humanlikeBehavior: aiConfig.humanlikeBehavior,
+            }),
+          }
+        );
+
+        if (statusData) {
+          setTrainingStatus({
+            isTrained: statusData.is_trained || false,
+            isTraining: statusData.is_training || false,
+            lastUpdated: statusData.last_updated || new Date().toISOString(),
+            messageCount: statusData.message_count || 0,
+            vectorCount: statusData.vector_count || 0,
+          });
+
+          // Stop polling if training is complete
+          if (statusData.is_trained && !statusData.is_training) {
+            debug.log(
+              "ConversationDetails",
+              "Training completed - stopping auto-refresh"
+            );
+          }
+        }
+      } catch (error) {
+        debug.error(
+          "ConversationDetails",
+          "Failed to refresh training status:",
+          error
+        );
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [trainingStatus?.isTraining, conversationId, locationId]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log("🆕 Messages changed. Total messages:", messages.length);
+
+      // Small delay to ensure DOM is updated before scroll
+      const timeoutId = setTimeout(() => {
+        if (messagesEndRef.current) {
+          console.log("📌 Scrolling to last message:", messagesEndRef.current);
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+          console.log("✅ Auto-scrolled to bottom");
+        } else {
+          console.warn("⚠️ messagesEndRef not found, cannot scroll");
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+        console.log("♻️ Cleared scroll timeout");
+      };
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!socket) {
+      console.log("⚠️ No socket found, skipping listener setup");
+      return;
+    }
+
+    const handleNewMessage = (response: any) => {
+      console.log("📩 Incoming socket event: new_message");
+      console.log("👉 Raw response from server:", response);
+
+      const dummyMessage: any = {
+        id: Date.now().toString(), // 👈 unique every time
+        direction: "outbound",
+        status: "failed",
+        type: 19,
+        locationId: "iXTmrCkWtZKXWzs85Jx8",
+        attachments: [],
+        body: "test " + new Date().toLocaleTimeString(), // 👈 make body unique too for debugging
+        contactId: "YneAmPjjLo4ONDkhukEv",
+        contentType: "text/plain",
+        conversationId: "fHtv0rSh2Pde7sewlSdL",
+        dateAdded: new Date().toISOString(),
+        dateUpdated: new Date().toISOString(),
+        source: "app",
+        altId: Math.random().toString(36).substring(2), // 👈 extra uniqueness
+        messageType: "TYPE_WHATSAPP",
+      };
+
+      setMessages((prev) => [...prev, dummyMessage]);
+      console.log("📝 Dummy message to be added:", dummyMessage);
+    };
+
+    socket.on("new_message", handleNewMessage);
+    console.log("🔌 Listener attached for: new_message");
+
+    return () => {
+      socket.off("new_message", handleNewMessage);
+      console.log("❌ Listener removed for: new_message");
+    };
+  }, [socket]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="flex flex-col h-full items-center justify-center p-8">
+        <LoadingSpinner className="w-8 h-8" />
+        <div className="mt-4 text-muted-foreground">
+          Loading conversation
+          {retryCountRef.current > 0 ? ` (retry ${retryCountRef.current})` : ""}
+          ...
+        </div>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Card className="flex flex-col h-full items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <div className="text-red-500 font-medium">
+            Failed to load conversation
+          </div>
+          <div className="text-sm text-muted-foreground">{error}</div>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   // Main render - Responsive layout with proper height management
   return (
     <Card className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden">
@@ -2210,9 +2240,9 @@ export function ConversationDetails({
                   </div>
                 </div>
               ) : (
-                messages.map((msg, index) => (
+                messages?.map((msg, index) => (
                   <MessageBubble
-                    key={msg.id}
+                    key={msg.id || index}
                     message={msg}
                     isLast={index === messages.length - 1}
                     urlContactInfo={urlContactInfo}

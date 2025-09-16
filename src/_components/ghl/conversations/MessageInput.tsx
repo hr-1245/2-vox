@@ -151,7 +151,7 @@ interface ChatResponse
     confidence_score?: number;
     conversationId?: string;
     timestamp?: string;
-  }> { }
+  }> {}
 
 // AI Settings Configuration - Enhanced with centralized config
 interface AISettings {
@@ -1069,7 +1069,8 @@ export function MessageInput({
           .slice(-aiSettings.contextDepth)
           .map(
             (msg) =>
-              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${msg.body
+              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
+                msg.body
               }`
           )
           .join("\n"),
@@ -1434,8 +1435,8 @@ export function MessageInput({
           const customerInfo = getCustomerInfo(recentMessages);
           const lastCustomerMessage = aiSettings.prioritizeCustomerMessages
             ? [...validMessages]
-              .reverse()
-              .find((msg) => msg.direction === "inbound")?.body
+                .reverse()
+                .find((msg) => msg.direction === "inbound")?.body
             : null;
 
           const lastMessage = validMessages[validMessages.length - 1]?.body;
@@ -1475,8 +1476,8 @@ export function MessageInput({
           // For auto-pilot, try to get customer message first, then fall back to last message
           const lastCustomerMessage = aiSettings.prioritizeCustomerMessages
             ? [...validMessages]
-              .reverse()
-              .find((msg) => msg.direction === "inbound")?.body
+                .reverse()
+                .find((msg) => msg.direction === "inbound")?.body
             : null;
 
           const lastMessage = validMessages[validMessages.length - 1]?.body;
@@ -1556,13 +1557,13 @@ export function MessageInput({
         };
         const payload = buildPayload();
         const token = await getClientGhlToken();
-console.log(
-  "token in client component.......",
-  token,
-  "conversationId...................",
-  conversationId
-);
-        console.log("token in client component.......", token, "conversationId...................", conversationId)
+        // console.log(
+        //   "token in client component.......",
+        //   token,
+        //   "conversationId...................",
+        //   conversationId
+        // );
+        // console.log("token in client component.......", token, "conversationId...................", conversationId)
         // via socket
         sendMessage({
           ...payload,
@@ -1790,12 +1791,13 @@ Focus on relationship building and moving the conversation forward constructivel
             );
             return contextMsgs.length > 0
               ? contextMsgs
-                .map(
-                  (msg) =>
-                    `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${msg.body
-                    }`
-                )
-                .join("\n")
+                  .map(
+                    (msg) =>
+                      `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
+                        msg.body
+                      }`
+                  )
+                  .join("\n")
               : "No message content available";
           })(),
         lastCustomerMessage: enhancedQuery,
@@ -1985,7 +1987,6 @@ Focus on relationship building and moving the conversation forward constructivel
     if (loadingType || !message.trim()) return;
 
     handleChatMessage(false); // existing logic
-
   };
 
   // Load conversation settings when component mounts
@@ -2152,26 +2153,27 @@ Focus on relationship building and moving the conversation forward constructivel
         // Store contact information for future reference
         contactInfo: effectiveContactInfo
           ? {
-            name:
-              `${effectiveContactInfo.firstName || ""} ${effectiveContactInfo.lastName || ""
+              name:
+                `${effectiveContactInfo.firstName || ""} ${
+                  effectiveContactInfo.lastName || ""
                 }`.trim() || urlContactInfo?.name,
-            email: effectiveContactInfo.email,
-            phone: effectiveContactInfo.phone,
-            source:
-              effectiveContactInfo.id === "url-contact-info"
-                ? "url_params"
-                : "ghl_api",
-          }
+              email: effectiveContactInfo.email,
+              phone: effectiveContactInfo.phone,
+              source:
+                effectiveContactInfo.id === "url-contact-info"
+                  ? "url_params"
+                  : "ghl_api",
+            }
           : urlContactInfo?.name ||
             urlContactInfo?.email ||
             urlContactInfo?.phone
-            ? {
+          ? {
               name: urlContactInfo.name,
               email: urlContactInfo.email,
               phone: urlContactInfo.phone,
               source: "url_params",
             }
-            : null,
+          : null,
         // Store conversation metadata
         conversationInfo: {
           lastUpdated: new Date().toISOString(),
@@ -2227,30 +2229,31 @@ Focus on relationship building and moving the conversation forward constructivel
           // NEW: Include conversation and contact metadata
           conversationMetadata: conversationDetails
             ? {
-              conversationName: conversationDetails.name || "",
-              lastUpdated:
-                conversationDetails.lastMessageDate ||
-                new Date().toISOString(),
-              messageCount: conversationDetails.messageCount || 0,
-              status: conversationDetails.status || "open",
-            }
+                conversationName: conversationDetails.name || "",
+                lastUpdated:
+                  conversationDetails.lastMessageDate ||
+                  new Date().toISOString(),
+                messageCount: conversationDetails.messageCount || 0,
+                status: conversationDetails.status || "open",
+              }
             : null,
           contactMetadata: effectiveContactInfo
             ? {
-              contactId: effectiveContactInfo.id || "url-contact",
-              firstName: effectiveContactInfo.firstName || "",
-              lastName: effectiveContactInfo.lastName || "",
-              fullName:
-                `${effectiveContactInfo.firstName || ""} ${effectiveContactInfo.lastName || ""
+                contactId: effectiveContactInfo.id || "url-contact",
+                firstName: effectiveContactInfo.firstName || "",
+                lastName: effectiveContactInfo.lastName || "",
+                fullName:
+                  `${effectiveContactInfo.firstName || ""} ${
+                    effectiveContactInfo.lastName || ""
                   }`.trim() ||
-                urlContactInfo?.name ||
-                "",
-              email: effectiveContactInfo.email || "",
-              phone: effectiveContactInfo.phone || "",
-              source: effectiveContactInfo.source || "url_params",
-              dateAdded:
-                effectiveContactInfo.dateAdded || new Date().toISOString(),
-            }
+                  urlContactInfo?.name ||
+                  "",
+                email: effectiveContactInfo.email || "",
+                phone: effectiveContactInfo.phone || "",
+                source: effectiveContactInfo.source || "url_params",
+                dateAdded:
+                  effectiveContactInfo.dateAdded || new Date().toISOString(),
+              }
             : null,
         };
 
@@ -2268,7 +2271,8 @@ Focus on relationship building and moving the conversation forward constructivel
         // NEW: Also create/update autopilot conversation tracking with contact details
         try {
           const fullContactName = effectiveContactInfo
-            ? `${effectiveContactInfo.firstName || ""} ${effectiveContactInfo.lastName || ""
+            ? `${effectiveContactInfo.firstName || ""} ${
+                effectiveContactInfo.lastName || ""
               }`.trim()
             : "";
           // Create a better conversation name using contact info if available
@@ -2364,7 +2368,8 @@ Focus on relationship building and moving the conversation forward constructivel
     } catch (error) {
       console.error("Error toggling autopilot:", error);
       toast.error(
-        `Failed to ${autopilotEnabled ? "disable" : "enable"} autopilot: ${error instanceof Error ? error.message : "Unknown error"
+        `Failed to ${autopilotEnabled ? "disable" : "enable"} autopilot: ${
+          error instanceof Error ? error.message : "Unknown error"
         }`
       );
     }
@@ -2392,7 +2397,8 @@ Focus on relationship building and moving the conversation forward constructivel
           .slice(-DEFAULT_AI_SETTINGS.contextDepth)
           .map(
             (msg) =>
-              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${msg.body
+              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
+                msg.body
               }`
           )
           .join("\n"),
