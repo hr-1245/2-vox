@@ -2004,7 +2004,7 @@ export function ConversationDetails({
         messageType: "TYPE_WHATSAPP",
       };
 
-      setMessages((prev) => [...prev, dummyMessage]);
+      setMessages((prev) => [...prev, response?.message]);
       console.log("📝 Dummy message to be added:", dummyMessage);
     };
 
