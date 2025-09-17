@@ -142,9 +142,12 @@ export default function KnowledgeBasePage() {
   const categorizedKBs = useMemo(() => {
     const filtered = knowledgeBases.filter(kb => {
       // 🚫 ALWAYS EXCLUDE CONVERSATIONS from all views except the dedicated conversation tab
-      if (kb.type === KB_SETTINGS.KB_CONVERSATION.type && activeCategory !== 'conversation') {
-        return false;
-      }
+      // if (kb.type === KB_SETTINGS.KB_CONVERSATION.type && activeCategory !== 'conversation') {
+      //   return false;
+      // }
+         if (kb.type === KB_SETTINGS.KB_CONVERSATION.type && !['all', 'conversation'].includes(activeCategory)) {
+      return false;
+    }
 
       const matchesSearch = !searchQuery || 
         kb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -183,7 +186,9 @@ export default function KnowledgeBasePage() {
 
     return {
       // 🚫 ALWAYS exclude conversations from "all" - they only appear in conversation tab
-      all: sorted.filter(kb => kb.type !== KB_SETTINGS.KB_CONVERSATION.type),
+      // all: sorted.filter(kb => kb.type !== KB_SETTINGS.KB_CONVERSATION.type),
+all: sorted,
+
       conversation: conversationKBs.filter(kb => {
         return !searchQuery || 
           kb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -400,7 +405,8 @@ export default function KnowledgeBasePage() {
     return {
       // 🚫 IMPORTANT: "All" only shows actual knowledge bases, NOT conversations
       // Conversations are auto-generated and should only appear in the conversation tab
-      all: nonConversationKBs.length,
+      // all: nonConversationKBs.length,
+        all: knowledgeBases.length,
       conversation: conversationKBs.length,
       files: knowledgeBases.filter(kb => kb.type === KB_SETTINGS.KB_FILE_UPLOAD.type).length,
       faq: knowledgeBases.filter(kb => kb.type === KB_SETTINGS.KB_FAQ.type).length,
@@ -585,7 +591,6 @@ export default function KnowledgeBasePage() {
 // Knowledge Base Grid Component
 function KnowledgeBaseGrid({ kbs, onDelete }: { kbs: KnowledgeBase[], onDelete: (id: string) => void }) {
   const router = useRouter();
-
   if (kbs.length === 0) {
     return (
       <div className="text-center py-12">
