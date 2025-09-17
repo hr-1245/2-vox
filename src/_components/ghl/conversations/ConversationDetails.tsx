@@ -2050,7 +2050,7 @@ export function ConversationDetails({
 
   // Main render - Responsive layout with proper height management
   return (
-    <Card className="flex flex-col h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden">
+    <Card className="flex flex-col h-[calc(110vh)] max-h-[calc(110vh)] overflow-hidden">
       {/* Header Section */}
       <ConversationHeader contact={urlContactInfo}>
         <div className="flex items-center gap-1">
