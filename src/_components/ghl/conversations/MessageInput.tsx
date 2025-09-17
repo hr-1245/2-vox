@@ -182,6 +182,7 @@ const MIN_REQUIRED_MESSAGES_AUTOPILOT_LENIENT = 3; // For conversations with mos
 
 const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
 
+
 // Configuration for file storage alignment
 const STORAGE_CONFIG = {
   BUCKET_NAME: "knowledge-base-files",
@@ -671,27 +672,27 @@ export function MessageInput({
       // For autopilot, we need to be more lenient - include messages that represent conversation events
       // even if they don't have traditional "body" content
       let validMessages = messages.filter((msg) => {
-        // Traditional messages with body content
-        if (msg.body && msg.body.trim()) {
-          return true;
-        }
+  // Make sure body is a string before trimming
+  if (typeof msg.body === "string" && msg.body.trim()) {
+    return true;
+  }
 
-        // For autopilot purposes, include certain message types that represent conversation activity
-        // even without body content (like opportunity creation, workflow messages, etc.)
-        const meaningfulTypes = [
-          "TYPE_ACTIVITY_OPPORTUNITY",
-          "TYPE_ACTIVITY_CONTACT",
-          "TYPE_ACTIVITY_APPOINTMENT",
-          "TYPE_ACTIVITY_PAYMENT",
-          "TYPE_ACTIVITY_INVOICE",
-        ];
+  // For autopilot purposes, include certain message types
+  const meaningfulTypes = [
+    "TYPE_ACTIVITY_OPPORTUNITY",
+    "TYPE_ACTIVITY_CONTACT",
+    "TYPE_ACTIVITY_APPOINTMENT",
+    "TYPE_ACTIVITY_PAYMENT",
+    "TYPE_ACTIVITY_INVOICE",
+  ];
 
-        if (meaningfulTypes.includes(msg.messageType || "")) {
-          return true;
-        }
+  if (meaningfulTypes.includes(msg.messageType || "")) {
+    return true;
+  }
 
-        return false;
-      });
+  return false;
+});
+
 
       // Apply email filter if disabled in settings
       if (!aiSettings.includeEmailMessages) {

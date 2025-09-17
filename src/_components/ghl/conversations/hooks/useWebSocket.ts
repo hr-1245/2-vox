@@ -19,7 +19,7 @@ const useWebSocket = (
   } = {}
 ): UseWebSocketReturn => {
   const ws = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
   const [readyState, setReadyState] = useState<number>(WebSocket.CONNECTING);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 

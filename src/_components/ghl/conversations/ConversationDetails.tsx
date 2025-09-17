@@ -209,6 +209,38 @@ function MessageBubble({
   isLast: boolean;
   urlContactInfo: Contact;
 }) {
+const getSafeBody = (msg: any): string => {
+  if (!msg) return "";
+  
+  console.log("🔍 Message object in getSafeBody:", msg); // Keep this for debugging
+
+  // Handle nested body object
+  if (msg.body && typeof msg.body === "object") {
+    // Check common locations for the actual message text
+    if (msg.body.text && typeof msg.body.text === "string") {
+      return msg.body.text.trim();
+    }
+    if (msg.body.body && typeof msg.body.body === "string") {
+      return msg.body.body.trim();
+    }
+    if (msg.body.message && typeof msg.body.message === "string") {
+      return msg.body.message.trim();
+    }
+    // If we can't find the text, return empty string
+    return "";
+  }
+
+  // Handle flat structure (body is string)
+  const body = msg.body ?? msg.message;
+  
+  if (typeof body === "string") {
+    return body.trim();
+  }
+
+  return String(body ?? "");
+};
+
+
   const isInbound = message.direction === "inbound";
   const formattedDate = format(new Date(message.dateAdded), "MMM d, h:mm a");
   const isActivity = message.messageType === "TYPE_ACTIVITY_CONTACT";
@@ -454,13 +486,13 @@ function MessageBubble({
                 Web Chat Message
               </div>
               <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                {message.body}
+                 {getSafeBody(message)}
               </div>
             </div>
           ) : (
             // Regular message display
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.body}
+              {getSafeBody(message)}
             </div>
           )}
         </div>
@@ -1982,31 +2014,48 @@ export function ConversationDetails({
       return;
     }
 
-    const handleNewMessage = (response: any) => {
-      console.log("📩 Incoming socket event: new_message");
-      console.log("👉 Raw response from server:", response);
+const handleNewMessage = (response: any) => {
+  console.log("📩 Incoming socket event:", response);
 
-      const dummyMessage: any = {
-        id: Date.now().toString(), // 👈 unique every time
-        direction: "outbound",
-        status: "failed",
-        type: 19,
-        locationId: "iXTmrCkWtZKXWzs85Jx8",
-        attachments: [],
-        body: "test " + new Date().toLocaleTimeString(), // 👈 make body unique too for debugging
-        contactId: "YneAmPjjLo4ONDkhukEv",
-        contentType: "text/plain",
-        conversationId: "fHtv0rSh2Pde7sewlSdL",
-        dateAdded: new Date().toISOString(),
-        dateUpdated: new Date().toISOString(),
-        source: "app",
-        altId: Math.random().toString(36).substring(2), // 👈 extra uniqueness
-        messageType: "TYPE_WHATSAPP",
-      };
+  // If response already has the complete message structure, use it directly
+  if (response && response.id && response.direction) {
+    console.log("📝 Complete message object received:", response);
+    setMessages((prev) => [...prev, response]);
+  } else {
+    // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
+    // OR maybe the opposite? Let's try both ways...
+    
+    // Try option 1: type 19 = inbound (received)
+    const direction = response?.type === 19 ? "inbound" : "outbound";
+    const status = direction === "outbound" ? "sent" : "delivered";
+    
+    // If that doesn't work, try option 2: type 19 = outbound (sent)
+    // const direction = response?.type === 19 ? "outbound" : "inbound";
+    // const status = direction === "outbound" ? "sent" : "delivered";
 
-      setMessages((prev) => [...prev, response?.message]);
-      console.log("📝 Dummy message to be added:", dummyMessage);
+    // Fallback: construct message object if response is incomplete
+    const newMessage = {
+      id: response?.id || Date.now().toString(),
+      body: response?.body || response?.message || "",
+      type: response?.type || "text",
+      direction: direction,
+      conversationId: response?.conversationId || "temp",
+      contactId: response?.contactId || "unknown",
+      dateAdded: response?.dateAdded || new Date().toISOString(),
+      dateUpdated: response?.dateUpdated || new Date().toISOString(),
+      source: response?.source || "app",
+      altId: response?.altId || Math.random().toString(36).substring(2),
+      messageType: response?.messageType || "TYPE_WHATSAPP",
+      status: status,
+      contentType: response?.contentType || "text/plain",
+      attachments: response?.attachments || [],
+      locationId: response?.locationId || ""
     };
+    
+    console.log("📝 Constructed message:", newMessage);
+    setMessages((prev) => [...prev, newMessage]);
+  }
+};
 
     socket.on("new_message", handleNewMessage);
     console.log("🔌 Listener attached for: new_message");
