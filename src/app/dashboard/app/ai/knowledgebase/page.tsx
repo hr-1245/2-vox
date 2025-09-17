@@ -114,6 +114,8 @@ export default function KnowledgeBasePage() {
     url: ''
   });
 
+  const router = useRouter()
+
   useEffect(() => {
     loadKnowledgeBases();
   }, []);
@@ -436,7 +438,8 @@ all: sorted,
             <p className="text-muted-foreground mt-2 text-lg">Manage your AI training data and resources</p>
           </div>
           <Button 
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => router.push("/dashboard/app/ai/knowledgebase/add-knowledge-base")}
+            // onClick={() => setIsDialogOpen(true)}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
           >
             <Plus className="h-4 w-4 mr-2" />
