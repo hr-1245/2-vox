@@ -1,6 +1,10 @@
 "use client";
-import CustomerSupportAgent from "@/_components/knowledgebase/CustomerSupportAgent";
 import React from "react";
+
+import CustomerSupportAgent from "@/_components/knowledgebase/CustomerSupportAgent";
+import SetupProgress from "@/_components/knowledgebase/SetupProgress";
+import ChooseYouContentSource from "@/_components/knowledgebase/ChooseYouContentSource";
+import UploadComponent from "@/_components/knowledgebase/UploadComponent";
 
 const AddKnowledgeBasePage = () => {
   return (
@@ -17,6 +21,15 @@ const AddKnowledgeBasePage = () => {
 
       {/* CustomerSupportAgent Card */}
       <CustomerSupportAgent />
+
+      {/* SetupProgress Card */}
+      <SetupProgress />
+
+      {/* Chooose Your Content Source */}
+      <ChooseYouContentSource />
+
+      {/* Upload Component */}
+      <UploadComponent />
     </div>
   );
 };
