@@ -8,6 +8,7 @@ import {
   handleLogout as authLogout,
   handleResetPassword as authResetPassword,
   ROUTES,
+  handleGoogleLogin,
 } from "@/utils/auth/supabase-auth";
 
 interface NextRedirectError extends Error {
@@ -93,4 +94,9 @@ export async function resetPassword(formData: FormData) {
     console.error("Reset password error:", e);
     return { error: "An unexpected error occurred" };
   }
+}
+export async function authGoogle() {
+
+     handleGoogleLogin();
+
 }
