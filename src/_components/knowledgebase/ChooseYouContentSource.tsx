@@ -63,10 +63,10 @@ const ChooseYouContentSource = () => {
         {sources.map((src) => (
           <div
             key={src.id}
-            className="bg-[#2A2F3A] border border-gray-700 rounded-xl p-6 flex flex-col items-center shadow-md hover:shadow-lg transition-shadow duration-300"
+            className="bg-[#171717] border border-gray-700 rounded-xl p-6 flex flex-col items-center shadow-md hover:shadow-lg transition-all duration-300 hover:border-[#ef3e6d] hover:bg-[#150d0e] cursor-pointer"
           >
             {/* Icon */}
-            <div className="flex w-14 h-14 rounded-lg bg-[#1E2430] justify-center items-center mb-4">
+            <div className="flex w-14 h-14 rounded-lg bg-[#262626] justify-center items-center mb-4">
               {src.icon}
             </div>
 
@@ -78,7 +78,7 @@ const ChooseYouContentSource = () => {
 
             {/* Action Button */}
             <div className="mt-4">
-              <span className="px-3 py-1 bg-[#3A404D] text-gray-200 text-xs rounded-full">
+              <span className="px-3 py-1 bg-[#262626] text-gray-200 text-xs rounded-full">
                 {src.action}
               </span>
             </div>
