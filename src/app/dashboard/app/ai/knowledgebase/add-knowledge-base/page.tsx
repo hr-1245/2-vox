@@ -5,6 +5,9 @@ import CustomerSupportAgent from "@/_components/knowledgebase/CustomerSupportAge
 import SetupProgress from "@/_components/knowledgebase/SetupProgress";
 import ChooseYouContentSource from "@/_components/knowledgebase/ChooseYouContentSource";
 import UploadComponent from "@/_components/knowledgebase/UploadComponent";
+import AIProcessing from "@/_components/knowledgebase/AIProcessing";
+import ContentAnalysis from "@/_components/knowledgebase/ContentAnalysis";
+import ContentPreview from "@/_components/knowledgebase/ContentPreview";
 
 const AddKnowledgeBasePage = () => {
   return (
@@ -30,6 +33,15 @@ const AddKnowledgeBasePage = () => {
 
       {/* Upload Component */}
       <UploadComponent />
+
+      {/* AI Processing & Content Analysis */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        <AIProcessing />
+        <ContentAnalysis />
+      </div>
+
+      {/* Content Preview */}
+      <ContentPreview />
     </div>
   );
 };
