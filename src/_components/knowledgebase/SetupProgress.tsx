@@ -16,7 +16,7 @@ const SetupProgress = () => {
   const ProgressBar = ({ step, total }: { step: number; total: number }) => (
     <div className="w-full rounded-full bg-gray-500 h-2 overflow-hidden">
       <div
-        className="bg-gray-700 h-2 rounded-full transition-all duration-500 ease-in-out"
+        className="bg-[#ef3e6d] h-2 rounded-full transition-all duration-500 ease-in-out"
         style={{ width: `${(step / total) * 100}%` }}
       />
     </div>
@@ -25,7 +25,7 @@ const SetupProgress = () => {
   const currentStep = 3;
 
   return (
-    <div className="w-full bg-[#1e1e1e] rounded-2xl border border-gray-700 p-6 md:p-8 mt-8 shadow-lg">
+    <div className="w-full bg-[#171717]  rounded-2xl border border-gray-700 p-6 md:p-8 mt-8 shadow-lg">
       {/* Top row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h3 className="text-white text-lg md:text-xl font-semibold leading-tight text-center md:text-left">
@@ -56,10 +56,10 @@ const SetupProgress = () => {
                 className={`flex w-8 h-8 md:w-10 md:h-10 rounded-full justify-center items-center border transition-all duration-300
                 ${
                   step.isComplete
-                    ? "bg-[#5C6675] border-[#5C6675] text-white"
+                    ? "bg-[#ef3e6d] text-white"
                     : isActive
-                    ? "bg-[#3B4657] border-[#5C6675] text-gray-200"
-                    : "bg-[#2F3A4C] border-[#2F3A4C] text-gray-400"
+                    ? "bg-[#150d0e] border-[#ef3e6d] text-gray-200"
+                    : "bg-[#262626] border-[#2F3A4C] text-gray-400"
                 }`}
               >
                 {step.isComplete ? (

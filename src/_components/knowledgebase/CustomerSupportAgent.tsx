@@ -5,12 +5,12 @@ import { Brain } from "lucide-react";
 
 const CustomerSupportAgent = () => {
   return (
-    <div className="w-full bg-[#1e1e1e] rounded-2xl border border-gray-700 p-6 md:p-8 mt-8 shadow-lg">
+    <div className="w-full bg-[#171717] rounded-2xl border border-gray-700 p-6 md:p-8 mt-8 shadow-lg">
       {/* top row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex justify-center items-center space-x-4">
-          <div className="flex w-10 h-10 rounded-full bg-gray-700 justify-center items-center">
-            <Brain />
+          <div className="flex w-10 h-10 rounded-full bg-[#262626] justify-center items-center">
+            <Brain className="h-5 w-5" />
           </div>
 
           <div>
