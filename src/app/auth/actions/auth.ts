@@ -95,8 +95,4 @@ export async function resetPassword(formData: FormData) {
     return { error: "An unexpected error occurred" };
   }
 }
-export async function authGoogle() {
 
-     handleGoogleLogin();
-
-}

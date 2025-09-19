@@ -16,7 +16,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { authGoogle, login, resetPassword } from "@/app/auth/actions/auth";
+import { login, resetPassword } from "@/app/auth/actions/auth";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import {
   Eye,
@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useSocket } from "../../../../context/SocketProvider";
-
+import { doSocialLogin } from "@/_components/actions/googleAction";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -173,16 +173,18 @@ export function LoginForm() {
       <div className="dark:bg-black/90 p-10 flex flex-col justify-center">
         <h2 className="text-2xl font-semibold mb-2 text-black dark:text-white">Log in to your account</h2>
         <p className="text-gray-400 mb-6">Welcome back! Please enter your details to continue.</p>
+        <form action={doSocialLogin}>
+          <button className="w-full flex items-center justify-center gap-2 border border-gray-600 text-black dark:text-white rounded-lg py-2 mb-6 hover:bg-gray-800 transition"
+          >
+            <img
+              src="https://www.svgrepo.com/show/355037/google.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
+            Log in with Google
+          </button>
+        </form>
 
-        <button className="w-full flex items-center justify-center gap-2 border border-gray-600 text-black dark:text-white rounded-lg py-2 mb-6 hover:bg-gray-800 transition"
-        onClick={() => authGoogle()}>
-          <img
-            src="https://www.svgrepo.com/show/355037/google.svg"
-            alt="Google"
-            className="w-5 h-5"
-          />
-          Log in with Google
-        </button>
 
         <div className="flex items-center mb-6">
           <div className="flex-grow h-px bg-gray-700"></div>

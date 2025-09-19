@@ -6,8 +6,10 @@ import { redirectIfAuthenticated } from "@/utils/auth/auth-guard";
 export default async function LoginPage() {
   await redirectIfAuthenticated();
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-2">
-      <Card className="flex flex-col justify-center px-8 py-12 md:px-16 lg:px-24 bg-card rounded-none dark:bg-gradient-to-r dark:from-black via-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen  grid grid-cols-1 lg:grid-cols-2">
+      <Card className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20 
+                   bg-card rounded-none dark:bg-gradient-to-r 
+                   dark:from-black dark:via-gray-900 dark:to-gray-950 text-white">
         <CardHeader>
           {/* <div className="flex flex-col items-center mb-8">
             <div className="mb-4 transform hover:scale-105 transition-transform duration-200">
@@ -22,20 +24,12 @@ export default async function LoginPage() {
             Enter your details to access your dashboard
           </CardDescription> */}
         </CardHeader>
-        <CardContent>
-          <LoginForm />
-          {/* <div className="text-center text-sm mt-6">
-            Don&apos;t have an account?{" "}
-            <a
-              href="/auth/signup"
-              className="text-primary hover:underline cursor-pointer"
-            >
-              Sign up
-            </a>
-          </div> */}
-        </CardContent>
+         <LoginForm />
+     
       </Card>
-       <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-black/80 p-10 flex flex-col justify-center transition-colors">
+       <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 
+                  dark:to-black/80 p-6 sm:p-10 flex flex-col justify-center 
+                  transition-colors">
           <div className="bg-white/70 dark:bg-black/60 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800">
             <h3 className="text-xl font-semibold mb-3">VOXILITY</h3>
             <p className="text-sm text-gray-400 mb-3">Conversational AI Platform</p>
