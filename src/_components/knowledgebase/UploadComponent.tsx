@@ -7,7 +7,7 @@ interface UploadFile {
   id: string;
   name: string;
   size: string;
-  status: "uploading" | "processing" | "completed";
+  status: "uploading" | "processing" | "completed" | "failed";
 }
 
 const SUPPORTED_TYPES = [
@@ -42,17 +42,79 @@ const UploadComponent: React.FC = () => {
     return validFiles;
   };
 
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1]; // remove data:mime;base64,
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const uploadFile = async (file: File, tempId: string) => {
+    try {
+      // Mark as uploading
+      setFiles((prev) =>
+        prev.map((f) => (f.id === tempId ? { ...f, status: "uploading" } : f))
+      );
+
+      const base64Content = await readFileAsBase64(file);
+
+      const res = await fetch("/api/ai/knowledgebase/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileContent: base64Content,
+          mimeType: file.type,
+          size: file.size,
+          metadata: { source: "user_upload" },
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+
+      // Mark as processing
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === tempId ? { ...f, status: "processing" } : f
+        )
+      );
+
+      const data = await res.json();
+      console.log("Upload response:", data);
+
+      // Mark as completed
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === tempId ? { ...f, status: "completed" } : f
+        )
+      );
+    } catch (err: any) {
+      console.error("Upload failed:", err);
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === tempId ? { ...f, status: "failed" } : f
+        )
+      );
+      setError(err.message || "Upload failed");
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
 
-    // Validate + enforce limit
     const validFiles = validateFiles(selectedFiles).slice(
       0,
       MAX_FILES - files.length
     );
-
     if (validFiles.length === 0) return;
 
     const newFiles: UploadFile[] = validFiles.map((file) => ({
@@ -64,23 +126,10 @@ const UploadComponent: React.FC = () => {
 
     setFiles((prev) => [...prev, ...newFiles]);
 
-    // Simulate upload + processing
-    newFiles.forEach((file) => {
-      setTimeout(() => {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, status: "processing" } : f
-          )
-        );
-        setTimeout(() => {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === file.id ? { ...f, status: "completed" } : f
-            )
-          );
-        }, 2000);
-      }, 2000);
-    });
+    // Trigger real upload
+    validFiles.forEach((file, i) =>
+      uploadFile(file, newFiles[i].id)
+    );
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -103,7 +152,6 @@ const UploadComponent: React.FC = () => {
   const handleRemove = (id: string) => {
     setFiles((prev) => prev.filter((file) => file.id !== id));
   };
-
   return (
     <div className="w-full mx-auto p-4 md:p-6 bg-[#171717] rounded-2xl border border-gray-700 shadow-md">
       {/* Header */}

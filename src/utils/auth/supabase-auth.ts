@@ -236,24 +236,3 @@ export async function handleResetPassword(
     return { error: error.message || "Failed to reset password" };
   }
 }
-export async function handleGoogleLogin(): Promise<AuthResult> {
-  const supabase = await getSupabase();
-
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.dashboard}`, 
-        // You can also use a callback route like /auth/callback instead of dashboard
-      },
-    });
-
-    if (error) throw error;
-
-    // Supabase will redirect the user to Google, then back to redirectTo
-    return { success: true, user: data?.user ?? null };
-  } catch (error: any) {
-    console.error("Google login error:", error);
-    return { error: error.message || "Google login failed" };
-  }
-}

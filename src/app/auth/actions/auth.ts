@@ -8,7 +8,6 @@ import {
   handleLogout as authLogout,
   handleResetPassword as authResetPassword,
   ROUTES,
-  handleGoogleLogin,
 } from "@/utils/auth/supabase-auth";
 
 interface NextRedirectError extends Error {
