@@ -39,6 +39,8 @@ import { toast } from "sonner";
 import { useSocket } from "../../../../context/SocketProvider";
 import { doSocialLogin } from "@/_components/actions/googleAction";
 import { signIn } from "next-auth/react";
+import { getSupabase } from "@/utils/supabase/getSupabase";
+import { supabaseBrowser } from "@/app/lib/supabase-browser";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -158,10 +160,17 @@ export function LoginForm() {
     setResetSuccess(false);
     resetForm.reset();
   };
-
-  async function handleGoogleLogin() {
-    await signIn("google", { callbackUrl: "/dashboard" });
-  }
+const handleGoogleLogin = async () => {
+  await signIn("google", { callbackUrl: "/dashboard/app/leadconnector" });
+};
+  // async function handleGoogleLogin() {
+  //     const supabase = await getSupabase();
+  // await supabase.auth.signInWithOAuth({
+  //   provider: "google",
+  //   options: { redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard` }
+  // });
+    // await signIn("google", { callbackUrl: "/dashboard" });
+  
   return (
     <>
       {errorMessage && (
