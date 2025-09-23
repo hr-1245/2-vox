@@ -35,17 +35,17 @@
 // export async function POST(req: NextRequest): Promise<Response> {
 //   try {
 //     console.log('FAQ POST endpoint hit!');
-    
+
 //     const user = await getCurrentUser();
 //     if (!user?.id) {
-//       return Response.json({ 
+//       return Response.json({
 //         success: false,
 //         error: 'Unauthorized'
 //       } satisfies ErrorResponse, { status: 401 });
 //     }
 
 //     const body = await req.json() as FAQGenerationRequest;
-    
+
 //     // Validate required fields
 //     if (!body.knowledgebaseId) {
 //       return Response.json({
@@ -63,7 +63,7 @@
 
 //     // For now, return a success response without calling FastAPI
 //     // We'll add the FastAPI integration once we confirm the route works
-    
+
 //     return Response.json({
 //       success: true,
 //       data: {
@@ -89,10 +89,10 @@
 // export async function GET(req: NextRequest): Promise<Response> {
 //   try {
 //     console.log('FAQ GET endpoint hit!');
-    
+
 //     const user = await getCurrentUser();
 //     if (!user?.id) {
-//       return Response.json({ 
+//       return Response.json({
 //         success: false,
 //         error: 'Unauthorized'
 //       } satisfies ErrorResponse, { status: 401 });
@@ -151,13 +151,9 @@
 //   }
 // }
 
-
-
-
-
-import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/utils/auth/user';
-import { getSupabase } from '@/utils/supabase/getSupabase';
+import { NextRequest } from "next/server";
+import { getCurrentUser } from "@/utils/auth/user";
+import { getSupabase } from "@/utils/supabase/getSupabase";
 
 interface FAQItem {
   question: string;
@@ -169,6 +165,7 @@ interface FAQItem {
 }
 
 interface FAQGenerationRequest {
+  token: string;
   knowledgebaseId: string;
   faqs: FAQItem[];
   options?: {
@@ -188,269 +185,297 @@ interface SuccessResponse {
   data: any;
 }
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://localhost:8000';
+const FASTAPI_URL = "http://localhost:8000";
+// process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000";
 
 // POST - Create or generate FAQs
 export async function POST(req: NextRequest): Promise<Response> {
   try {
     const user = await getCurrentUser();
+
     if (!user?.id) {
-      return Response.json({ 
-        success: false,
-        error: 'Unauthorized'
-      } satisfies ErrorResponse, { status: 401 });
+      return Response.json(
+        {
+          success: false,
+          error: "Unauthorized",
+        } satisfies ErrorResponse,
+        { status: 401 }
+      );
     }
 
-    const body = await req.json() as FAQGenerationRequest;
-    
-    if (!body.knowledgebaseId) {
-      return Response.json({
-        success: false,
-        error: 'Missing required field: knowledgebaseId'
-      } satisfies ErrorResponse, { status: 400 });
-    }
-
-    console.log('Sending to FastAPI FAQ endpoint:', {
-      userId: user.id,
-      knowledgebaseId: body.knowledgebaseId,
-      faqCount: body.faqs?.length || 0
-    });
+    const body = (await req.json()) as FAQGenerationRequest;
 
     // Call FastAPI FAQ endpoint
-    const fastApiResponse = await fetch(`${FASTAPI_URL}/ai/conversation/training/faq`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        userId: user.id,
-        knowledgebaseId: body.knowledgebaseId,
-        faqs: body.faqs || []
-      })
-    });
+    const fastApiResponse = await fetch(
+      `${FASTAPI_URL}/ai/conversation/training/faq`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`, // Replace with actual token if needed
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          faqs: body.faqs || [],
+        }),
+      }
+    );
+    console.log("FastAPI FAQ endpoint called ---- before", fastApiResponse);
 
     if (!fastApiResponse.ok) {
       const errorText = await fastApiResponse.text();
-      console.error('FastAPI FAQ generation failed:', errorText);
-      
-      return Response.json({
-        success: false,
-        error: `FAQ generation failed: ${errorText}`
-      } satisfies ErrorResponse, { status: 500 });
+
+      return Response.json(
+        {
+          success: false,
+          error: `FAQ generation failed: ${errorText}`,
+        } satisfies ErrorResponse,
+        { status: 500 }
+      );
     }
 
     const fastApiData = await fastApiResponse.json();
-    console.log('FastAPI FAQ response:', fastApiData);
 
     // Update knowledge base with generated FAQs
     const supabase = await getSupabase();
 
-    const { data: kbData, error: kbError } = await supabase
-      .from('knowledge_bases')
-      .select('faq, data, name')
-      .eq('id', body.knowledgebaseId)
-      .eq('user_id', user.id)
-      .single();
+    const { data: kbData, error: kbError }: any = await supabase
+      .from("knowledge_bases")
+      .select("faq, data, name")
+      .eq("user_id", user.id);
+    // .eq("id", body.knowledgebaseId)
+    // .single();
 
     if (kbError) {
-      console.error('Error fetching knowledge base:', kbError);
+      console.error("Error fetching knowledge base:", kbError);
     }
 
     const existingFaqs = Array.isArray(kbData?.faq) ? kbData.faq : [];
+
     const newFaqs = fastApiData.faqs || body.faqs || [];
 
     // Enhance FAQs with additional metadata
     const enhancedFaqs = newFaqs.map((faq: any, index: number) => ({
       ...faq,
       id: `faq-${Date.now()}-${index}`,
-      confidenceLevel: faq.confidenceLevel || `${Math.floor(Math.random() * 10) + 85}%`,
-      source: faq.source || 'AI Generated',
-      generatedBy: 'AI Generated',
-      createdAt: new Date().toISOString()
+      confidenceLevel:
+        faq.confidenceLevel || `${Math.floor(Math.random() * 10) + 85}%`,
+      source: faq.source || "AI Generated",
+      generatedBy: "AI Generated",
+      createdAt: new Date().toISOString(),
     }));
 
     const updatedFaqs = [...existingFaqs, ...enhancedFaqs];
 
     if (kbData) {
       const { error: updateError } = await supabase
-        .from('knowledge_bases')
+        .from("knowledge_bases")
         .update({
           faq: updatedFaqs,
           data: {
             ...kbData.data,
             faqs: updatedFaqs,
             last_faq_update: new Date().toISOString(),
-            total_faqs: updatedFaqs.length
+            total_faqs: updatedFaqs.length,
           },
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', body.knowledgebaseId);
+        .eq("user_id", user.id);
+
+      // .eq("id", body.knowledgebaseId);
 
       if (updateError) {
-        console.error('Error updating knowledge base:', updateError);
+        console.error("Error updating knowledge base:", updateError);
       }
     }
 
     return Response.json({
       success: true,
       data: {
-        message: 'FAQs generated successfully',
+        message: "FAQs generated successfully",
         knowledgebaseId: body.knowledgebaseId,
-        faqs: enhancedFaqs,
-        totalGenerated: enhancedFaqs.length,
-        totalFaqs: updatedFaqs.length
-      }
+        // faqs: enhancedFaqs,
+        // totalGenerated: enhancedFaqs.length,
+        // totalFaqs: updatedFaqs.length,
+      },
     } satisfies SuccessResponse);
-
   } catch (error) {
-    console.error('Error in FAQ generation:', error);
-    return Response.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
-    } satisfies ErrorResponse, { status: 500 });
+    console.error("Error in FAQ generation:", error);
+    return Response.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      } satisfies ErrorResponse,
+      { status: 500 }
+    );
   }
 }
 
 // GET - Retrieve FAQs for a knowledge base
-export async function GET(req: NextRequest): Promise<Response> {
-  try {
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return Response.json({ 
-        success: false,
-        error: 'Unauthorized'
-      } satisfies ErrorResponse, { status: 401 });
-    }
+// export async function GET(req: NextRequest): Promise<Response> {
+//   try {
+//     const user = await getCurrentUser();
+//     if (!user?.id) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Unauthorized",
+//         } satisfies ErrorResponse,
+//         { status: 401 }
+//       );
+//     }
 
-    const url = new URL(req.url);
-    const knowledgebaseId = url.searchParams.get('knowledgebaseId');
+//     const url = new URL(req.url);
+//     const knowledgebaseId = url.searchParams.get("knowledgebaseId");
 
-    if (!knowledgebaseId) {
-      return Response.json({
-        success: true,
-        data: {
-          faqs: [],
-          total: 0,
-          message: 'Provide knowledgebaseId to get FAQs'
-        }
-      } satisfies SuccessResponse);
-    }
+//     if (!knowledgebaseId) {
+//       return Response.json({
+//         success: true,
+//         data: {
+//           faqs: [],
+//           total: 0,
+//           message: "Provide knowledgebaseId to get FAQs",
+//         },
+//       } satisfies SuccessResponse);
+//     }
 
-    const supabase = await getSupabase();
+//     const supabase = await getSupabase();
 
-    const { data: kbData, error } = await supabase
-      .from('knowledge_bases')
-      .select('faq, data, name')
-      .eq('id', knowledgebaseId)
-      .eq('user_id', user.id)
-      .single();
+//     const { data: kbData, error } = await supabase
+//       .from("knowledge_bases")
+//       .select("faq, data, name")
+//       .eq("id", knowledgebaseId)
+//       .eq("user_id", user.id)
+//       .single();
 
-    if (error || !kbData) {
-      return Response.json({
-        success: false,
-        error: 'Knowledge base not found'
-      } satisfies ErrorResponse, { status: 404 });
-    }
+//     if (error || !kbData) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Knowledge base not found",
+//         } satisfies ErrorResponse,
+//         { status: 404 }
+//       );
+//     }
 
-    const faqs = Array.isArray(kbData.faq) ? kbData.faq : [];
+//     const faqs = Array.isArray(kbData.faq) ? kbData.faq : [];
 
-    // Calculate average confidence
-    const averageConfidence = faqs.length > 0 
-      ? Math.round(faqs.reduce((acc, faq) => {
-          const confidence = parseInt(faq.confidenceLevel || '85');
-          return acc + (isNaN(confidence) ? 85 : confidence);
-        }, 0) / faqs.length) 
-      : 0;
+//     // Calculate average confidence
+//     const averageConfidence =
+//       faqs.length > 0
+//         ? Math.round(
+//             faqs.reduce((acc, faq) => {
+//               const confidence = parseInt(faq.confidenceLevel || "85");
+//               return acc + (isNaN(confidence) ? 85 : confidence);
+//             }, 0) / faqs.length
+//           )
+//         : 0;
 
-    return Response.json({
-      success: true,
-      data: {
-        faqs: faqs,
-        total: faqs.length,
-        averageConfidence: `${averageConfidence}%`,
-        knowledgeBaseName: kbData.name
-      }
-    } satisfies SuccessResponse);
-
-  } catch (error) {
-    console.error('Error retrieving FAQs:', error);
-    return Response.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
-    } satisfies ErrorResponse, { status: 500 });
-  }
-}
+//     return Response.json({
+//       success: true,
+//       data: {
+//         faqs: faqs,
+//         total: faqs.length,
+//         averageConfidence: `${averageConfidence}%`,
+//         knowledgeBaseName: kbData.name,
+//       },
+//     } satisfies SuccessResponse);
+//   } catch (error) {
+//     console.error("Error retrieving FAQs:", error);
+//     return Response.json(
+//       {
+//         success: false,
+//         error: error instanceof Error ? error.message : "Internal server error",
+//       } satisfies ErrorResponse,
+//       { status: 500 }
+//     );
+//   }
+// }
 
 // DELETE - Remove a specific FAQ
-export async function DELETE(req: NextRequest): Promise<Response> {
-  try {
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return Response.json({ 
-        success: false,
-        error: 'Unauthorized'
-      } satisfies ErrorResponse, { status: 401 });
-    }
+// export async function DELETE(req: NextRequest): Promise<Response> {
+//   try {
+//     const user = await getCurrentUser();
+//     if (!user?.id) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Unauthorized",
+//         } satisfies ErrorResponse,
+//         { status: 401 }
+//       );
+//     }
 
-    const url = new URL(req.url);
-    const knowledgebaseId = url.searchParams.get('knowledgebaseId');
-    const faqId = url.searchParams.get('faqId');
+//     const url = new URL(req.url);
+//     const knowledgebaseId = url.searchParams.get("knowledgebaseId");
+//     const faqId = url.searchParams.get("faqId");
 
-    if (!knowledgebaseId || !faqId) {
-      return Response.json({
-        success: false,
-        error: 'Missing required parameters: knowledgebaseId, faqId'
-      } satisfies ErrorResponse, { status: 400 });
-    }
+//     if (!knowledgebaseId || !faqId) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Missing required parameters: knowledgebaseId, faqId",
+//         } satisfies ErrorResponse,
+//         { status: 400 }
+//       );
+//     }
 
-    const supabase = await getSupabase();
+//     const supabase = await getSupabase();
 
-    const { data: kbData, error: kbError } = await supabase
-      .from('knowledge_bases')
-      .select('faq')
-      .eq('id', knowledgebaseId)
-      .eq('user_id', user.id)
-      .single();
+//     const { data: kbData, error: kbError } = await supabase
+//       .from("knowledge_bases")
+//       .select("faq")
+//       .eq("id", knowledgebaseId)
+//       .eq("user_id", user.id)
+//       .single();
 
-    if (kbError || !kbData) {
-      return Response.json({
-        success: false,
-        error: 'Knowledge base not found'
-      } satisfies ErrorResponse, { status: 404 });
-    }
+//     if (kbError || !kbData) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Knowledge base not found",
+//         } satisfies ErrorResponse,
+//         { status: 404 }
+//       );
+//     }
 
-    const existingFaqs = Array.isArray(kbData.faq) ? kbData.faq : [];
-    const updatedFaqs = existingFaqs.filter((faq: any) => faq.id !== faqId);
+//     const existingFaqs = Array.isArray(kbData.faq) ? kbData.faq : [];
+//     const updatedFaqs = existingFaqs.filter((faq: any) => faq.id !== faqId);
 
-    const { error: updateError } = await supabase
-      .from('knowledge_bases')
-      .update({
-        faq: updatedFaqs,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', knowledgebaseId);
+//     const { error: updateError } = await supabase
+//       .from("knowledge_bases")
+//       .update({
+//         faq: updatedFaqs,
+//         updated_at: new Date().toISOString(),
+//       })
+//       .eq("id", knowledgebaseId);
 
-    if (updateError) {
-      return Response.json({
-        success: false,
-        error: 'Failed to delete FAQ'
-      } satisfies ErrorResponse, { status: 500 });
-    }
+//     if (updateError) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Failed to delete FAQ",
+//         } satisfies ErrorResponse,
+//         { status: 500 }
+//       );
+//     }
 
-    return Response.json({
-      success: true,
-      data: {
-        message: 'FAQ deleted successfully',
-        totalFaqs: updatedFaqs.length
-      }
-    } satisfies SuccessResponse);
-
-  } catch (error) {
-    console.error('Error deleting FAQ:', error);
-    return Response.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
-    } satisfies ErrorResponse, { status: 500 });
-  }
-}
+//     return Response.json({
+//       success: true,
+//       data: {
+//         message: "FAQ deleted successfully",
+//         totalFaqs: updatedFaqs.length,
+//       },
+//     } satisfies SuccessResponse);
+//   } catch (error) {
+//     console.error("Error deleting FAQ:", error);
+//     return Response.json(
+//       {
+//         success: false,
+//         error: error instanceof Error ? error.message : "Internal server error",
+//       } satisfies ErrorResponse,
+//       { status: 500 }
+//     );
+//   }
+// }
