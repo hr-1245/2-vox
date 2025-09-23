@@ -3,13 +3,23 @@
 import React, { useState, useRef } from "react";
 import { CloudUpload, File, CheckCircle2, Loader2, X } from "lucide-react";
 
+// interface UploadFile {
+//   id: string;
+//   name: string;
+//   size: string;
+//   status: "uploading" | "processing" | "completed" | "failed";
+// }
 interface UploadFile {
   id: string;
   name: string;
   size: string;
   status: "uploading" | "processing" | "completed" | "failed";
+  knowledgeBaseId?: string; // Add this field to store the actual ID from API
 }
 
+interface UploadComponentProps {
+  onFilesUploaded?: (fileIds: string[]) => void; // Callback to pass file IDs to parent
+}
 const SUPPORTED_TYPES = [
   "application/pdf",
   "application/msword",
@@ -21,7 +31,7 @@ const SUPPORTED_TYPES = [
 const MAX_FILES = 3;
 const MAX_FILE_SIZE_MB = 50;
 
-const UploadComponent: React.FC = () => {
+const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) => {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,14 +97,27 @@ const UploadComponent: React.FC = () => {
       );
 
       const data = await res.json();
-      console.log("Upload response:", data);
+      const knowledgeBaseId = data.data?.id; // This is the ID you need for training
+
+      console.log ("Upload response:", data);
 
       // Mark as completed
       setFiles((prev) =>
         prev.map((f) =>
-          f.id === tempId ? { ...f, status: "completed" } : f
+          f.id === tempId ? { 
+            ...f, 
+            status: "completed", 
+            knowledgeBaseId: knowledgeBaseId 
+          } : f
         )
       );
+
+            // Notify parent component about the uploaded file
+      if (knowledgeBaseId && onFilesUploaded) {
+        onFilesUploaded([knowledgeBaseId]);
+      }
+            return knowledgeBaseId;
+
     } catch (err: any) {
       console.error("Upload failed:", err);
       setFiles((prev) =>
@@ -152,6 +175,7 @@ const UploadComponent: React.FC = () => {
   const handleRemove = (id: string) => {
     setFiles((prev) => prev.filter((file) => file.id !== id));
   };
+    const completedFiles = files.filter(file => file.status === "completed" && file.knowledgeBaseId);
   return (
     <div className="w-full mx-auto p-4 md:p-6 bg-[#171717] rounded-2xl border border-gray-700 shadow-md">
       {/* Header */}
@@ -281,6 +305,15 @@ const UploadComponent: React.FC = () => {
           </div>
         ))}
       </div>
+            {/* Debug info - remove in production */}
+      {completedFiles.length > 0 && (
+        <div className="mt-4 p-3 bg-blue-900/20 rounded-lg">
+          <p className="text-blue-400 text-sm">
+            ✅ {completedFiles.length} file(s) ready for training. 
+            File IDs: {completedFiles.map(f => f.knowledgeBaseId).join(', ')}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

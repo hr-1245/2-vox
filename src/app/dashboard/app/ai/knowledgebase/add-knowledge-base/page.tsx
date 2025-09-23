@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 
 import CustomerSupportAgent from "@/_components/knowledgebase/CustomerSupportAgent";
 import SetupProgress from "@/_components/knowledgebase/SetupProgress";
@@ -15,6 +15,19 @@ import BottomButtons from "@/_components/knowledgebase/BottomButtons";
 import TrainingPreview from "@/_components/knowledgebase/TrainingPreview";
 
 const AddKnowledgeBasePage = () => {
+  const id="501202fd-61d8-43f1-ad74-34af48f92e3c"
+    const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([]);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+
+  const handleFilesUploaded = (fileIds: string[]) => {
+    setUploadedFileIds(fileIds);
+    debugger
+    // Automatically select the first uploaded file for training
+    if (fileIds.length > 0 && !selectedFileId) {
+      setSelectedFileId(fileIds[0]);
+    }
+  };
+
   return (
     <div className="min-h-screen px-4 py-6 md:px-10 lg:px-16">
       {/* Header */}
@@ -37,8 +50,32 @@ const AddKnowledgeBasePage = () => {
       <ChooseYouContentSource />
 
       {/* Upload Component */}
-      <UploadComponent />
-
+      <UploadComponent onFilesUploaded={handleFilesUploaded} />
+  {uploadedFileIds.length > 0 && (
+        <div className="w-full mx-auto p-4 md:p-6 bg-[#171717] rounded-2xl border border-gray-700 shadow-md mt-6">
+          <h3 className="text-white text-lg font-semibold mb-4">
+            Select File for AI Training
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {uploadedFileIds.map((fileId) => (
+              <button
+                key={fileId}
+                onClick={() => setSelectedFileId(fileId)}
+                className={`px-4 py-2 rounded-lg text-sm ${
+                  selectedFileId === fileId
+                    ? "bg-[#ef3e6d] text-white"
+                    : "bg-[#262626] text-gray-300 hover:bg-[#333]"
+                }`}
+              >
+                File: {fileId.substring(0, 8)}...
+              </button>
+            ))}
+          </div>
+          <p className="text-gray-400 text-sm mt-2">
+            Select which uploaded file you want to train the AI with
+          </p>
+        </div>
+      )}
       {/* AI Processing & Content Analysis */}
       <div className="flex flex-col lg:flex-row gap-6">
         <AIProcessing />
@@ -58,8 +95,20 @@ const AddKnowledgeBasePage = () => {
       <IntegrationAndImportOptions />
 
       {/* TrainingPreview */}
-      <TrainingPreview />
-
+      {/* <TrainingPreview /> */}
+         {selectedFileId ? (
+        <TrainingPreview
+          userId={id}
+          fileId={selectedFileId} // Use the REAL file ID from upload
+          fileName={"Uploaded Document"} // You might want to store the actual filename too
+        />
+      ) : (
+        <div className="w-full mx-auto p-8 bg-[#171717] rounded-2xl border border-gray-700 shadow-md text-center">
+          <p className="text-gray-400">
+            Upload a file above to enable AI training
+          </p>
+        </div>
+      )}
       {/* Bottom Buttons */}
       <BottomButtons />
     </div>
