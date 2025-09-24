@@ -124,6 +124,7 @@ import { getSupabase } from '@/utils/supabase/getSupabase';
 interface ErrorResponse {
   success: false;
   error: string;
+  details?: any; 
 }
 
 interface SuccessResponse {

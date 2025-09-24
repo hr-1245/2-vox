@@ -240,12 +240,15 @@ export async function getGhlTokens(userId: string): Promise<GhlTokens> {
   try {
     const supabase = await getSupabase();
 
-    const { data: providerData, error } = await supabase
-      .from<ProviderDataRow>("provider_data")
+    const { data, error } = await supabase
+      .from("provider_data")
       .select("*")
       .eq("auth_provider_id", userId)
       .eq("type", PROVIDER_TYPE.GHL_LOCATION)
       .single();
+
+    // Explicit cast so TypeScript knows the shape
+    const providerData = data as ProviderDataRow | null;
 
     if (error || !providerData) {
       console.error("No provider data found:", error);
@@ -270,6 +273,7 @@ export async function getGhlTokens(userId: string): Promise<GhlTokens> {
     };
   }
 }
+
 
 // -----------------------------
 // Refresh tokens
