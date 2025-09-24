@@ -2,8 +2,8 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
-export async function getSupabaseRouteHandler() {
-  const cookieStore = await cookies() // ✅ Add await here
+export function getSupabaseRouteHandler() {
+  const cookieStore = cookies() // ✅ no await
   return createRouteHandlerClient({ 
     cookies: () => cookieStore 
   })
@@ -11,7 +11,7 @@ export async function getSupabaseRouteHandler() {
 
 export async function getCurrentUserFromRequest() {
   try {
-    const supabase = await getSupabaseRouteHandler()
+    const supabase = getSupabaseRouteHandler()
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) {
