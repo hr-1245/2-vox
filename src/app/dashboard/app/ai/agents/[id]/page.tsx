@@ -41,6 +41,7 @@ import {
   MessageSquare,
   Settings,
   Trash2,
+  CheckCircle2,
 } from "lucide-react";
 
 interface Agent {
@@ -107,9 +108,21 @@ function AgentDetailClientPage({
     additionalInformation: "",
     isActive: true,
   });
-
   const [testInput, setTestInput] = useState("");
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+
+  const handleAddTag = () => {
+    if (newTag.trim() !== "" && !tags.includes(newTag)) {
+      setTags([...tags, newTag]);
+      setNewTag("");
+    }
+  };
+
+  const handleDeleteTag = (tagToDelete: string) => {
+    setTags(tags.filter((t) => t !== tagToDelete));
+  };
 
   // Helper function to convert agent type number to string
   const getAgentTypeString = (type: number): string => {
@@ -260,6 +273,7 @@ function AgentDetailClientPage({
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
+        setTags(agentData.tags || []);
       } else {
         throw new Error(data.error || "Failed to load agent");
       }
@@ -320,6 +334,7 @@ const fetchTags = async () => {
             personality: editForm.personality,
             intent: editForm.intent,
             additionalInformation: editForm.additionalInformation,
+            tags,
           },
           is_active: editForm.isActive,
           channels: channelsObject,
@@ -959,6 +974,61 @@ const fetchTags = async () => {
                 <Bot className="h-4 w-4 mr-2" />
                 Copy Agent ID
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Tags */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {tags.length > 0 ? (
+                tags.map((tag, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between space-x-2 mb-3"
+                  >
+                    {/* Left: Checkbox + label */}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id={tag} />
+                      <label
+                        htmlFor={tag}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {tag}
+                      </label>
+                    </div>
+
+                    {/* Right: Cross (only if editing) */}
+                    {editing && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTag(tag)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 italic">
+                  No tags available. Enable editing to add tags.
+                </p>
+              )}
+
+              {/* Add new tag section (only if editing is true) */}
+              {editing && (
+                <div className="flex items-center space-x-2 mt-4">
+                  <Input
+                    placeholder="Enter new tag"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                  />
+                  <Button onClick={handleAddTag}>Add</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
