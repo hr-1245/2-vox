@@ -212,6 +212,7 @@ function AgentDetailClientPage({
     if (agentId) {
       loadAgent();
     }
+    fetchTags()
   }, [agentId]);
 
   useEffect(() => {
@@ -225,6 +226,7 @@ function AgentDetailClientPage({
         isActive: agent.isActive,
       });
     }
+
   }, [agent]);
 
   const loadAgent = async () => {
@@ -269,7 +271,29 @@ function AgentDetailClientPage({
       setLoading(false);
     }
   };
+const fetchTags = async () => {
+  try {
+    const response = await fetch("/api/tags", {
+      method: "GET",
+      headers: {
+        "x-location-id": "iXTmrCkWtZKXWzs85Jx8", // 👈 dynamic
+      },
+    });
 
+    const json = await response.json();
+
+    if (!json.success) {
+      throw new Error(json.error || "Failed to fetch tags");
+    }
+
+    console.log("Tags:", json.data?.tags);
+    return json.data?.tags || [];
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    toast.error("Failed to load tags");
+    return [];
+  }
+};
   const saveAgent = async () => {
     if (
       !editForm.name.trim() ||
