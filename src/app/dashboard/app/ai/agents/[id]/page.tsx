@@ -41,8 +41,8 @@ import {
   MessageSquare,
   Settings,
   Trash2,
-  CheckCircle2,
 } from "lucide-react";
+import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 
 interface Agent {
   id: string;
@@ -112,6 +112,9 @@ function AgentDetailClientPage({
   const [testResult, setTestResult] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [ghlTags, setGhlTags] = useState<
+    { id: string; name: string; locationId: string }[]
+  >([]);
 
   const handleAddTag = () => {
     if (newTag.trim() !== "" && !tags.includes(newTag)) {
@@ -225,7 +228,7 @@ function AgentDetailClientPage({
     if (agentId) {
       loadAgent();
     }
-    fetchTags()
+    fetchTags();
   }, [agentId]);
 
   useEffect(() => {
@@ -239,7 +242,6 @@ function AgentDetailClientPage({
         isActive: agent.isActive,
       });
     }
-
   }, [agent]);
 
   const loadAgent = async () => {
@@ -278,36 +280,43 @@ function AgentDetailClientPage({
         throw new Error(data.error || "Failed to load agent");
       }
     } catch (error) {
-      console.error("Error loading agent:", error);
+      // console.error("Error loading agent:", error);
       toast.error("Failed to load agent");
       router.push("/dashboard/app/ai/agents");
     } finally {
       setLoading(false);
     }
   };
-const fetchTags = async () => {
-  try {
-    const response = await fetch("/api/tags", {
-      method: "GET",
-      headers: {
-        "x-location-id": "iXTmrCkWtZKXWzs85Jx8", // 👈 dynamic
-      },
-    });
 
-    const json = await response.json();
+  const fetchTags = async () => {
+    try {
+      const token = await getClientGhlToken();
 
-    if (!json.success) {
-      throw new Error(json.error || "Failed to fetch tags");
+      if (!token) return;
+
+      const response = await fetch("/api/tags", {
+        method: "GET",
+        headers: {
+          "x-location-id": "iXTmrCkWtZKXWzs85Jx8", // 👈 dynamic
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        throw new Error(json.error || "Failed to fetch tags");
+      }
+
+      setGhlTags(json.data?.tags);
+      return json.data?.tags || [];
+    } catch (error) {
+      // console.error("Error fetching tags:", error);
+      toast.error("Failed to load tags");
+      return [];
     }
+  };
 
-    console.log("Tags:", json.data?.tags);
-    return json.data?.tags || [];
-  } catch (error) {
-    console.error("Error fetching tags:", error);
-    toast.error("Failed to load tags");
-    return [];
-  }
-};
   const saveAgent = async () => {
     if (
       !editForm.name.trim() ||
@@ -374,7 +383,7 @@ const fetchTags = async () => {
         throw new Error(data.error || "Failed to update agent");
       }
     } catch (error) {
-      console.error("Error updating agent:", error);
+      // console.error("Error updating agent:", error);
       toast.error("Failed to update agent");
     } finally {
       setSaving(false);
@@ -417,7 +426,7 @@ const fetchTags = async () => {
         toast.warning("AI backend unavailable - showing demo response");
       }
     } catch (error) {
-      console.error("Error testing agent:", error);
+      // console.error("Error testing agent:", error);
       setTestResult(
         `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
       );
@@ -443,7 +452,7 @@ const fetchTags = async () => {
         throw new Error(data.error || "Failed to delete agent");
       }
     } catch (error) {
-      console.error("Error deleting agent:", error);
+      // console.error("Error deleting agent:", error);
       toast.error("Failed to delete agent");
     } finally {
       setDeleting(false);
@@ -983,15 +992,14 @@ const fetchTags = async () => {
               <CardTitle>Tags</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {tags.length > 0 ? (
-                tags.map((tag, index) => (
+              {tags?.length > 0 ? (
+                tags?.map((tag, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between space-x-2 mb-3"
                   >
-                    {/* Left: Checkbox + label */}
+                    {/* Left: label */}
                     <div className="flex items-center space-x-2">
-                      <Checkbox id={tag} />
                       <label
                         htmlFor={tag}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -1018,16 +1026,47 @@ const fetchTags = async () => {
                 </p>
               )}
 
-              {/* Add new tag section (only if editing is true) */}
+              {/* Dropdown + Add new tag section (only if editing is true) */}
               {editing && (
-                <div className="flex items-center space-x-2 mt-4">
-                  <Input
-                    placeholder="Enter new tag"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                  />
-                  <Button onClick={handleAddTag}>Add</Button>
-                </div>
+                <>
+                  {/* Dropdown showing GHL tags */}
+                  <div className="mt-2">
+                    <label htmlFor="tags-dropdown" className="sr-only">
+                      Choose tag
+                    </label>
+                    <select
+                      id="tags-dropdown"
+                      value=""
+                      onChange={(e) => {
+                        const selected = e.target.value;
+                        if (
+                          selected &&
+                          !tags.includes(selected) // avoid duplicates
+                        ) {
+                          setTags([...tags, selected]);
+                        }
+                      }}
+                      className="w-full rounded-md border px-3 py-2 text-sm"
+                    >
+                      <option value="">Choose your GHL tags</option>
+                      {ghlTags?.map((tag, idx) => (
+                        <option key={idx} value={tag?.name}>
+                          {tag?.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Manual tag input */}
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Input
+                      placeholder="Enter new tag"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                    />
+                    <Button onClick={handleAddTag}>Add</Button>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

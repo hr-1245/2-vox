@@ -6,9 +6,9 @@
 // // export async function GET(request: NextRequest) {
 // //   try {
 // //     const user = await getCurrentUserFromRequest();
-    
+
 // //     console.log('🔍 API Route User:', user); // Add this log
-    
+
 // //     if (!user?.id) {
 // //       return Response.json(
 // //         { success: false, error: "Unauthorized" },
@@ -70,7 +70,7 @@
 //     const data = await fetchGhlApi(
 //       `/locations/${locationId}`, providerData.token
 //     );
-// // 
+// //
 //     return Response.json({
 //       success: true,
 //       data
@@ -93,7 +93,6 @@
 import { NextRequest } from "next/server";
 import { fetchGhlApi } from "@/lib/leadconnector/fetchApi";
 
-
 interface GhlTokenPayload {
   authClass?: string;
   authClassId?: string;
@@ -106,61 +105,52 @@ interface GhlTokenPayload {
 function extractUserIdFromGhlToken(token: string): string | null {
   try {
     // For now, use the hardcoded user ID since GHL tokens don't contain Supabase user info
-    return "501202fd-61d8-43f1-ad74-34af48f92e3c"
+    return "501202fd-61d8-43f1-ad74-34af48f92e3c";
   } catch (error) {
-    console.error('Error extracting user ID from token:', error)
-    return null
+    console.error("Error extracting user ID from token:", error);
+    return null;
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Starting /api/tags request...')
+    const authHeader = request.headers.get("authorization");
 
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return Response.json(
         { success: false, error: "Missing or invalid authorization" },
         { status: 401 }
-      )
+      );
     }
 
-    const token = authHeader.slice(7)
-    console.log('🔑 Token type: GHL OAuth token')
-    console.log('🔑 Token length:', token.length)
+    const token = authHeader.slice(7);
+    if (!token) return;
 
     // Extract user ID from GHL token or use default
-    const userId = extractUserIdFromGhlToken(token) || "501202fd-61d8-43f1-ad74-34af48f92e3c"
-    
-    console.log('✅ Using user ID:', userId)
+    const userId = extractUserIdFromGhlToken(token) || "";
 
-    const locationId = request.headers.get("x-location-id")
-    console.log('📍 Location ID:', locationId)
-    
+    const locationId = request.headers.get("x-location-id");
+
     if (!locationId) {
       return Response.json(
         { success: false, error: "Location ID is required" },
         { status: 400 }
-      )
+      );
     }
 
-    console.log('🔄 Calling GHL API...')
     const data = await fetchGhlApi(`/locations/${locationId}/tags`, userId, {
       method: "GET",
-    })
+    });
 
-    console.log('✅ Tags fetched successfully')
-    return Response.json({ success: true, data }, { status: 200 })
-    
+    return Response.json({ success: true, data }, { status: 200 });
   } catch (error) {
-    console.error("❌ Error fetching GHL tags:", error)
+    // console.error("❌ Error fetching GHL tags:", error);
     return Response.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
       },
       { status: 500 }
-    )
+    );
   }
 }

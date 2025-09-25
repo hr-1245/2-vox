@@ -160,17 +160,17 @@ export function LoginForm() {
     setResetSuccess(false);
     resetForm.reset();
   };
-const handleGoogleLogin = async () => {
-  await signIn("google", { callbackUrl: "/dashboard/app/leadconnector" });
-};
+  const handleGoogleLogin = async () => {
+    await signIn("google", { callbackUrl: "/dashboard/app/leadconnector" });
+  };
   // async function handleGoogleLogin() {
   //     const supabase = await getSupabase();
   // await supabase.auth.signInWithOAuth({
   //   provider: "google",
   //   options: { redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard` }
   // });
-    // await signIn("google", { callbackUrl: "/dashboard" });
-  
+  // await signIn("google", { callbackUrl: "/dashboard" });
+
   return (
     <>
       {errorMessage && (
@@ -184,8 +184,12 @@ const handleGoogleLogin = async () => {
 
       {/* Left Section - Login Form */}
       <div className="dark:bg-black/90 p-10 flex flex-col justify-center">
-        <h2 className="text-2xl font-semibold mb-2 text-black dark:text-white">Log in to your account</h2>
-        <p className="text-gray-400 mb-6">Welcome back! Please enter your details to continue.</p>
+        <h2 className="text-2xl font-semibold mb-2 text-black dark:text-white">
+          Log in to your account
+        </h2>
+        <p className="text-gray-400 mb-6">
+          Welcome back! Please enter your details to continue.
+        </p>
         {/* <form action={doSocialLogin}>
           <button className="w-full flex items-center justify-center gap-2 border border-gray-600 text-black dark:text-white rounded-lg py-2 mb-6 hover:bg-gray-800 transition"
           >
@@ -197,18 +201,18 @@ const handleGoogleLogin = async () => {
             Log in with Google
           </button>
         </form> */}
-   <button
-      type="button"
-      onClick={handleGoogleLogin}
-      className="w-full flex items-center justify-center gap-2 border border-gray-600 text-black dark:text-white rounded-lg py-2 mb-6 hover:bg-gray-800 transition"
-    >
-      <img
-        src="https://www.svgrepo.com/show/355037/google.svg"
-        alt="Google"
-        className="w-5 h-5"
-      />
-      Log in with Google
-    </button>
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full flex items-center justify-center gap-2 border border-gray-600 text-black dark:text-white rounded-lg py-2 mb-6 hover:bg-gray-800 transition"
+        >
+          <img
+            src="https://www.svgrepo.com/show/355037/google.svg"
+            alt="Google"
+            className="w-5 h-5"
+          />
+          Log in with Google
+        </button>
 
         <div className="flex items-center mb-6">
           <div className="flex-grow h-px bg-gray-700"></div>
@@ -223,7 +227,9 @@ const handleGoogleLogin = async () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black dark:text-white">Email</FormLabel>
+                    <FormLabel className="text-black dark:text-white">
+                      Email
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -265,7 +271,9 @@ const handleGoogleLogin = async () => {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex justify-between items-center mb-1">
-                      <FormLabel className="text-black dark:text-white">Password</FormLabel>
+                      <FormLabel className="text-black dark:text-white">
+                        Password
+                      </FormLabel>
                       <Dialog
                         open={isResetDialogOpen}
                         onOpenChange={setIsResetDialogOpen}
@@ -282,8 +290,8 @@ const handleGoogleLogin = async () => {
                           <DialogHeader>
                             <DialogTitle>Reset Password</DialogTitle>
                             <DialogDescription>
-                              Enter your email address and we'll send you a link to reset
-                              your password.
+                              Enter your email address and we'll send you a link
+                              to reset your password.
                             </DialogDescription>
                           </DialogHeader>
 
@@ -291,16 +299,21 @@ const handleGoogleLogin = async () => {
                             <div className="flex flex-col items-center gap-4 py-4">
                               <CheckCircle2 className="h-12 w-12 text-green-500" />
                               <div className="text-center">
-                                <h3 className="text-lg font-semibold">Email Sent!</h3>
+                                <h3 className="text-lg font-semibold">
+                                  Email Sent!
+                                </h3>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  Check your inbox for password reset instructions.
+                                  Check your inbox for password reset
+                                  instructions.
                                 </p>
                               </div>
                             </div>
                           ) : (
                             <Form {...resetForm}>
                               <form
-                                onSubmit={resetForm.handleSubmit(handleResetPassword)}
+                                onSubmit={resetForm.handleSubmit(
+                                  handleResetPassword
+                                )}
                                 className="space-y-4"
                               >
                                 <FormField
@@ -334,7 +347,10 @@ const handleGoogleLogin = async () => {
                                   >
                                     Cancel
                                   </Button>
-                                  <Button type="submit" disabled={isResetPending}>
+                                  <Button
+                                    type="submit"
+                                    disabled={isResetPending}
+                                  >
                                     {isResetPending ? (
                                       <>
                                         <LoadingSpinner className="mr-2 h-4 w-4" />
@@ -351,7 +367,10 @@ const handleGoogleLogin = async () => {
 
                           {resetSuccess && (
                             <DialogFooter>
-                              <Button onClick={handleResetDialogClose} className="w-full">
+                              <Button
+                                onClick={handleResetDialogClose}
+                                className="w-full"
+                              >
                                 Close
                               </Button>
                             </DialogFooter>
@@ -393,7 +412,6 @@ const handleGoogleLogin = async () => {
                   </FormItem>
                 )}
               />
-
             </div>
 
             <div className="flex items-center gap-2">
@@ -427,13 +445,11 @@ const handleGoogleLogin = async () => {
       </div>
       <div className="flex items-center justify-between text-sm">
         <div /> {/* Spacer */}
-
       </div>
       {/* Right Section - Promo */}
 
       {/* </div>
       </div> */}
-
     </>
   );
 }

@@ -92,7 +92,7 @@ export async function fetchGhlApiWithRefresh<T = any>(
   const maxRetries = 2;
 
   const makeRequest = async (accessToken: string): Promise<Response> => {
-    console.log("accessToken.............acess",accessToken)
+    // console.log("accessToken.............acess",accessToken)
     return fetch(url, {
       ...options,
       headers: {
