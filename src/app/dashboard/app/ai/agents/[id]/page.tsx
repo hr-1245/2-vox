@@ -43,6 +43,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
+import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 
 interface Agent {
   id: string;
@@ -986,7 +987,8 @@ function AgentDetailClientPage({
             </CardContent>
           </Card>
 
-          {/* Tags */}
+          {/* Tags editing={editing}*/}
+          <AddTagsModal ghlTags={ghlTags}  editing={editing} setTags={setTags} tags={tags} setNewTag={setNewTag} handleAddTag={handleAddTag} newTag={newTag} />
           <Card>
             <CardHeader>
               <CardTitle>Tags</CardTitle>
