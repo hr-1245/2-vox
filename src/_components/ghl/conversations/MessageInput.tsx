@@ -375,6 +375,7 @@ interface MessageTypeOption {
   label: string;
   description: string;
 }
+
 const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
   if (!messagesList || messagesList.length === 0) {
     return [
@@ -558,6 +559,7 @@ export function MessageInput({
       contactId: customerInfo.contactId || "",
     };
   };
+
   const handleNewMessage = (data: string) => {
     setMessagess((prev) => [...prev, data]);
   };
@@ -583,6 +585,7 @@ export function MessageInput({
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
+
   // const [selectedMessageType, setSelectedMessageType] = useState<string>(() =>
   //   getDefaultMessageType(conversationType, recentMessages) || 'TYPE_EMAIL'|| 'TYPE_EMAIL'
   // );
@@ -2645,7 +2648,7 @@ Focus on relationship building and moving the conversation forward constructivel
             </span>
 
             {/* Auto Response */}
-            <Tooltip>
+            {/* <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
@@ -2664,7 +2667,7 @@ Focus on relationship building and moving the conversation forward constructivel
               <TooltipContent>
                 Auto Response {autopilotEnabled ? "ON" : "OFF"}
               </TooltipContent>
-            </Tooltip>
+            </Tooltip> */}
 
             {/* Quick Response */}
             <Tooltip>

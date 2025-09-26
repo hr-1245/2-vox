@@ -209,37 +209,36 @@ function MessageBubble({
   isLast: boolean;
   urlContactInfo: Contact;
 }) {
-const getSafeBody = (msg: any): string => {
-  if (!msg) return "";
-  
-  console.log("🔍 Message object in getSafeBody:", msg); // Keep this for debugging
+  const getSafeBody = (msg: any): string => {
+    if (!msg) return "";
 
-  // Handle nested body object
-  if (msg.body && typeof msg.body === "object") {
-    // Check common locations for the actual message text
-    if (msg.body.text && typeof msg.body.text === "string") {
-      return msg.body.text.trim();
+    console.log("🔍 Message object in getSafeBody:", msg); // Keep this for debugging
+
+    // Handle nested body object
+    if (msg.body && typeof msg.body === "object") {
+      // Check common locations for the actual message text
+      if (msg.body.text && typeof msg.body.text === "string") {
+        return msg.body.text.trim();
+      }
+      if (msg.body.body && typeof msg.body.body === "string") {
+        return msg.body.body.trim();
+      }
+      if (msg.body.message && typeof msg.body.message === "string") {
+        return msg.body.message.trim();
+      }
+      // If we can't find the text, return empty string
+      return "";
     }
-    if (msg.body.body && typeof msg.body.body === "string") {
-      return msg.body.body.trim();
+
+    // Handle flat structure (body is string)
+    const body = msg.body ?? msg.message;
+
+    if (typeof body === "string") {
+      return body.trim();
     }
-    if (msg.body.message && typeof msg.body.message === "string") {
-      return msg.body.message.trim();
-    }
-    // If we can't find the text, return empty string
-    return "";
-  }
 
-  // Handle flat structure (body is string)
-  const body = msg.body ?? msg.message;
-  
-  if (typeof body === "string") {
-    return body.trim();
-  }
-
-  return String(body ?? "");
-};
-
+    return String(body ?? "");
+  };
 
   const isInbound = message.direction === "inbound";
   const formattedDate = format(new Date(message.dateAdded), "MMM d, h:mm a");
@@ -486,7 +485,7 @@ const getSafeBody = (msg: any): string => {
                 Web Chat Message
               </div>
               <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                 {getSafeBody(message)}
+                {getSafeBody(message)}
               </div>
             </div>
           ) : (
@@ -2008,54 +2007,392 @@ export function ConversationDetails({
     }
   }, [messages]);
 
+  // Handle autopilot toggle - actually save the setting and fetch conversation metadata
+  const handleAutopilotToggle = async () => {
+    try {
+      const newAutopilotState = !autopilotEnabled;
+      // console.log("🔄 Toggling autopilot:", {
+      //   from: autopilotEnabled,
+      //   to: newAutopilotState,
+      // });
+
+      // PRIORITY 1: Use URL contact info if available (most reliable)
+      let effectiveContactInfo = null;
+      let conversationDetails = null;
+
+      if (
+        urlContactInfo &&
+        (urlContactInfo.name || urlContactInfo.email || urlContactInfo.phone)
+      ) {
+        effectiveContactInfo = {
+          firstName: urlContactInfo.name?.split(" ")[0] || "",
+          lastName: urlContactInfo.name?.split(" ").slice(1).join(" ") || "",
+          email: urlContactInfo.email || "",
+          phone: urlContactInfo.phone || "",
+          id: "url-contact-info", // placeholder ID
+        };
+
+        // console.log("✅ Using URL contact info (highest priority):", {
+        //   contactName: urlContactInfo.name,
+        //   contactEmail: urlContactInfo.email,
+        //   contactPhone: urlContactInfo.phone,
+        //   source: "URL_PARAMS",
+        // });
+      }
+
+      // Save to conversation settings first
+      const currentSettings = conversationSettings || {
+        agents: {},
+        features: {
+          query: { enabled: true, contextDepth: 20 },
+          suggestions: { enabled: true, limit: 3, contextDepth: 20 },
+          autopilot: {
+            enabled: false,
+            contextDepth: 20,
+            confidenceThreshold: 0.7,
+          },
+        },
+      };
+
+      const updatedSettings = {
+        ...currentSettings,
+        features: {
+          ...currentSettings.features,
+          autopilot: {
+            enabled: newAutopilotState,
+            contextDepth:
+              currentSettings.features?.autopilot?.contextDepth || 20,
+            confidenceThreshold:
+              currentSettings.features?.autopilot?.confidenceThreshold || 0.7,
+          },
+        },
+      };
+
+      // PRIORITY 2: Fetch conversation details from GHL API as fallback
+
+      if (newAutopilotState) {
+        // Only fetch GHL API data if we don't have URL contact info
+        if (!effectiveContactInfo) {
+          try {
+            // console.log(
+            //   "🔍 Fetching conversation details from GHL API (fallback)..."
+            // );
+            const conversationResponse = await fetch(
+              `/api/leadconnector/conversations/${conversationId}`
+            );
+
+            if (conversationResponse.ok) {
+              const conversationData = await conversationResponse.json();
+              if (conversationData.success && conversationData.data) {
+                conversationDetails = conversationData.data;
+                effectiveContactInfo = conversationData.data.contact;
+
+                // console.log("✅ Retrieved conversation details from API:", {
+                //   conversationId: conversationDetails.id,
+                //   conversationName:
+                //     conversationDetails.name ||
+                //     `Conversation ${conversationId.slice(0, 8)}`,
+                //   contactName: effectiveContactInfo
+                //     ? `${effectiveContactInfo.firstName || ""} ${
+                //         effectiveContactInfo.lastName || ""
+                //       }`.trim()
+                //     : "Unknown",
+                //   contactEmail: effectiveContactInfo?.email,
+                //   contactPhone: effectiveContactInfo?.phone,
+                //   contactId: effectiveContactInfo?.id,
+                //   conversationType: conversationDetails.type,
+                //   source: "GHL_API",
+                // });
+              }
+            }
+          } catch (error) {
+            // console.warn(
+            //   "⚠️ Could not fetch conversation details, continuing with autopilot setup:",
+            //   error
+            // );
+          }
+        } else {
+          // console.log("⏭️ Skipping GHL API fetch - using URL contact info");
+        }
+      }
+
+      // Save conversation metadata with enhanced contact and conversation info
+      const enhancedSettings = {
+        ...updatedSettings,
+        // Store contact information for future reference
+        contactInfo: effectiveContactInfo
+          ? {
+              name:
+                `${effectiveContactInfo.firstName || ""} ${
+                  effectiveContactInfo.lastName || ""
+                }`.trim() || urlContactInfo?.name,
+              email: effectiveContactInfo.email,
+              phone: effectiveContactInfo.phone,
+              source:
+                effectiveContactInfo.id === "url-contact-info"
+                  ? "url_params"
+                  : "ghl_api",
+            }
+          : urlContactInfo?.name ||
+            urlContactInfo?.email ||
+            urlContactInfo?.phone
+          ? {
+              name: urlContactInfo.name,
+              email: urlContactInfo.email,
+              phone: urlContactInfo.phone,
+              source: "url_params",
+            }
+          : null,
+        // Store conversation metadata
+        conversationInfo: {
+          lastUpdated: new Date().toISOString(),
+          autopilotEnabledAt: newAutopilotState
+            ? new Date().toISOString()
+            : null,
+        },
+      };
+
+      const metaResponse = await fetch("/api/conversation-meta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          locationId,
+          ai_settings: enhancedSettings,
+        }),
+      });
+
+      if (!metaResponse.ok) {
+        throw new Error("Failed to save conversation settings");
+      }
+
+      if (newAutopilotState) {
+        // Enable autopilot - create/update autopilot config with enhanced metadata
+        const autopilotConfig = {
+          conversationId,
+          locationId,
+          isEnabled: true,
+          replyDelayMinutes: 5,
+          maxRepliesPerConversation: 5,
+          maxRepliesPerDay: 10,
+          messageType: "SMS",
+          preferConversationType: true,
+          operatingHours: {
+            enabled: false,
+            start: "09:00",
+            end: "17:00",
+            timezone: "UTC",
+            days: [1, 2, 3, 4, 5],
+          },
+          aiModel: "gpt-4o-mini",
+          aiTemperature: 0.7,
+          aiMaxTokens: 500,
+          fallbackMessage:
+            "Thank you for your message. I will get back to you as soon as possible.",
+          customPrompt: "",
+          cancelOnUserReply: true,
+          requireHumanKeywords: [],
+          excludeKeywords: [],
+          // Fix: Pass null instead of 'default' when no agent is selected (database expects UUID)
+          aiAgentId: (updatedSettings.agents as any)?.autopilot || null,
+          // NEW: Include conversation and contact metadata
+          conversationMetadata: conversationDetails
+            ? {
+                conversationName: conversationDetails.name || "",
+                lastUpdated:
+                  conversationDetails.lastMessageDate ||
+                  new Date().toISOString(),
+                messageCount: conversationDetails.messageCount || 0,
+                status: conversationDetails.status || "open",
+              }
+            : null,
+          contactMetadata: effectiveContactInfo
+            ? {
+                contactId: effectiveContactInfo.id || "url-contact",
+                firstName: effectiveContactInfo.firstName || "",
+                lastName: effectiveContactInfo.lastName || "",
+                fullName:
+                  `${effectiveContactInfo.firstName || ""} ${
+                    effectiveContactInfo.lastName || ""
+                  }`.trim() ||
+                  urlContactInfo?.name ||
+                  "",
+                email: effectiveContactInfo.email || "",
+                phone: effectiveContactInfo.phone || "",
+                source: effectiveContactInfo.source || "url_params",
+                dateAdded:
+                  effectiveContactInfo.dateAdded || new Date().toISOString(),
+              }
+            : null,
+        };
+
+        const autopilotResponse = await fetch("/api/autopilot/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(autopilotConfig),
+        });
+
+        if (!autopilotResponse.ok) {
+          const errorData = await autopilotResponse.json();
+          throw new Error(errorData.error || "Failed to enable autopilot");
+        }
+
+        // NEW: Also create/update autopilot conversation tracking with contact details
+        try {
+          const fullContactName = effectiveContactInfo
+            ? `${effectiveContactInfo.firstName || ""} ${
+                effectiveContactInfo.lastName || ""
+              }`.trim()
+            : "";
+          // Create a better conversation name using contact info if available
+          const contactName =
+            fullContactName || urlContactInfo?.name || "Unknown Contact";
+          const conversationName =
+            conversationDetails?.name ||
+            (contactName !== "Unknown Contact"
+              ? `${contactName} Conversation`
+              : `Conversation ${conversationId.slice(0, 8)}`);
+
+          const trackingData = {
+            conversationId,
+            locationId,
+            contactName:
+              fullContactName || urlContactInfo?.name || "Unknown Contact",
+            contactPhone: effectiveContactInfo?.phone || "",
+            contactEmail: effectiveContactInfo?.email || "",
+            conversationStatus: conversationDetails?.status || "open",
+            conversationType: conversationDetails?.type || "SMS",
+            conversationName: conversationName,
+            autopilotEnabled: true,
+            lastSeen: new Date().toISOString(),
+          };
+
+          const trackingResponse = await fetch("/api/autopilot/tracking", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(trackingData),
+          });
+
+          if (trackingResponse.ok) {
+            // console.log("✅ Autopilot tracking created with contact details:", {
+            //   conversationId,
+            //   contactName: trackingData.contactName,
+            //   conversationName: trackingData.conversationName,
+            //   contactSource:
+            //     effectiveContactInfo?.id === "url-contact-info"
+            //       ? "URL_PARAMS"
+            //       : "GHL_API",
+            //   hasUrlContact: !!urlContactInfo?.name,
+            //   hasEffectiveContact: !!effectiveContactInfo,
+            // });
+          } else {
+            console.warn(
+              "⚠️ Could not create autopilot tracking, but autopilot is still enabled"
+            );
+          }
+        } catch (trackingError) {
+          console.warn("⚠️ Tracking setup failed:", trackingError);
+        }
+
+        toast.success(
+          <div className="space-y-1">
+            <p className="font-medium">
+              🤖 Autopilot enabled for this conversation
+            </p>
+            {effectiveContactInfo && (
+              <p className="text-sm text-muted-foreground">
+                Contact: {effectiveContactInfo.firstName}{" "}
+                {effectiveContactInfo.lastName}
+                {effectiveContactInfo.email &&
+                  ` (${effectiveContactInfo.email})`}
+              </p>
+            )}
+            {!effectiveContactInfo && urlContactInfo?.name && (
+              <p className="text-sm text-muted-foreground">
+                Contact: {urlContactInfo.name}
+                {urlContactInfo.email && ` (${urlContactInfo.email})`}
+              </p>
+            )}
+          </div>
+        );
+      } else {
+        // Disable autopilot - delete autopilot config
+        const deleteResponse = await fetch(
+          `/api/autopilot/config?conversationId=${conversationId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!deleteResponse.ok) {
+          console.warn("Failed to delete autopilot config, but continuing...");
+        }
+
+        toast.success("🚫 Autopilot disabled for this conversation");
+      }
+
+      // Update local state
+      setAutopilotEnabled(newAutopilotState);
+      setConversationSettings(updatedSettings);
+    } catch (error) {
+      console.error("Error toggling autopilot:", error);
+      toast.error(
+        `Failed to ${autopilotEnabled ? "disable" : "enable"} autopilot: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
   useEffect(() => {
     if (!socket) {
       console.log("⚠️ No socket found, skipping listener setup");
       return;
     }
 
-const handleNewMessage = (response: any) => {
-  console.log("📩 Incoming socket event:", response);
+    const handleNewMessage = (response: any) => {
+      handleAutopilotToggle();
+      console.log("📩 Incoming socket event:", response);
 
-  // If response already has the complete message structure, use it directly
-  if (response && response.id && response.direction) {
-    console.log("📝 Complete message object received:", response);
-    setMessages((prev) => [...prev, response]);
-  } else {
-    // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
-    // OR maybe the opposite? Let's try both ways...
-    
-    // Try option 1: type 19 = inbound (received)
-    const direction = response?.type === 19 ? "inbound" : "outbound";
-    const status = direction === "outbound" ? "sent" : "delivered";
-    
-    // If that doesn't work, try option 2: type 19 = outbound (sent)
-    // const direction = response?.type === 19 ? "outbound" : "inbound";
-    // const status = direction === "outbound" ? "sent" : "delivered";
+      // If response already has the complete message structure, use it directly
+      if (response && response.id && response.direction) {
+        console.log("📝 Complete message object received:", response);
+        setMessages((prev) => [...prev, response]);
+      } else {
+        // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
+        // OR maybe the opposite? Let's try both ways...
 
-    // Fallback: construct message object if response is incomplete
-    const newMessage = {
-      id: response?.id || Date.now().toString(),
-      body: response?.body || response?.message || "",
-      type: response?.type || "text",
-      direction: direction,
-      conversationId: response?.conversationId || "temp",
-      contactId: response?.contactId || "unknown",
-      dateAdded: response?.dateAdded || new Date().toISOString(),
-      dateUpdated: response?.dateUpdated || new Date().toISOString(),
-      source: response?.source || "app",
-      altId: response?.altId || Math.random().toString(36).substring(2),
-      messageType: response?.messageType || "TYPE_WHATSAPP",
-      status: status,
-      contentType: response?.contentType || "text/plain",
-      attachments: response?.attachments || [],
-      locationId: response?.locationId || ""
+        // Try option 1: type 19 = inbound (received)
+        const direction = response?.type === 19 ? "inbound" : "outbound";
+        const status = direction === "outbound" ? "sent" : "delivered";
+
+        // If that doesn't work, try option 2: type 19 = outbound (sent)
+        // const direction = response?.type === 19 ? "outbound" : "inbound";
+        // const status = direction === "outbound" ? "sent" : "delivered";
+
+        // Fallback: construct message object if response is incomplete
+        const newMessage = {
+          id: response?.id || Date.now().toString(),
+          body: response?.body || response?.message || "",
+          type: response?.type || "text",
+          direction: direction,
+          conversationId: response?.conversationId || "temp",
+          contactId: response?.contactId || "unknown",
+          dateAdded: response?.dateAdded || new Date().toISOString(),
+          dateUpdated: response?.dateUpdated || new Date().toISOString(),
+          source: response?.source || "app",
+          altId: response?.altId || Math.random().toString(36).substring(2),
+          messageType: response?.messageType || "TYPE_WHATSAPP",
+          status: status,
+          contentType: response?.contentType || "text/plain",
+          attachments: response?.attachments || [],
+          locationId: response?.locationId || "",
+        };
+
+        console.log("📝 Constructed message:", newMessage);
+        setMessages((prev) => [...prev, newMessage]);
+      }
     };
-    
-    console.log("📝 Constructed message:", newMessage);
-    setMessages((prev) => [...prev, newMessage]);
-  }
-};
 
     socket.on("new_message", handleNewMessage);
     console.log("🔌 Listener attached for: new_message");
