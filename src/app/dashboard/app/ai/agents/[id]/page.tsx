@@ -989,7 +989,7 @@ function AgentDetailClientPage({
 
           {/* Tags editing={editing}*/}
           <AddTagsModal ghlTags={ghlTags}  editing={editing} setTags={setTags} tags={tags} setNewTag={setNewTag} handleAddTag={handleAddTag} newTag={newTag} />
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Tags</CardTitle>
             </CardHeader>
@@ -1000,7 +1000,7 @@ function AgentDetailClientPage({
                     key={index}
                     className="flex items-center justify-between space-x-2 mb-3"
                   >
-                    {/* Left: label */}
+                 
                     <div className="flex items-center space-x-2">
                       <label
                         htmlFor={tag}
@@ -1010,7 +1010,6 @@ function AgentDetailClientPage({
                       </label>
                     </div>
 
-                    {/* Right: Cross (only if editing) */}
                     {editing && (
                       <button
                         type="button"
@@ -1028,10 +1027,10 @@ function AgentDetailClientPage({
                 </p>
               )}
 
-              {/* Dropdown + Add new tag section (only if editing is true) */}
+      
               {editing && (
                 <>
-                  {/* Dropdown showing GHL tags */}
+         
                   <div className="mt-2">
                     <label htmlFor="tags-dropdown" className="sr-only">
                       Choose tag
@@ -1043,7 +1042,7 @@ function AgentDetailClientPage({
                         const selected = e.target.value;
                         if (
                           selected &&
-                          !tags.includes(selected) // avoid duplicates
+                          !tags.includes(selected) 
                         ) {
                           setTags([...tags, selected]);
                         }
@@ -1059,7 +1058,7 @@ function AgentDetailClientPage({
                     </select>
                   </div>
 
-                  {/* Manual tag input */}
+                 
                   <div className="flex items-center space-x-2 mt-4">
                     <Input
                       placeholder="Enter new tag"
@@ -1071,7 +1070,7 @@ function AgentDetailClientPage({
                 </>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
     </div>
