@@ -25,6 +25,8 @@ import {
   Mic,
   Phone
 } from 'lucide-react';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import AgentRow from '@/components/AgentRow/AgentRow';
 
 interface Agent {
   id: string;
@@ -353,10 +355,28 @@ export default function AIAgentsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredAgents.map((agent) => (
+              <div className="">
+                {/* grid gap-6 md:grid-cols-2 lg:grid-cols-3 {filteredAgents.map((agent) => (
                   <AgentCard key={agent.id} agent={agent} />
-                ))}
+                ))} */}
+                <Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Agent</TableHead>
+      <TableHead>Description</TableHead>
+      <TableHead>Type</TableHead>
+      <TableHead>Status</TableHead>
+      <TableHead>Created</TableHead>
+      <TableHead className="text-right">Actions</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {filteredAgents.map((agent) => (
+      <AgentRow key={agent.id} agent={agent} toggleAgentStatus={toggleAgentStatus} loadAgents={loadAgents} />
+    ))}
+  </TableBody>
+</Table>
+
               </div>
             )}
           </div>
