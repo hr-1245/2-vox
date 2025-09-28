@@ -988,7 +988,7 @@ function AgentDetailClientPage({
           </Card>
 
           {/* Tags editing={editing}*/}
-          <AddTagsModal ghlTags={ghlTags}  editing={editing} setTags={setTags} tags={tags} setNewTag={setNewTag} handleAddTag={handleAddTag} newTag={newTag} />
+          <AddTagsModal ghlTags={ghlTags}  editing={editing} setTags={setTags} tags={tags} setNewTag={setNewTag} handleAddTag={handleAddTag} newTag={newTag} handleDeleteTag={handleDeleteTag} />
           {/* <Card>
             <CardHeader>
               <CardTitle>Tags</CardTitle>
