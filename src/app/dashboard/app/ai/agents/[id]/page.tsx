@@ -125,6 +125,8 @@ function AgentDetailClientPage({
   };
 
   const handleDeleteTag = (tagToDelete: string) => {
+    debugger
+    console.log("tagToDelete",tagToDelete)
     setTags(tags.filter((t) => t !== tagToDelete));
   };
 

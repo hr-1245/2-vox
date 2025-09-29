@@ -2059,7 +2059,7 @@ export function ConversationDetails({
         features: {
           ...currentSettings.features,
           autopilot: {
-            enabled: newAutopilotState,
+            enabled: true,
             contextDepth:
               currentSettings.features?.autopilot?.contextDepth || 20,
             confidenceThreshold:
