@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+
 import {
   MessageCircle,
   ChevronUp,
@@ -36,6 +37,7 @@ import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnab
 import { loadEmailContent } from "@/utils/ghl/emailClient";
 
 import { useSocket } from "../../../../context/SocketProvider";
+import debounce from "lodash.debounce";
 
 interface ConversationHeaderProps {
   contact: Contact;
@@ -1830,31 +1832,111 @@ export function ConversationDetails({
     }
   }, [messages]);
 
-  const sendReply = async (message: string) => {
-    // Get all agents and match tags - 
-    try {
-      const replyResponse = await fetch("/api/autopilot/reply-ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-        }),
-      });
 
-      if (!replyResponse.ok) {
-        throw new Error(`Failed to send reply: ${replyResponse.status}`);
+  // const sendReply = async (message: string) => {
+  //   // Get all agents and match tags - 
+  //   try {
+  //     const replyResponse = await fetch("/api/autopilot/reply-ai", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         message,
+  //       }),
+  //     });
+
+  //     if (!replyResponse.ok) {
+  //       throw new Error(`Failed to send reply: ${replyResponse.status}`);
+  //     }
+
+  //     const data = await replyResponse.json();
+
+  //     setNewMessage(data?.reply);
+
+  //     return data;
+  //   } catch (error) {
+  //     console.error("❌ Error in sendReply:", error);
+  //     return null;
+  //   }
+  // };
+
+
+  // useEffect(() => {
+  //   if (!socket) {
+  //     console.log("⚠️ No socket found, skipping listener setup");
+  //     return;
+  //   }
+
+  //   const handleNewMessage = (response: any) => {
+  //     sendReply(response?.message || response?.message?.body || "");
+
+  //     // If response already has the complete message structure, use it directly
+  //     if (response && response.id && response.direction) {
+  //       setMessages((prev) => [...prev, response]);
+  //     } else {
+  //       // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
+  //       // OR maybe the opposite? Let's try both ways...
+
+  //       // Try option 1: type 19 = inbound (received)
+  //       const direction = response?.type === 19 ? "inbound" : "outbound";
+  //       const status = direction === "outbound" ? "sent" : "delivered";
+
+  //       // If that doesn't work, try option 2: type 19 = outbound (sent)
+  //       // const direction = response?.type === 19 ? "outbound" : "inbound";
+  //       // const status = direction === "outbound" ? "sent" : "delivered";
+
+  //       // Fallback: construct message object if response is incomplete
+  //       const newMessage = {
+  //         id: response?.id || Date.now().toString(),
+  //         body: response?.body || response?.message || "",
+  //         type: response?.type || "text",
+  //         direction: direction,
+  //         conversationId: response?.conversationId || "temp",
+  //         contactId: response?.contactId || "unknown",
+  //         dateAdded: response?.dateAdded || new Date().toISOString(),
+  //         dateUpdated: response?.dateUpdated || new Date().toISOString(),
+  //         source: response?.source || "app",
+  //         altId: response?.altId || Math.random().toString(36).substring(2),
+  //         messageType: response?.messageType || "TYPE_WHATSAPP",
+  //         status: status,
+  //         contentType: response?.contentType || "text/plain",
+  //         attachments: response?.attachments || [],
+  //         locationId: response?.locationId || "",
+  //       };
+
+  //       setMessages((prev) => [...prev, newMessage]);
+  //     }
+  //   };
+
+  //   socket.on("new_message", handleNewMessage);
+
+  //   return () => {
+  //     socket.off("new_message", handleNewMessage);
+  //   };
+  // }, [socket]);
+
+
+
+  const processedMessagesRef = useRef<Set<string>>(new Set());
+
+  // ✅ Debounced reply (runs once even if spammed)
+  const debouncedSendReply = useRef(
+    debounce(async (message: string, messageId: string) => {
+      try {
+        const replyResponse = await fetch("/api/autopilot/reply-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, messageId }),
+        });
+
+        const data = await replyResponse.json();
+        if (!data?.skipped && data?.reply) {
+          setNewMessage(data.reply);
+        }
+      } catch (error) {
+        console.error("❌ Error in sendReply:", error);
       }
-
-      const data = await replyResponse.json();
-
-      setNewMessage(data?.reply);
-
-      return data;
-    } catch (error) {
-      console.error("❌ Error in sendReply:", error);
-      return null;
-    }
-  };
+    }, 1000)
+  ).current;
 
   useEffect(() => {
     if (!socket) {
@@ -1863,53 +1945,51 @@ export function ConversationDetails({
     }
 
     const handleNewMessage = (response: any) => {
-      sendReply(response?.message || response?.message?.body || "");
+      const messageId =
+        response?.id ||
+        response?.altId ||
+        response?.dateAdded ||
+        Date.now().toString();
 
-      // If response already has the complete message structure, use it directly
-      if (response && response.id && response.direction) {
-        setMessages((prev) => [...prev, response]);
-      } else {
-        // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
-        // OR maybe the opposite? Let's try both ways...
-
-        // Try option 1: type 19 = inbound (received)
-        const direction = response?.type === 19 ? "inbound" : "outbound";
-        const status = direction === "outbound" ? "sent" : "delivered";
-
-        // If that doesn't work, try option 2: type 19 = outbound (sent)
-        // const direction = response?.type === 19 ? "outbound" : "inbound";
-        // const status = direction === "outbound" ? "sent" : "delivered";
-
-        // Fallback: construct message object if response is incomplete
-        const newMessage = {
-          id: response?.id || Date.now().toString(),
-          body: response?.body || response?.message || "",
-          type: response?.type || "text",
-          direction: direction,
-          conversationId: response?.conversationId || "temp",
-          contactId: response?.contactId || "unknown",
-          dateAdded: response?.dateAdded || new Date().toISOString(),
-          dateUpdated: response?.dateUpdated || new Date().toISOString(),
-          source: response?.source || "app",
-          altId: response?.altId || Math.random().toString(36).substring(2),
-          messageType: response?.messageType || "TYPE_WHATSAPP",
-          status: status,
-          contentType: response?.contentType || "text/plain",
-          attachments: response?.attachments || [],
-          locationId: response?.locationId || "",
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
+      // ✅ Process only inbound once
+      if (response?.type === 19 && !processedMessagesRef.current.has(messageId)) {
+        processedMessagesRef.current.add(messageId);
+        debouncedSendReply(response?.message || response?.body || "", messageId);
       }
+
+      // Always add to UI
+      const direction = response?.type === 19 ? "inbound" : "outbound";
+      const status = direction === "outbound" ? "sent" : "delivered";
+
+      const newMessageObj = {
+        id: messageId,
+        body: response?.body || response?.message || "",
+        type: response?.type || "text",
+        direction,
+        conversationId: response?.conversationId || "temp",
+        contactId: response?.contactId || "unknown",
+        dateAdded: response?.dateAdded || new Date().toISOString(),
+        dateUpdated: response?.dateUpdated || new Date().toISOString(),
+        source: response?.source || "app",
+        altId: response?.altId || Math.random().toString(36).substring(2),
+        messageType: response?.messageType || "TYPE_WHATSAPP",
+        status,
+        contentType: response?.contentType || "text/plain",
+        attachments: response?.attachments || [],
+        locationId: response?.locationId || "",
+      };
+
+      setMessages((prev) => [...prev, newMessageObj]);
     };
 
     socket.on("new_message", handleNewMessage);
 
     return () => {
       socket.off("new_message", handleNewMessage);
+      processedMessagesRef.current.clear();
+      debouncedSendReply.cancel();
     };
-  }, [socket]);
-
+  }, [socket, debouncedSendReply]);
   // Loading state
   if (isLoading) {
     return (
