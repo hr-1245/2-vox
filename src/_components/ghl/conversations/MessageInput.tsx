@@ -74,6 +74,7 @@ import { useGhlWebSocket } from "./hooks/useGhlWebSocket";
 import ChatPage from "./ChatPage";
 import { useSocket } from "../../../../context/SocketProvider";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
+import { set } from "date-fns";
 
 // import { getGhlTokenForUser } from "@/utils/ghl/tokenUtils";
 
@@ -126,6 +127,7 @@ interface MessageInputProps {
   conversationType?: string; // e.g., 'TYPE_SMS', 'TYPE_EMAIL', etc.
   messagesList: MessageList;
   isTrainingInProgresss: boolean;
+  newMessage: string;
 }
 
 interface ApiResponse<T> {
@@ -182,148 +184,6 @@ const MIN_REQUIRED_MESSAGES_AUTOPILOT_LENIENT = 3; // For conversations with mos
 
 const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
 
-// Configuration for file storage alignment
-const STORAGE_CONFIG = {
-  BUCKET_NAME: "knowledge-base-files",
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_TYPES: [
-    "text/plain",
-    "text/csv",
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/json",
-  ],
-};
-
-// Available message types for sending (aligned with GHL API)
-// const SENDABLE_MESSAGE_TYPES = [
-//   { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
-//   { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
-//   { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
-//   { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook', description: 'Facebook message' },
-//   { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram', description: 'Instagram message' },
-//   { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
-//   { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business', description: 'Google My Business message' }
-// ] as const;
-
-// Helper function to map internal message type to GHL API type
-const mapInternalToGHLType = (internalType: string): string => {
-  const mapping = SENDABLE_MESSAGE_TYPES.find(
-    (t) => t.internal === internalType
-  );
-  return mapping?.value || "SMS"; // Default to SMS
-};
-
-// Helper function to map GHL API type to internal type
-const mapGHLToInternalType = (ghlType: string): string => {
-  const mapping = SENDABLE_MESSAGE_TYPES.find((t) => t.value === ghlType);
-  return mapping?.internal || "TYPE_SMS"; // Default to TYPE_SMS
-};
-
-// Auto-detect message type from conversation messages
-const detectConversationMessageType = (messages: ChatMessage[]): string => {
-  // Count message types to determine most common
-  const typeCounts: Record<string, number> = {};
-
-  for (const msg of messages) {
-    if (msg.messageType) {
-      const ghlType = mapInternalToGHLType(msg.messageType);
-      typeCounts[ghlType] = (typeCounts[ghlType] || 0) + 1;
-    }
-  }
-
-  // Return most common type
-  let mostCommonType = "SMS";
-  let maxCount = 0;
-
-  for (const [type, count] of Object.entries(typeCounts)) {
-    if (count > maxCount) {
-      mostCommonType = type;
-      maxCount = count;
-    }
-  }
-
-  // console.log(
-  //   `🔍 Detected conversation type: ${mostCommonType} (${maxCount} messages)`
-  // );
-
-  return mostCommonType;
-};
-
-// Function to determine available message types based on conversation
-// const getAvailableMessageTypes = (conversationType?: string, recentMessages?: ChatMessage[]) => {
-//   // If we have a conversation type, prioritize that
-//   console.log("conversationType  .......................................--------------------",conversationType,"recentMessages:",recentMessages)
-//   if (conversationType) {
-//     console.log("1")
-//     const primaryType = SENDABLE_MESSAGE_TYPES.find(type => type.internal === conversationType);
-//     if (primaryType) {
-//        console.log("2")
-//       // Put the primary type first, then others
-//       // return primaryType;
-//       return [primaryType, ...SENDABLE_MESSAGE_TYPES.filter(type => type.internal !== conversationType)];
-//     }
-//   }
-
-//   // Try to detect from recent messages
-//   if (recentMessages && recentMessages.length > 0) {
-//       console.log("3")
-//     const messageTypes = new Set(recentMessages.map(msg => msg.messageType).filter(Boolean));
-//     const detectedTypes = SENDABLE_MESSAGE_TYPES.filter(type => messageTypes.has(type.value));
-
-//     if (detectedTypes.length > 0) {
-//         console.log("4")
-//       const otherTypes = SENDABLE_MESSAGE_TYPES.filter(type => !messageTypes.has(type.value));
-//       return [...detectedTypes, ...otherTypes];
-//     }
-//   }
-//   console.log("5")
-//   // Default order with SMS first
-//   return SENDABLE_MESSAGE_TYPES;
-// };
-// const getAvailableMessageTypes = (conversationType?: string, recentMessages?: ChatMessage[]) => {
-//   console.log("conversationType:", conversationType, "recentMessages:", recentMessages);
-
-//   // If we have a conversation type, return only that type (disabled others)
-//   if (conversationType) {
-//     console.log("Filtering by conversation type:", conversationType);
-//     return SENDABLE_MESSAGE_TYPES;
-//   }
-
-//   // Try to detect from recent messages
-//   if (recentMessages && recentMessages.length > 0) {
-//     console.log("Detecting from recent messages");
-
-//     // Extract message types from recent messages
-//     const recentMessageTypes = recentMessages
-//       .map(msg => msg.messageType)
-//       .filter(Boolean);
-
-//     console.log("Recent message types found:", recentMessageTypes);
-
-//     // Find matching types (check both value and internal fields)
-//     const detectedTypes = SENDABLE_MESSAGE_TYPES.filter(type =>
-//       recentMessageTypes.includes(type.value) || recentMessageTypes.includes(type.internal)
-//     );
-
-//     console.log("Detected types:", detectedTypes);
-
-//     if (detectedTypes.length > 0) {
-//       return detectedTypes;
-//     }
-//   }
-
-//   console.log("Using default types");
-//   // Return all types as fallback
-//   return SENDABLE_MESSAGE_TYPES;
-// };
-type MessageLike = { messageType: MessageType };
-interface Messagess {
-  messageType: string;
-  // add other properties if needed
-}
-
 const SENDABLE_MESSAGE_TYPES = [
   {
     value: "SMS",
@@ -369,6 +229,39 @@ const SENDABLE_MESSAGE_TYPES = [
   },
 ] as const;
 
+// Helper function to map internal message type to GHL API type
+const mapInternalToGHLType = (internalType: string): string => {
+  const mapping = SENDABLE_MESSAGE_TYPES.find(
+    (t) => t.internal === internalType
+  );
+  return mapping?.value || "SMS"; // Default to SMS
+};
+
+// Auto-detect message type from conversation messages
+const detectConversationMessageType = (messages: ChatMessage[]): string => {
+  // Count message types to determine most common
+  const typeCounts: Record<string, number> = {};
+
+  for (const msg of messages) {
+    if (msg.messageType) {
+      const ghlType = mapInternalToGHLType(msg.messageType);
+      typeCounts[ghlType] = (typeCounts[ghlType] || 0) + 1;
+    }
+  }
+
+  // Return most common type
+  let mostCommonType = "SMS";
+  let maxCount = 0;
+
+  for (const [type, count] of Object.entries(typeCounts)) {
+    if (count > maxCount) {
+      mostCommonType = type;
+      maxCount = count;
+    }
+  }
+  return mostCommonType;
+};
+
 interface MessageTypeOption {
   value: string;
   internal: string;
@@ -397,27 +290,6 @@ const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
 
   return result as MessageTypeOption[];
 };
-
-// const getAvailableMessageTypes = (
-//   conversationType?: string,
-//   recentMessages?: MessageLike[]
-// ) => {
-//   if (conversationType) {
-//     const primaryType = SENDABLE_MESSAGE_TYPES.find(type => type.internal === conversationType);
-//     if (primaryType) return [primaryType];
-//   }
-
-//   if (recentMessages && recentMessages.length > 0) {
-//     const messageTypesInList = new Set(
-//       recentMessages.map(msg => msg.messageType).filter(Boolean)
-//     );
-
-//     return SENDABLE_MESSAGE_TYPES.filter(type => messageTypesInList.has(type.internal));
-//   }
-
-//   return [];
-// };
-// In your component
 
 // Function to auto-detect default message type
 const getDefaultMessageType = (
@@ -518,9 +390,8 @@ export function MessageInput({
   contactInfo: urlContactInfo,
   conversationType,
   messagesList,
-  isTrainingInProgresss,
+  newMessage,
 }: MessageInputProps) {
-  // console.log("messagesList--------------------", messagesList)
   const [message, setMessage] = useState("");
   const [loadingType, setLoadingType] = useState<
     "send" | "auto" | "suggest" | "apply" | null
@@ -531,64 +402,12 @@ export function MessageInput({
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [aiSettings, setAISettings] = useState<AISettings>(DEFAULT_AI_SETTINGS);
-  // const { sendToGhlWebSocket } = useGhlWebSocket();
+
   const [conversationSettings, setConversationSettings] =
     useState<ConversationSettings | null>(null);
-  const [messagess, setMessagess] = useState<string[]>([]);
-  const [input, setInput] = useState<string>("");
 
   const { sendMessage } = useSocket();
 
-  const getCustomerInfoForRequest = (
-    messages: any[]
-  ): {
-    name: string;
-    email: string;
-    phone: string;
-    contactId: string;
-  } => {
-    const customerInfo = getCustomerInfo(messages);
-    return {
-      name:
-        customerInfo.name ||
-        customerInfo.contactName ||
-        customerInfo.fullName ||
-        "",
-      email: customerInfo.email || "",
-      phone: customerInfo.phone || "",
-      contactId: customerInfo.contactId || "",
-    };
-  };
-
-  const handleNewMessage = (data: string) => {
-    setMessagess((prev) => [...prev, data]);
-  };
-
-  // Connect to external WebSocket server
-  // const { sendMessage } = useWebSocket(
-  //   "ws://localhost:4000/ai/conversation/chat",
-  //   handleNewMessage,
-  //   {
-  //     reconnect: true,
-  //     reconnectInterval: 3000,
-  //   }
-  // );
-
-  const handleSubmits = (e: FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      // sendMessage(input);
-      setInput("");
-    }
-  };
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
-
-  // const [selectedMessageType, setSelectedMessageType] = useState<string>(() =>
-  //   getDefaultMessageType(conversationType, recentMessages) || 'TYPE_EMAIL'|| 'TYPE_EMAIL'
-  // );
   const [selectedMessageType, setSelectedMessageType] = useState<string>("");
 
   useEffect(() => {
@@ -599,12 +418,6 @@ export function MessageInput({
   }, [messagesList, selectedMessageType]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [autopilotEnabled, setAutopilotEnabled] = useState(false); // New state for autopilot toggle
-  const [showAutopilotPanel, setShowAutopilotPanel] = useState(false); // New state for autopilot panel visibility
-
-  // 🆕 Add training deduplication
-  const [isTrainingInProgress, setIsTrainingInProgress] = useState(false);
-  const [lastTrainingAttempt, setLastTrainingAttempt] = useState<number>(0);
   const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-resize textarea with proper height management
@@ -917,15 +730,6 @@ export function MessageInput({
       fullName: baseInfo.name || referenceMessage.fullName,
       contactName: baseInfo.name || referenceMessage.contactName,
     };
-  };
-
-  // Update AI settings
-  const updateAISetting = <K extends keyof AISettings>(
-    key: K,
-    value: AISettings[K]
-  ) => {
-    setAISettings((prev) => ({ ...prev, [key]: value }));
-    toast.success(`Updated ${key.replace(/([A-Z])/g, " $1").toLowerCase()}`);
   };
 
   // Generic API call handler - Enhanced with AI config
@@ -1312,77 +1116,16 @@ export function MessageInput({
     }
   };
 
-  // Background training function - triggers when AI generates responses - WITH DEDUPLICATION
-  const startBackgroundTraining = async () => {
-    // 🆕 Prevent multiple simultaneous training calls
-    if (isTrainingInProgress) {
-      // console.log("📥 AUTO-TRAIN: Training already in progress, skipping...");
-      return;
+  useEffect(() => {
+    if (newMessage && newMessage.trim()) {
+      handleChatMessage(false, newMessage);
     }
+  }, [newMessage]);
 
-    // 🆕 Check if we recently attempted training (within 30 seconds)
-    const now = Date.now();
-    if (now - lastTrainingAttempt < 30000) {
-      // console.log("📥 AUTO-TRAIN: Training attempted recently, skipping...");
-      return;
-    }
-
-    setIsTrainingInProgress(true);
-    setLastTrainingAttempt(now);
-
-    try {
-      // console.log("📥 AUTO-TRAIN: Fetching messages for training...");
-
-      const messagesResponse = await fetch(
-        `/api/leadconnector/conversations/${conversationId}/messages?limit=100`
-      );
-      const messagesData = await messagesResponse.json();
-
-      if (!messagesData?.messages?.messages?.length) {
-        // console.warn("No messages found for training");
-        return;
-      }
-
-      const messages = messagesData.messages.messages;
-      // console.log(`🔄 AUTO-TRAIN: Training with ${messages.length} messages`);
-
-      const trainResponse = await fetch(`/api/ai/conversation/train`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          conversationId,
-          locationId,
-          messages,
-          temperature: aiSettings.aiConfig.temperature,
-          model: aiSettings.aiConfig.model,
-          humanlikeBehavior: aiSettings.aiConfig.humanlikeBehavior,
-          silent: true, // Background training flag
-        }),
-      });
-
-      const trainData = await trainResponse.json();
-
-      if (trainData?.success) {
-        // console.log(
-        //   "✅ AUTO-TRAIN: Background training completed successfully"
-        // );
-        toast.success("🤖 Conversation trained automatically!", {
-          duration: 2000,
-        });
-      } else {
-        console.warn("Background training failed:", trainData?.error);
-      }
-    } catch (error) {
-      console.error("Error in background training:", error);
-      // Don't show error toast for background training failures
-    } finally {
-      setIsTrainingInProgress(false);
-    }
-  };
-
-  const handleChatMessage = async (isAutonomous: boolean = false) => {
+  const handleChatMessage = async (
+    isAutonomous: boolean = false,
+    newMessage?: string
+  ) => {
     if (loadingType) return;
 
     try {
@@ -1396,10 +1139,6 @@ export function MessageInput({
 
         // NEW: Smart contextual response generation for new/empty conversations
         if (validMessages.length === 0) {
-          // console.log(
-          //   "🆕 No messages found - generating contextual response based on conversation details"
-          // );
-
           // Get conversation and customer context for intelligent response generation
           const customerInfo = getCustomerInfo(recentMessages);
 
@@ -1421,18 +1160,7 @@ export function MessageInput({
           }
 
           messageToProcess = contextualQuery;
-
-          // console.log("🎯 Using contextual query for new conversation:", {
-          //   customerName: customerInfo.name,
-          //   customerEmail: customerInfo.email,
-          //   customerPhone: customerInfo.phone,
-          //   contextualQuery: contextualQuery.substring(0, 100) + "...",
-          // });
         } else if (validMessages.length < MIN_REQUIRED_MESSAGES_AUTOPILOT) {
-          // console.log(
-          //   "🔄 Minimal messages found - generating contextual continuation based on available data"
-          // );
-
           // For conversations with minimal context, use customer info + conversation context
           const customerInfo = getCustomerInfo(recentMessages);
           const lastCustomerMessage = aiSettings.prioritizeCustomerMessages
@@ -1457,21 +1185,7 @@ export function MessageInput({
           }
 
           messageToProcess = contextualQuery;
-
-          // console.log(
-          //   `Auto-pilot using contextual continuation with ${validMessages.length} messages:`,
-          //   {
-          //     customerName: customerInfo.name,
-          //     lastMessage: lastMessage?.substring(0, 50) + "...",
-          //     contextualQuery: contextualQuery.substring(0, 100) + "...",
-          //   }
-          // );
         } else {
-          // Standard autopilot flow for conversations with sufficient context
-          // console.log(
-          //   `Auto-pilot proceeding with ${validMessages.length} messages (standard flow)`
-          // );
-
           // Get customer information for auto-pilot
           const customerInfo = getCustomerInfo(recentMessages);
 
@@ -1492,7 +1206,13 @@ export function MessageInput({
       }
 
       // For manual message sending (not auto-pilot), send the message directly via GHL API
-      if (!isAutonomous && message.trim()) {
+      if (
+        !isAutonomous ||
+        message.trim() ||
+        (newMessage && newMessage.trim())
+      ) {
+        console.log("trying to send new message via prop:", newMessage);
+
         // Get customer info including contactId
         const customerInfo = getCustomerInfo(recentMessages);
 
@@ -1502,20 +1222,13 @@ export function MessageInput({
             ? detectConversationMessageType(recentMessages)
             : selectedMessageType;
 
-        // console.log("🚀 Sending message via GHL API:", {
-        //   conversationId,
-        //   type: finalMessageType,
-        //   message: message.trim(),
-        //   messageLength: message.trim().length,
-        //   contactId: customerInfo.contactId,
-        // });
         const buildPayload = () => {
           switch (finalMessageType.split("_")[1]) {
             case "EMAIL":
               return {
                 type: "Email",
                 subject: "Test Subject", // required for email
-                message: message.trim(),
+                message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
                 attachments: [
                   {
@@ -1528,28 +1241,28 @@ export function MessageInput({
             case "SMS":
               return {
                 type: "SMS",
-                message: message.trim(),
+                message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
               };
 
             case "WHATSAPP":
               return {
                 type: "WhatsApp",
-                message: message.trim(),
+                message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
               };
 
             case "FACEBOOK":
               return {
                 type: "FB",
-                message: message.trim(),
+                message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
               };
 
             case "INSTAGRAM":
               return {
                 type: "IG",
-                message: message.trim(),
+                message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
               };
 
@@ -1557,67 +1270,16 @@ export function MessageInput({
               throw new Error(`Unsupported message type: ${finalMessageType}`);
           }
         };
+
         const payload = buildPayload();
         const token = await getClientGhlToken();
-        // console.log(
-        //   "token in client component.......",
-        //   token,
-        //   "conversationId...................",
-        //   conversationId
-        // );
-        // console.log("token in client component.......", token, "conversationId...................", conversationId)
+
         // via socket
         sendMessage({
           ...payload,
           conversationId, // add if required separately
           token,
         });
-        // sendMessage({
-        //   message,
-        //   type: selectedMessageType.split("_")[1],
-        //   contactId: conversationId,
-        //   token: token
-        // });
-        // Send message via GHL API (using correct GHL format)
-        // const sendResponse = await fetch(
-        //   `/api/leadconnector/conversations/messages/send`,
-        //   {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //     body: JSON.stringify(payload),
-        //   }
-        // );
-        // const sendResponse = await fetch(`/api/leadconnector/conversations/messages/send`, {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     type: finalMessageType,
-        //     subject: "",
-        //     attachments: [
-        //       {
-        //         "url": "",
-        //         "name": ""
-        //       }
-        //     ],
-        //     message: message.trim(),
-        //     contactId: customerInfo.contactId
-        //   }),
-        // });
-
-        // const sendResult = await sendResponse.json();
-
-        // if (!sendResponse.ok || !sendResult.success) {
-        //   throw new Error(
-        //     sendResult.error ||
-        //     `Failed to send message (${sendResponse.status})`
-        //   );
-        // }
-
-        // console.log("✅ Message sent successfully:", sendResult);
 
         // Clear message input and reset state
         setMessage("");
@@ -1632,9 +1294,6 @@ export function MessageInput({
                 (t) => t.value === selectedMessageType
               )?.label || "API"}
             </p>
-            {/* <p className="text-sm text-muted-foreground">
-              Message ID: {sendResult.data?.messageId?.substring(0, 12)}...
-            </p> */}
           </div>
         );
 
@@ -1642,7 +1301,11 @@ export function MessageInput({
       }
 
       // Continue with AI/autopilot logic only for autonomous mode or when message is empty
-      if (!isAutonomous && !message.trim()) {
+      if (
+        !isAutonomous ||
+        !message.trim() ||
+        (newMessage && newMessage.trim())
+      ) {
         throw new Error("Please enter a message");
       }
 
@@ -1693,18 +1356,6 @@ export function MessageInput({
         aiSettings.recentMessagesCount,
         isAutonomous
       );
-
-      // console.log("🤖 Extended message selection for auto-pilot:", {
-      //   originalRecentCount: aiSettings.recentMessagesCount,
-      //   actualRecentCount: recentMsgsFiltered.length,
-      //   extendedForMinimum: getMessageCounts(isAutonomous).extendedForMinimum,
-      //   guaranteedMinimum: Math.min(
-      //     validMsgsForContext.length,
-      //     MIN_REQUIRED_MESSAGES_AUTOPILOT
-      //   ),
-      //   aiModel: aiSettings.aiConfig.model,
-      //   temperature: aiSettings.aiConfig.temperature,
-      // });
 
       const recentMsgs = recentMsgsFiltered.map((msg) => ({
         id: msg.id,
@@ -2025,7 +1676,7 @@ Focus on relationship building and moving the conversation forward constructivel
         if (response.ok) {
           const data = await response.json();
           // Load the actual autopilot status from the server
-          setAutopilotEnabled(data.enabled || data.config?.isEnabled || false);
+
           // console.log(
           //   "🤖 Loaded autopilot status:",
           //   data.enabled || data.config?.isEnabled || false
@@ -2040,466 +1691,6 @@ Focus on relationship building and moving the conversation forward constructivel
     loadAutopilotStatus();
   }, [conversationId]);
 
-  // Handle autopilot toggle - actually save the setting and fetch conversation metadata
-  const handleAutopilotToggle = async () => {
-    try {
-      const newAutopilotState = !autopilotEnabled;
-      // console.log("🔄 Toggling autopilot:", {
-      //   from: autopilotEnabled,
-      //   to: newAutopilotState,
-      // });
-
-      // PRIORITY 1: Use URL contact info if available (most reliable)
-      let effectiveContactInfo = null;
-      let conversationDetails = null;
-
-      if (
-        urlContactInfo &&
-        (urlContactInfo.name || urlContactInfo.email || urlContactInfo.phone)
-      ) {
-        effectiveContactInfo = {
-          firstName: urlContactInfo.name?.split(" ")[0] || "",
-          lastName: urlContactInfo.name?.split(" ").slice(1).join(" ") || "",
-          email: urlContactInfo.email || "",
-          phone: urlContactInfo.phone || "",
-          id: "url-contact-info", // placeholder ID
-        };
-
-        // console.log("✅ Using URL contact info (highest priority):", {
-        //   contactName: urlContactInfo.name,
-        //   contactEmail: urlContactInfo.email,
-        //   contactPhone: urlContactInfo.phone,
-        //   source: "URL_PARAMS",
-        // });
-      }
-
-      // Save to conversation settings first
-      const currentSettings = conversationSettings || {
-        agents: {},
-        features: {
-          query: { enabled: true, contextDepth: 20 },
-          suggestions: { enabled: true, limit: 3, contextDepth: 20 },
-          autopilot: {
-            enabled: false,
-            contextDepth: 20,
-            confidenceThreshold: 0.7,
-          },
-        },
-      };
-
-      const updatedSettings = {
-        ...currentSettings,
-        features: {
-          ...currentSettings.features,
-          autopilot: {
-            enabled: newAutopilotState,
-            contextDepth:
-              currentSettings.features?.autopilot?.contextDepth || 20,
-            confidenceThreshold:
-              currentSettings.features?.autopilot?.confidenceThreshold || 0.7,
-          },
-        },
-      };
-
-      // PRIORITY 2: Fetch conversation details from GHL API as fallback
-
-      if (newAutopilotState) {
-        // Only fetch GHL API data if we don't have URL contact info
-        if (!effectiveContactInfo) {
-          try {
-            // console.log(
-            //   "🔍 Fetching conversation details from GHL API (fallback)..."
-            // );
-            const conversationResponse = await fetch(
-              `/api/leadconnector/conversations/${conversationId}`
-            );
-
-            if (conversationResponse.ok) {
-              const conversationData = await conversationResponse.json();
-              if (conversationData.success && conversationData.data) {
-                conversationDetails = conversationData.data;
-                effectiveContactInfo = conversationData.data.contact;
-
-                // console.log("✅ Retrieved conversation details from API:", {
-                //   conversationId: conversationDetails.id,
-                //   conversationName:
-                //     conversationDetails.name ||
-                //     `Conversation ${conversationId.slice(0, 8)}`,
-                //   contactName: effectiveContactInfo
-                //     ? `${effectiveContactInfo.firstName || ""} ${
-                //         effectiveContactInfo.lastName || ""
-                //       }`.trim()
-                //     : "Unknown",
-                //   contactEmail: effectiveContactInfo?.email,
-                //   contactPhone: effectiveContactInfo?.phone,
-                //   contactId: effectiveContactInfo?.id,
-                //   conversationType: conversationDetails.type,
-                //   source: "GHL_API",
-                // });
-              }
-            }
-          } catch (error) {
-            // console.warn(
-            //   "⚠️ Could not fetch conversation details, continuing with autopilot setup:",
-            //   error
-            // );
-          }
-        } else {
-          // console.log("⏭️ Skipping GHL API fetch - using URL contact info");
-        }
-      }
-
-      // Save conversation metadata with enhanced contact and conversation info
-      const enhancedSettings = {
-        ...updatedSettings,
-        // Store contact information for future reference
-        contactInfo: effectiveContactInfo
-          ? {
-              name:
-                `${effectiveContactInfo.firstName || ""} ${
-                  effectiveContactInfo.lastName || ""
-                }`.trim() || urlContactInfo?.name,
-              email: effectiveContactInfo.email,
-              phone: effectiveContactInfo.phone,
-              source:
-                effectiveContactInfo.id === "url-contact-info"
-                  ? "url_params"
-                  : "ghl_api",
-            }
-          : urlContactInfo?.name ||
-            urlContactInfo?.email ||
-            urlContactInfo?.phone
-          ? {
-              name: urlContactInfo.name,
-              email: urlContactInfo.email,
-              phone: urlContactInfo.phone,
-              source: "url_params",
-            }
-          : null,
-        // Store conversation metadata
-        conversationInfo: {
-          lastUpdated: new Date().toISOString(),
-          autopilotEnabledAt: newAutopilotState
-            ? new Date().toISOString()
-            : null,
-        },
-      };
-
-      const metaResponse = await fetch("/api/conversation-meta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          locationId,
-          ai_settings: enhancedSettings,
-        }),
-      });
-
-      if (!metaResponse.ok) {
-        throw new Error("Failed to save conversation settings");
-      }
-
-      if (newAutopilotState) {
-        // Enable autopilot - create/update autopilot config with enhanced metadata
-        const autopilotConfig = {
-          conversationId,
-          locationId,
-          isEnabled: true,
-          replyDelayMinutes: 5,
-          maxRepliesPerConversation: 5,
-          maxRepliesPerDay: 10,
-          messageType: "SMS",
-          preferConversationType: true,
-          operatingHours: {
-            enabled: false,
-            start: "09:00",
-            end: "17:00",
-            timezone: "UTC",
-            days: [1, 2, 3, 4, 5],
-          },
-          aiModel: "gpt-4o-mini",
-          aiTemperature: 0.7,
-          aiMaxTokens: 500,
-          fallbackMessage:
-            "Thank you for your message. I will get back to you as soon as possible.",
-          customPrompt: "",
-          cancelOnUserReply: true,
-          requireHumanKeywords: [],
-          excludeKeywords: [],
-          // Fix: Pass null instead of 'default' when no agent is selected (database expects UUID)
-          aiAgentId: (updatedSettings.agents as any)?.autopilot || null,
-          // NEW: Include conversation and contact metadata
-          conversationMetadata: conversationDetails
-            ? {
-                conversationName: conversationDetails.name || "",
-                lastUpdated:
-                  conversationDetails.lastMessageDate ||
-                  new Date().toISOString(),
-                messageCount: conversationDetails.messageCount || 0,
-                status: conversationDetails.status || "open",
-              }
-            : null,
-          contactMetadata: effectiveContactInfo
-            ? {
-                contactId: effectiveContactInfo.id || "url-contact",
-                firstName: effectiveContactInfo.firstName || "",
-                lastName: effectiveContactInfo.lastName || "",
-                fullName:
-                  `${effectiveContactInfo.firstName || ""} ${
-                    effectiveContactInfo.lastName || ""
-                  }`.trim() ||
-                  urlContactInfo?.name ||
-                  "",
-                email: effectiveContactInfo.email || "",
-                phone: effectiveContactInfo.phone || "",
-                source: effectiveContactInfo.source || "url_params",
-                dateAdded:
-                  effectiveContactInfo.dateAdded || new Date().toISOString(),
-              }
-            : null,
-        };
-
-        const autopilotResponse = await fetch("/api/autopilot/config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(autopilotConfig),
-        });
-
-        if (!autopilotResponse.ok) {
-          const errorData = await autopilotResponse.json();
-          throw new Error(errorData.error || "Failed to enable autopilot");
-        }
-
-        // NEW: Also create/update autopilot conversation tracking with contact details
-        try {
-          const fullContactName = effectiveContactInfo
-            ? `${effectiveContactInfo.firstName || ""} ${
-                effectiveContactInfo.lastName || ""
-              }`.trim()
-            : "";
-          // Create a better conversation name using contact info if available
-          const contactName =
-            fullContactName || urlContactInfo?.name || "Unknown Contact";
-          const conversationName =
-            conversationDetails?.name ||
-            (contactName !== "Unknown Contact"
-              ? `${contactName} Conversation`
-              : `Conversation ${conversationId.slice(0, 8)}`);
-
-          const trackingData = {
-            conversationId,
-            locationId,
-            contactName:
-              fullContactName || urlContactInfo?.name || "Unknown Contact",
-            contactPhone: effectiveContactInfo?.phone || "",
-            contactEmail: effectiveContactInfo?.email || "",
-            conversationStatus: conversationDetails?.status || "open",
-            conversationType: conversationDetails?.type || "SMS",
-            conversationName: conversationName,
-            autopilotEnabled: true,
-            lastSeen: new Date().toISOString(),
-          };
-
-          const trackingResponse = await fetch("/api/autopilot/tracking", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(trackingData),
-          });
-
-          if (trackingResponse.ok) {
-            // console.log("✅ Autopilot tracking created with contact details:", {
-            //   conversationId,
-            //   contactName: trackingData.contactName,
-            //   conversationName: trackingData.conversationName,
-            //   contactSource:
-            //     effectiveContactInfo?.id === "url-contact-info"
-            //       ? "URL_PARAMS"
-            //       : "GHL_API",
-            //   hasUrlContact: !!urlContactInfo?.name,
-            //   hasEffectiveContact: !!effectiveContactInfo,
-            // });
-          } else {
-            console.warn(
-              "⚠️ Could not create autopilot tracking, but autopilot is still enabled"
-            );
-          }
-        } catch (trackingError) {
-          console.warn("⚠️ Tracking setup failed:", trackingError);
-        }
-
-        toast.success(
-          <div className="space-y-1">
-            <p className="font-medium">
-              🤖 Autopilot enabled for this conversation
-            </p>
-            {effectiveContactInfo && (
-              <p className="text-sm text-muted-foreground">
-                Contact: {effectiveContactInfo.firstName}{" "}
-                {effectiveContactInfo.lastName}
-                {effectiveContactInfo.email &&
-                  ` (${effectiveContactInfo.email})`}
-              </p>
-            )}
-            {!effectiveContactInfo && urlContactInfo?.name && (
-              <p className="text-sm text-muted-foreground">
-                Contact: {urlContactInfo.name}
-                {urlContactInfo.email && ` (${urlContactInfo.email})`}
-              </p>
-            )}
-          </div>
-        );
-      } else {
-        // Disable autopilot - delete autopilot config
-        const deleteResponse = await fetch(
-          `/api/autopilot/config?conversationId=${conversationId}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        if (!deleteResponse.ok) {
-          console.warn("Failed to delete autopilot config, but continuing...");
-        }
-
-        toast.success("🚫 Autopilot disabled for this conversation");
-      }
-
-      // Update local state
-      setAutopilotEnabled(newAutopilotState);
-      setConversationSettings(updatedSettings);
-    } catch (error) {
-      console.error("Error toggling autopilot:", error);
-      toast.error(
-        `Failed to ${autopilotEnabled ? "disable" : "enable"} autopilot: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  };
-
-  const handleQuickResponse = async () => {
-    if (loadingType) return;
-
-    try {
-      setLoadingType("suggest");
-
-      // Get the agent ID for suggestions feature (new structure or backward compatibility)
-      const suggestionsAgentId =
-        conversationSettings?.agents?.suggestions ||
-        (conversationSettings?.agentType === "suggestions"
-          ? conversationSettings?.selectedAgentId
-          : null);
-
-      // Use the existing suggestion generation logic but auto-fill the first suggestion
-      const requestPayload = {
-        userId: USER_ID,
-        conversationId,
-        query: "Generate a quick response for this conversation", // Specific query for quick response
-        context: getValidMessages(recentMessages)
-          .slice(-DEFAULT_AI_SETTINGS.contextDepth)
-          .map(
-            (msg) =>
-              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
-                msg.body
-              }`
-          )
-          .join("\n"),
-        knowledgebaseId: conversationId,
-        limit: DEFAULT_AI_SETTINGS.suggestionsLimit,
-        // Always include agent ID
-        agentId: suggestionsAgentId || null,
-        customerInfo: {
-          name: getCustomerInfo(recentMessages).name,
-          email: getCustomerInfo(recentMessages).email,
-          phone: getCustomerInfo(recentMessages).phone,
-          contactId: getCustomerInfo(recentMessages).contactId,
-        },
-        recentMessages: getValidMessages(recentMessages)
-          .slice(-DEFAULT_AI_SETTINGS.recentMessagesCount)
-          .map((msg) => ({
-            id: msg.id,
-            body: msg.body,
-            dateAdded: msg.dateAdded,
-            direction: msg.direction,
-            messageType: msg.messageType || "TYPE_SMS",
-            role: msg.direction
-              ? msg.direction === "inbound"
-                ? "customer"
-                : "system user"
-              : "system notification",
-          })),
-      };
-
-      // Use agent-aware endpoint if we have a selected agent
-      let endpoint = "/api/ai/conversation/suggestions";
-      let agentRequestPayload = requestPayload;
-
-      if (
-        suggestionsAgentId &&
-        conversationSettings?.features?.suggestions?.enabled !== false
-      ) {
-        // Use agent-aware endpoint with selected agent
-        endpoint = "/api/ai/agents/conversation";
-        agentRequestPayload = {
-          ...requestPayload,
-          agentId: suggestionsAgentId,
-          mode: "suggestions",
-          limit:
-            conversationSettings?.features?.suggestions?.limit ||
-            DEFAULT_AI_SETTINGS.suggestionsLimit,
-        } as any;
-
-        // console.log("🤖 Using selected agent for quick response:", {
-        //   selectedAgentId: suggestionsAgentId,
-        //   endpoint: endpoint,
-        //   featuresEnabled: conversationSettings?.features?.suggestions?.enabled,
-        //   limit:
-        //     conversationSettings?.features?.suggestions?.limit ||
-        //     DEFAULT_AI_SETTINGS.suggestionsLimit,
-        // });
-      } else {
-        // console.log(
-        //   "🤖 No suggestions agent selected for quick response, using direct FastAPI endpoint with default agent"
-        // );
-      }
-
-      const data = await callApi<any>(
-        endpoint,
-        agentRequestPayload,
-        "suggestions"
-      );
-
-      // Handle response - suggestions is an array of strings
-      let suggestions = [];
-      if (data.data?.suggestions) {
-        suggestions = data.data.suggestions;
-      } else if (data.suggestions) {
-        suggestions = data.suggestions;
-      }
-
-      if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
-        // Auto-fill the first suggestion into the message input
-        const firstSuggestion = suggestions[0];
-        setMessage(firstSuggestion);
-
-        // REMOVED: Auto-training after quick response generation
-        // if (recentMessages.length > 0) {
-        //   console.log('🤖 AUTO-TRAIN: Training conversation after quick response generation...');
-        //   startBackgroundTraining();
-        // }
-
-        toast.success("Quick response generated!");
-      } else {
-        toast.error("No quick response available");
-      }
-    } catch (error) {
-      console.error("Error generating quick response:", error);
-      toast.error("Failed to generate quick response");
-    } finally {
-      setLoadingType(null);
-    }
-  };
-
   // Update selected message type when conversation type or messages change
   useEffect(() => {
     const defaultType = getDefaultMessageType(conversationType, recentMessages);
@@ -2513,24 +1704,6 @@ Focus on relationship building and moving the conversation forward constructivel
     // });
   }, [conversationType, recentMessages]);
 
-  // Debug logging for render state
-  // console.log("🎨 Rendering MessageInput:", {
-  //   suggestionsLength: suggestions.length,
-  //   showSuggestions: suggestions.length > 0,
-  //   firstSuggestionPreview: suggestions[0]?.text?.substring(0, 50),
-  //   loadingType,
-  //   isDisabled: disabled,
-  //   isConversationTrained,
-  // });
-
-  // Debug: Check if suggestions are in state during render
-  // console.log("🎨 UI Render Check:", {
-  //   suggestionsInState: suggestions.length,
-  //   shouldShowSuggestions: suggestions.length > 0,
-  //   firstSuggestion: suggestions[0]?.text?.substring(0, 50),
-  //   allSuggestions: suggestions.map((s) => s.text?.substring(0, 30)),
-  // });
-
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
@@ -2539,18 +1712,7 @@ Focus on relationship building and moving the conversation forward constructivel
       }
     };
   }, []);
-  // const data=getAvailableMessageTypes(conversationType, recentMessages)
-  // console.log("data>>>>>>>",data)
-  //   if (isTrainingInProgresss) {
-  //   return (
-  //     <Card className="flex flex-col h-full items-center justify-center p-8">
-  //       <LoadingSpinner className="w-8 h-8" />
-  //       <div className="mt-4 text-muted-foreground">
-  //         Loading conversation...
-  //       </div>
-  //     </Card>
-  //   );
-  // }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Compact Suggestions Display */}
