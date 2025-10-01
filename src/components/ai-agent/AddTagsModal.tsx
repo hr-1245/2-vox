@@ -37,7 +37,7 @@ export default function AddTagsModal({ ghlTags, editing, setTags, tags, setNewTa
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{editing && "Add"} Tags</CardTitle>
+        <CardTitle>Active{editing && "Add"} Tags</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {/* Header */}
@@ -64,13 +64,13 @@ export default function AddTagsModal({ ghlTags, editing, setTags, tags, setNewTa
           <>
             {/* Autocomplete results when typing */}
             {newTag && (
-              <div className="border rounded-lg shadow bg-white max-h-40 overflow-y-auto mb-3">
+              <div className="border rounded-lg shadow bg-white max-h-40 overflow-y-auto mb-3 dark:bg-[#171717]">
                 {tags
                   .filter((tag) => tag.toLowerCase().includes(newTag.toLowerCase()))
                   .map((tag) => (
                     <div
                       key={tag}
-                      className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-blue-500"
+                      className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-blue-500 dark:hover:bg-[#171717]"
                       onClick={() => {
                         toggleTag(tag);
                         setNewTag("");
@@ -83,7 +83,7 @@ export default function AddTagsModal({ ghlTags, editing, setTags, tags, setNewTa
                 {/* Create new tag option */}
                 {!tags.some((t) => t.toLowerCase() === newTag.toLowerCase()) && (
                   <div
-                    className="bg-blue-50 bg-white cursor-pointer dark:bg-black/90 hover:bg-blue-100 px-3 py-2 text-blue-600"
+                    className="bg-blue-50 bg-white cursor-pointer dark:bg-[#171717] hover:bg-blue-100 px-3 py-2 text-blue-600"
                     onClick={handleAddTag}
                   >
                     ➕ Create "{newTag}"
@@ -94,23 +94,25 @@ export default function AddTagsModal({ ghlTags, editing, setTags, tags, setNewTa
             <div className="flex flex-wrap gap-2 mb-3">
               {tags.length > 0 &&
                 tags.map((tag, index) => (
-              
 
-<Button
-  key={index}
-  variant={selectedTags.includes(tag) ? "default" : "outline"}
-  className="justify-between"
-  onClick={() => toggleTag(tag)}
->
-  {tag}
-  <X
-    className="w-4 h-4 cursor-pointer"
-    onClick={(e) => {
-      e.stopPropagation()   // prevents toggleTag from firing
-      handleDeleteTag(tag)
-    }}
-  />
-</Button>
+
+                  <Button
+                    key={index}
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    className="justify-between"
+                    onClick={() => handleDeleteTag(tag)}
+                  // onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                    <X
+                      className="w-4 h-4 cursor-pointer"
+                      onClick={(e) => {
+                        // e.stopPropagation() 
+                        // prevents toggleTag from firing
+                        handleDeleteTag(tag)
+                      }}
+                    />
+                  </Button>
 
                   // <Button
                   //   key={index}
@@ -193,35 +195,40 @@ export default function AddTagsModal({ ghlTags, editing, setTags, tags, setNewTa
             <option key={tag}>{tag}</option>
           ))}
         </select> */}
-        {editing && (
-          <Select
-            onValueChange={(selected) => {
-              if (selected && !tags.includes(selected)) {
-                setTags((prev) => [...prev, selected]);
-              }
-            }}
-          >
-            <SelectTrigger className="w-full mb-4">
-              <SelectValue placeholder="Please select tags" />
-            </SelectTrigger>
 
-            <SelectContent>
-              {ghlTags?.map((tag) => (
-                <SelectItem key={tag.id} value={tag.name}>
-                  {tag.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>)}
+        {editing && (
+          <>
+            <p>LeadConnector Tags</p>
+            <Select
+              onValueChange={(selected) => {
+                if (selected && !tags.includes(selected)) {
+                  setTags((prev) => [...prev, selected]);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Please select tags" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {ghlTags?.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.name}>
+                    {tag.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
 
         {/* Info box */}
-        <div className="flex items-start gap-2 text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        {/* <div className="flex items-start gap-2 text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
           <span className="text-blue-500">ℹ️</span>
           <p>
             Bulk Actions are performed over period of time. You can track the
             progress on the Bulk Actions page.
           </p>
-        </div>
+        </div> */}
 
         {/* Footer */}
         <div className="flex justify-end gap-2">
