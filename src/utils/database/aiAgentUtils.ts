@@ -1,4 +1,3 @@
-import { getCurrentUser } from "@/utils/auth/user";
 import { getSupabase } from "@/utils/supabase/getSupabase";
 import {
   AIAgent,
@@ -7,7 +6,6 @@ import {
   AgentDataSchema,
   AgentType,
   AGENT_TYPES,
-  AgentListResponse,
 } from "@/types/aiAgent";
 import {
   createDefaultAgentData,
@@ -35,7 +33,7 @@ export async function createDefaultAgentsForUser(
   userId: string
 ): Promise<AgentResponse<AIAgent[]>> {
   // DISABLED: Users create their own agents
-  console.log("Default agent creation disabled for user:", userId);
+
   return { success: true, data: [] };
 }
 

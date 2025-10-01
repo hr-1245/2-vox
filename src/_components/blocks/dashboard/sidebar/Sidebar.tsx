@@ -1,20 +1,31 @@
-"use client"
+"use client";
 
-import { usePathname } from "next/navigation"
-import { Menu, X, ChevronRight, MessageSquare, Bot, Settings, Zap, Database, Mic, LogOut } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
-import SidebarItem, { SidebarItem as SidebarItemType } from "./SidebarItem"
-import { logout } from "@/app/auth/actions/auth"
+import { usePathname } from "next/navigation";
+import {
+  Menu,
+  X,
+  ChevronRight,
+  MessageSquare,
+  Bot,
+  Settings,
+  Zap,
+  Database,
+  Mic,
+  LogOut,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import SidebarItem, { SidebarItem as SidebarItemType } from "./SidebarItem";
+import { logout } from "@/app/auth/actions/auth";
 
 const sidebarItems: SidebarItemType[] = [
   {
     title: "Overview",
     href: "/dashboard",
     icon: "LayoutDashboard",
-    protected: true
+    protected: true,
   },
   {
     title: "Communication",
@@ -29,16 +40,16 @@ const sidebarItems: SidebarItemType[] = [
           {
             title: "Dashboard",
             href: "/dashboard/app/leadconnector",
-            icon: "Users"
+            icon: "Users",
           },
           {
             title: "Conversations",
             href: "/dashboard/app/leadconnector/conversations",
-            icon: "MessageSquare"
-          }
-        ]
-      }
-    ]
+            icon: "MessageSquare",
+          },
+        ],
+      },
+    ],
   },
   {
     title: "AI & Automation",
@@ -50,44 +61,44 @@ const sidebarItems: SidebarItemType[] = [
         href: "/dashboard/app/ai/agents/new",
         icon: "Bot",
         protected: true,
-        badge: "Create"
+        badge: "Create",
       },
       {
         title: "AI Agents",
         href: "/dashboard/app/ai/agents",
         icon: "Settings",
-        protected: true
-      },
-      {
-        title: "Autopilot Dashboard",
-        href: "/dashboard/app/ai/autopilot",
-        icon: "Bot",
         protected: true,
-        badge: "Auto"
       },
-      {
-        title: "Knowledge Base",
-        href: "/dashboard/app/ai/knowledgebase",
-        icon: "BookOpen",
-        protected: true
-      }
-    ]
+      // {
+      //   title: "Autopilot Dashboard",
+      //   href: "/dashboard/app/ai/autopilot",
+      //   icon: "Bot",
+      //   protected: true,
+      //   badge: "Auto"
+      // },
+      // {
+      //   title: "Knowledge Base",
+      //   href: "/dashboard/app/ai/knowledgebase",
+      //   icon: "BookOpen",
+      //   protected: true
+      // }
+    ],
   },
   {
     title: "Settings",
     href: "/dashboard/profile",
     icon: "Settings",
-    protected: true
-  }
-]
+    protected: true,
+  },
+];
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
-    setIsMobileOpen(!isMobileOpen)
-  }
+    setIsMobileOpen(!isMobileOpen);
+  };
 
   return (
     <>
@@ -98,7 +109,11 @@ export default function Sidebar() {
         className="fixed top-4 left-4 z-50 lg:hidden hover:bg-primary/10 bg-background/90 backdrop-blur-sm"
         onClick={toggleSidebar}
       >
-        {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isMobileOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Menu className="h-6 w-6" />
+        )}
       </Button>
 
       {/* Mobile Backdrop */}
@@ -120,7 +135,9 @@ export default function Sidebar() {
           {/* Sidebar Header */}
           <div className="border-b bg-muted/40 px-4 py-3">
             <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Manage your AI workspace</p>
+            <p className="text-sm text-muted-foreground">
+              Manage your AI workspace
+            </p>
           </div>
 
           {/* Navigation */}
@@ -144,18 +161,20 @@ export default function Sidebar() {
                 <span className="text-sm font-medium text-primary">AI</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">AI Workspace</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  AI Workspace
+                </p>
                 <p className="text-xs text-muted-foreground">Version 1.0</p>
               </div>
               <Badge variant="secondary" className="text-xs">
                 Pro
               </Badge>
             </div>
-            
+
             {/* Sign Out Button */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
               onClick={() => logout()}
             >
@@ -166,5 +185,5 @@ export default function Sidebar() {
         </div>
       </aside>
     </>
-  )
+  );
 }
