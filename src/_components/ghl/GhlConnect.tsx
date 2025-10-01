@@ -7,7 +7,7 @@ export default function GhlConnect({label, ...props}: {label?: string, [key: str
   return (
     <div className="space-y-2 mx-auto">
       <form action={startGhlAuth}>
-        <Button {...props} type="submit">{!label ? "Connect GoHighLevel" : label}</Button>
+        <Button {...props} type="submit">{!label ? "Connect LeadConnector" : label}</Button>
       </form>
     </div>
   );

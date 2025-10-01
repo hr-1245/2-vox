@@ -710,7 +710,7 @@ async function sendGHLMessage(conversationId: string, userId: string, message: s
       }
     );
 
-    console.log(`✅ Message sent successfully via GHL Messages API:`, {
+    console.log(`✅ Message sent successfully via LeadConnector Messages API:`, {
       conversationId: response?.conversationId,
       messageId: response?.messageId,
       type: ghlType
@@ -718,7 +718,7 @@ async function sendGHLMessage(conversationId: string, userId: string, message: s
 
     return response;
   } catch (error) {
-    console.error('Error sending GHL message:', error);
+    console.error('Error sending LeadConnector message:', error);
     throw error;
   }
 } 

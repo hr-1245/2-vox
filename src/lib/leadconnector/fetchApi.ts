@@ -8,7 +8,7 @@ export async function fetchGhlApiLegacy<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${GHL_API_BASE}${endpoint}`;
-  console.log('Making GHL API request to:', url);
+  console.log('Making LeadConnector API request to:', url);
 
   try {
     const response = await fetch(url, {
@@ -21,7 +21,7 @@ export async function fetchGhlApiLegacy<T = any>(
       },
     });
 
-    console.log('GHL API response status:', {
+    console.log('LeadConnector API response status:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -29,7 +29,7 @@ export async function fetchGhlApiLegacy<T = any>(
 
     if (!response.ok) {
       const error = await response.json().catch(() => null);
-      console.error('GHL API error response:', error);
+      console.error('LeadConnector API error response:', error);
       throw new Error(
         error?.message || `API request failed with status ${response.status}`
       );
@@ -37,13 +37,13 @@ export async function fetchGhlApiLegacy<T = any>(
 
     // Get raw response text first for debugging
     const rawText = await response.text();
-    console.log('GHL API raw response (first 500 chars):', rawText.substring(0, 500));
+    console.log('LeadConnectorAPI raw response (first 500 chars):', rawText.substring(0, 500));
 
     // Parse JSON
     let data;
     try {
       data = JSON.parse(rawText);
-      console.log('GHL API response data shape:', {
+      console.log('LeadConnector API response data shape:', {
         hasData: !!data,
         keys: data ? Object.keys(data) : null,
         dataType: typeof data,
@@ -53,13 +53,13 @@ export async function fetchGhlApiLegacy<T = any>(
         messageCount: data?.messages?.messages?.length || 0
       });
     } catch (parseError) {
-      console.error('Failed to parse GHL API response as JSON:', parseError);
+      console.error('Failed to parse LeadConnector API response as JSON:', parseError);
       throw new Error(`Invalid JSON response: ${rawText.substring(0, 100)}...`);
     }
     
     return data;
   } catch (error) {
-    console.error('Error in fetchGhlApi:', {
+    console.error('Error in fetchLeadConnectorApi:', {
       endpoint,
       error: error instanceof Error ? {
         name: error.name,
@@ -114,8 +114,8 @@ export async function fetchGhlApiWithRefresh<T = any>(
     try {
       return JSON.parse(rawText);
     } catch (parseError) {
-      console.error('Failed to parse GHL API response as JSON:', parseError);
-      throw new Error(`Invalid JSON response from GHL API: ${rawText.substring(0, 100)}...`);
+      console.error('Failed to parse LeadConnector API response as JSON:', parseError);
+      throw new Error(`Invalid JSON response from LeadConnector API: ${rawText.substring(0, 100)}...`);
     }
   };
 
@@ -125,16 +125,16 @@ export async function fetchGhlApiWithRefresh<T = any>(
       const tokens = await getValidGhlTokens(userId);
       
       if (!tokens.accessToken) {
-        throw new Error('No valid GHL access token available. Please re-authenticate.');
+        throw new Error('No valid LeadConnector access token available. Please re-authenticate.');
       }
 
-      console.log(`Making GHL API request (attempt ${retryCount + 1}) to:`, url);
+      console.log(`Making LeadConnector API request (attempt ${retryCount + 1}) to:`, url);
 
       const response = await makeRequest(tokens.accessToken);
 
       // If we get 401 and haven't exhausted retries, try to refresh token
       if (response.status === 401 && retryCount < maxRetries) {
-        console.log('🔄 Got 401 error, refreshing GHL token and retrying...');
+        console.log('🔄 Got 401 error, refreshing LeadConnector token and retrying...');
       
         if (!tokens.refreshToken) {
           throw new Error('No refresh token available. Please re-authenticate.');
@@ -143,11 +143,11 @@ export async function fetchGhlApiWithRefresh<T = any>(
         const refreshResult = await refreshGhlTokens(userId, tokens.refreshToken);
         
         if (refreshResult.accessToken) {
-          console.log('✅ GHL token refreshed successfully, retrying request...');
+          console.log('✅ LeadConnector token refreshed successfully, retrying request...');
           retryCount++;
           continue; // Retry with new token
         } else {
-          throw new Error('Failed to refresh GHL token. Please re-authenticate.');
+          throw new Error('Failed to refresh LeadConnector token. Please re-authenticate.');
     }
       }
 
@@ -159,13 +159,13 @@ export async function fetchGhlApiWithRefresh<T = any>(
       if (error instanceof Error && 
           (error.message.includes('401') || error.message.includes('token')) && 
           retryCount < maxRetries) {
-        console.log(`🔄 Retrying GHL request due to auth error: ${error.message}`);
+        console.log(`🔄 Retrying LeadConnector request due to auth error: ${error.message}`);
         retryCount++;
         continue;
       }
 
       // Otherwise, throw the error
-      console.error('❌ Error in GHL API request:', {
+      console.error('❌ Error in LeadConnector API request:', {
         endpoint: url,
         attempt: retryCount + 1,
         error: error instanceof Error ? error.message : error
@@ -174,7 +174,7 @@ export async function fetchGhlApiWithRefresh<T = any>(
   }
 }
 
-  throw new Error(`GHL API request failed after ${maxRetries + 1} attempts`);
+  throw new Error(`LeadConnector API request failed after ${maxRetries + 1} attempts`);
 }
 
 /**

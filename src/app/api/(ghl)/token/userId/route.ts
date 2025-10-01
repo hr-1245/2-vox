@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(
-        { error: "No valid GHL access token. Please re-authenticate." },
+        { error: "No valid LeadConnector access token. Please re-authenticate." },
         { status: 401 }
       );
     }

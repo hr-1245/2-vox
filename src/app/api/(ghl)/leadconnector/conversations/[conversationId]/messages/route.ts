@@ -70,10 +70,10 @@ export async function GET(
 
     // Make API request with automatic token refresh
     const endpoint = `/conversations/${conversationId}/messages${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    console.log('Making GHL API request with auto-refresh:', endpoint);
+    console.log('Making LeadConnector API request with auto-refresh:', endpoint);
 
     const data = await fetchGhlApiWithRefresh(endpoint, user.id);
-    console.log('GHL API response - detailed structure:', {
+    console.log('LeadConnector API response - detailed structure:', {
       hasData: !!data,
       dataKeys: data ? Object.keys(data) : 'no data',
       hasMessages: !!data?.messages,

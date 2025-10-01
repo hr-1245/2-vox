@@ -45,7 +45,7 @@ export async function getClientGhlToken(): Promise<string> {
     // Provide user-friendly error messages
     if (error instanceof Error) {
       if (error.message.includes('Unauthorized') || error.message.includes('re-authenticate')) {
-        throw new Error('Please reconnect your GoHighLevel account to continue sending messages.');
+        throw new Error('Please reconnect your LeadConnector account to continue sending messages.');
       }
     }
     

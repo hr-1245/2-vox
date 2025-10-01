@@ -64,8 +64,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 3,
-    title: "Connect GoHighLevel",
-    description: "Link your GHL account",
+    title: "Connect LeadConnector",
+    description: "Link your LeadConnector account",
     icon: <MessageSquare className="h-5 w-5" />,
     isOptional: true,
     isCompleted: false
@@ -336,9 +336,9 @@ export default function UserOnboarding({ user, initialProfile, onComplete }: Use
                   <MessageSquare className="h-6 w-6 text-white" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Connect GoHighLevel</h3>
+              <h3 className="text-xl font-semibold mb-2">Connect LeadConnector</h3>
               <p className="text-muted-foreground">
-                Link your GHL account to start managing conversations with AI
+                Link your LeadConnector account to start managing conversations with AI
               </p>
             </div>
 
