@@ -1,24 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/loading/LoadingSpinner';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
-import { 
-  Bot, 
-  Plus, 
-  ArrowLeft, 
-  ArrowRight, 
-  Database, 
-  CheckCircle, 
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import {
+  Bot,
+  Plus,
+  Database,
+  CheckCircle,
   MessageSquare,
   ChevronLeft,
   ChevronRight,
@@ -30,16 +34,24 @@ import {
   Calendar,
   SortAsc,
   X,
-  Settings
-} from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import type { KnowledgeBase } from '@/utils/database/knowledgebase';
-import { KB_SETTINGS } from '@/utils/ai/knowledgebaseSettings';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+  Settings,
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import type { KnowledgeBase } from "@/utils/database/knowledgebase";
+import { KB_SETTINGS } from "@/utils/ai/knowledgebaseSettings";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import AddTagsModal from "@/components/ai-agent/AddTagsModal";
+import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 
 // Constants
-const USER_ID = 'ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21';
+const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
 
 interface CreateAgentForm {
   name: string;
@@ -56,6 +68,51 @@ interface CreateAgentForm {
   humanlikeBehavior: boolean;
 }
 
+const SENDABLE_MESSAGE_TYPES = [
+  {
+    value: "SMS",
+    internal: "TYPE_SMS",
+    label: "SMS",
+    description: "Text message",
+  },
+  {
+    value: "Email",
+    internal: "TYPE_EMAIL",
+    label: "Email",
+    description: "Email message",
+  },
+  {
+    value: "WhatsApp",
+    internal: "TYPE_WHATSAPP",
+    label: "WhatsApp",
+    description: "WhatsApp message",
+  },
+  {
+    value: "FB",
+    internal: "TYPE_FACEBOOK",
+    label: "Facebook Messenger",
+    description: "Facebook message",
+  },
+  {
+    value: "IG",
+    internal: "TYPE_INSTAGRAM",
+    label: "Instagram Direct",
+    description: "Instagram message",
+  },
+  {
+    value: "Live_Chat",
+    internal: "TYPE_WEBCHAT",
+    label: "Web Chat",
+    description: "Website chat message",
+  },
+  {
+    value: "Custom",
+    internal: "TYPE_GMB",
+    label: "Google Business Messages",
+    description: "Google My Business message",
+  },
+] as const;
+
 export default function CreateAgentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,44 +121,44 @@ export default function CreateAgentPage() {
   const [creating, setCreating] = useState(false);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [loadingKB, setLoadingKB] = useState(false);
-  
+
   // Detect agent type from URL params (1 = Conversation AI, 5 = Voice AI)
-  const agentType = searchParams.get('type') === '5' ? 5 : 1;
+  const agentType = searchParams.get("type") === "5" ? 5 : 1;
   const isVoiceAgent = agentType === 5;
-  const agentTypeName = isVoiceAgent ? 'Voice AI Agent' : 'Conversation AI Agent';
-  const agentTypeDescription = isVoiceAgent 
-    ? 'Create an AI assistant for voice conversations and phone calls'
-    : 'Create an intelligent AI assistant for text conversations';
-  
+  const agentTypeName = isVoiceAgent
+    ? "Voice AI Agent"
+    : "Conversation AI Agent";
+  const agentTypeDescription = isVoiceAgent
+    ? "Create an AI assistant for voice conversations and phone calls"
+    : "Create an intelligent AI assistant for text conversations";
+
   // Knowledge Base filtering state
   const [showConversationKBs, setShowConversationKBs] = useState(false);
-  const [kbSearchTerm, setKbSearchTerm] = useState('');
-  const [kbTypeFilter, setKbTypeFilter] = useState<number | 'all'>('all');
-  const [kbSortBy, setKbSortBy] = useState<'name' | 'created' | 'type'>('name');
-   const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>([]);
-  const SENDABLE_MESSAGE_TYPES = [
-    { value: 'SMS', internal: 'TYPE_SMS', label: 'SMS', description: 'Text message' },
-    { value: 'Email', internal: 'TYPE_EMAIL', label: 'Email', description: 'Email message' },
-    { value: 'WhatsApp', internal: 'TYPE_WHATSAPP', label: 'WhatsApp', description: 'WhatsApp message' },
-    { value: 'FB', internal: 'TYPE_FACEBOOK', label: 'Facebook Messenger', description: 'Facebook message' },
-    { value: 'IG', internal: 'TYPE_INSTAGRAM', label: 'Instagram Direct', description: 'Instagram message' },
-    { value: 'Live_Chat', internal: 'TYPE_WEBCHAT', label: 'Web Chat', description: 'Website chat message' },
-    { value: 'Custom', internal: 'TYPE_GMB', label: 'Google Business Messages', description: 'Google My Business message' }
-  ] as const;
+  const [kbSearchTerm, setKbSearchTerm] = useState("");
+  const [kbTypeFilter, setKbTypeFilter] = useState<number | "all">("all");
+  const [kbSortBy, setKbSortBy] = useState<"name" | "created" | "type">("name");
+  const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(
+    []
+  );
   const [formData, setFormData] = useState<CreateAgentForm>({
-    name: '',
-    description: '',
-    personality: '',
-    intent: '',
-    additionalInformation: '',
+    name: "",
+    description: "",
+    personality: "",
+    intent: "",
+    additionalInformation: "",
     variables: {},
     knowledgeBaseIds: [],
     isActive: true,
     // AI Configuration (required by FastAPI)
     temperature: 0.7,
-    model: 'gpt-4',
-    humanlikeBehavior: false
+    model: "gpt-4",
+    humanlikeBehavior: false,
   });
+  const [ghlTags, setGhlTags] = useState<
+    { id: string; name: string; locationId: string }[]
+  >([]);
+  const [tag, setTag] = useState<string>(""); // instead of tags[]
+  const [newTag, setNewTag] = useState("");
 
   const progress = (currentStep / totalSteps) * 100;
 
@@ -110,18 +167,22 @@ export default function CreateAgentPage() {
     const loadKnowledgeBases = async () => {
       try {
         setLoadingKB(true);
-        const response = await fetch('/api/ai/knowledgebase');
+        const response = await fetch("/api/ai/knowledgebase");
+        console.log("response......",response)
         const data = await response.json();
-        
+        console.log("data......",data)
+
         if (data.success) {
+          
           const kbData = Array.isArray(data.data) ? data.data : [];
-          console.log('Loaded all knowledge bases:', kbData);
+          console.log("Loaded all knowledge bases:", kbData);
+          
           setKnowledgeBases(kbData);
         } else {
-          console.error('Failed to load knowledge bases:', data.error);
+          console.error("Failed to load knowledge bases:", data.error);
         }
       } catch (error) {
-        console.error('Error loading knowledge bases:', error);
+        console.error("Error loading knowledge bases:", error);
         setKnowledgeBases([]); // Set empty array on error
       } finally {
         setLoadingKB(false);
@@ -130,45 +191,53 @@ export default function CreateAgentPage() {
 
     loadKnowledgeBases();
   }, []);
-const convertArrayToChannelsObject = (selected: string[]) => {
-  const channelMappings = {
-    SMS: 'sms',
-    Email: 'email',
-    WhatsApp: 'whatsapp',
-    FB: 'facebook',
-    IG: 'instagram',
-    Live_Chat: 'web',
-    Custom: 'gmb',
+
+  const convertArrayToChannelsObject = (selected: string[]) => {
+    const channelMappings = {
+      SMS: "sms",
+      Email: "email",
+      WhatsApp: "whatsapp",
+      FB: "facebook",
+      IG: "instagram",
+      Live_Chat: "web",
+      Custom: "gmb",
+    };
+
+    return Object.fromEntries(
+      Object.entries(channelMappings).map(([frontend, backend]) => [
+        backend,
+        { enabled: selected.includes(frontend), settings: {} },
+      ])
+    );
   };
 
-  return Object.fromEntries(
-    Object.entries(channelMappings).map(([frontend, backend]) => [
-      backend,
-      { enabled: selected.includes(frontend), settings: {} },
-    ])
-  );
-};
   const createAgent = async () => {
     // Prevent multiple submissions
     if (creating) {
-      console.log('Agent creation already in progress...');
+      console.log("Agent creation already in progress...");
       return;
     }
-    
+
     try {
       setCreating(true);
-      
+
       // Final validation before submission
-      if (!formData.name.trim() || !formData.personality.trim() || !formData.intent.trim()) {
-        toast.error('Please fill in all required fields');
+      if (
+        !formData.name.trim() ||
+        !formData.personality.trim() ||
+        !formData.intent.trim()
+      ) {
+        toast.error("Please fill in all required fields");
         return;
       }
-      
+
       // Convert type number to agentType string as expected by FastAPI
       const getAgentTypeString = (type: number): string => {
-  switch (type) {
-          case 1: return 'generic'; // AI Agent (GENERIC)
-          default: return 'generic';
+        switch (type) {
+          case 1:
+            return "generic"; // AI Agent (GENERIC)
+          default:
+            return "generic";
         }
       };
       const payload = {
@@ -180,44 +249,53 @@ const convertArrayToChannelsObject = (selected: string[]) => {
         personality: formData.personality,
         intent: formData.intent,
         additionalInformation: formData.additionalInformation || null,
-        variables: Object.keys(formData.variables).length > 0 ? formData.variables : null,
-        knowledgeBaseIds: formData.knowledgeBaseIds.length > 0 ? formData.knowledgeBaseIds : null,
+        variables:
+          Object.keys(formData.variables).length > 0
+            ? formData.variables
+            : null,
+        knowledgeBaseIds:
+          formData.knowledgeBaseIds.length > 0
+            ? formData.knowledgeBaseIds
+            : null,
         // AI Configuration (required by FastAPI)
         temperature: formData.temperature,
         model: formData.model,
         humanlikeBehavior: formData.humanlikeBehavior,
         channels: convertArrayToChannelsObject(selectedMessageTypes),
-
+        tag,//add tags
       };
 
-      console.log('Creating agent with payload:', payload);
+      console.log("Creating agent with payload:", payload);
 
-      const response = await fetch('/api/ai/agents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const response = await fetch("/api/ai/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Agent creation response:', data);
-      
+      console.log("Agent creation response:", data);
+
       if (data.success) {
-        toast.success('🎉 AI Agent created successfully! Redirecting...');
-        
+        toast.success("🎉 AI Agent created successfully! Redirecting...");
+
         // Use window.location to ensure proper redirect and prevent route conflicts
         setTimeout(() => {
-          window.location.href = '/dashboard/app/ai/agents';
+          window.location.href = "/dashboard/app/ai/agents";
         }, 1500);
       } else {
-        toast.error('Failed to create agent: ' + (data.error || 'Unknown error'));
+        toast.error(
+          "Failed to create agent: " + (data.error || "Unknown error")
+        );
       }
     } catch (error) {
-      console.error('Error creating agent:', error);
-      toast.error('Failed to create agent. Please check your connection and try again.');
+      console.error("Error creating agent:", error);
+      toast.error(
+        "Failed to create agent. Please check your connection and try again."
+      );
     } finally {
       setCreating(false);
     }
@@ -230,9 +308,11 @@ const convertArrayToChannelsObject = (selected: string[]) => {
         return formData.name.trim().length >= 2;
       case 2:
         // Configuration validation
-        return formData.name.trim().length >= 2 && 
-               formData.personality.trim().length >= 10 && 
-               formData.intent.trim().length >= 10;
+        return (
+          formData.name.trim().length >= 2 &&
+          formData.personality.trim().length >= 10 &&
+          formData.intent.trim().length >= 10
+        );
       case 3:
         return true; // Knowledge base selection is optional
       default:
@@ -240,19 +320,49 @@ const convertArrayToChannelsObject = (selected: string[]) => {
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < totalSteps && canProceed()) {
-      console.log('Moving to step:', currentStep + 1);
-      setCurrentStep(currentStep + 1);
+  const handleAddTag = () => {
+    if (newTag.trim() !== "") {
+      setTag(newTag.trim());
+      setNewTag("");
     }
   };
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      console.log('Moving back to step:', currentStep - 1);
-      setCurrentStep(currentStep - 1);
+  const handleDeleteTag = () => {
+    setTag("");
+  };
+
+  const fetchTags = async () => {
+    try {
+      const token = await getClientGhlToken();
+
+      if (!token) return;
+
+      const response = await fetch("/api/tags", {
+        method: "GET",
+        headers: {
+          "x-location-id": "iXTmrCkWtZKXWzs85Jx8", // 👈 dynamic
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        throw new Error(json.error || "Failed to fetch tags");
+      }
+
+      setGhlTags(json.data?.tags);
+      return json.data?.tags || [];
+    } catch (error) {
+      // console.error("Error fetching tags:", error);
+      toast.error("Failed to load tags");
+      return [];
     }
   };
+
+  useEffect(() => {
+    fetchTags();
+  }, []);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -260,12 +370,14 @@ const convertArrayToChannelsObject = (selected: string[]) => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold mb-2">🎯 Basic Information</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                🎯 Basic Information
+              </h2>
               <p className="text-muted-foreground">
                 Set up the basic details for your AI agent.
               </p>
             </div>
-            
+
             <div className="space-y-4">
               {/* Agent Name */}
               <div className="space-y-2">
@@ -274,7 +386,9 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                   id="name"
                   placeholder="e.g., Customer Support Assistant"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="text-base"
                 />
                 <p className="text-xs text-muted-foreground">
@@ -289,7 +403,12 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                   id="description"
                   placeholder="Brief description of what this agent does..."
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   rows={3}
                   className="resize-none"
                 />
@@ -305,12 +424,14 @@ const convertArrayToChannelsObject = (selected: string[]) => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold mb-2">⚙️ Configure Your Agent</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                ⚙️ Configure Your Agent
+              </h2>
               <p className="text-muted-foreground">
                 Define your agent's personality, goals, and behavior.
               </p>
             </div>
-            
+
             <div className="space-y-6">
               {/* Main Configuration */}
               <div className="space-y-4">
@@ -321,12 +442,18 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                     id="personality"
                     placeholder="Example: You are a friendly customer support agent for {{business_name}}. You help customers with their questions and maintain a professional yet warm tone."
                     value={formData.personality}
-                    onChange={(e) => setFormData(prev => ({ ...prev, personality: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        personality: e.target.value,
+                      }))
+                    }
                     rows={4}
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {formData.personality.length}/500 characters • Use {"{{"} variable {"}"} for dynamic content
+                    {formData.personality.length}/500 characters • Use {"{{"}{" "}
+                    variable {"}"} for dynamic content
                   </p>
                 </div>
 
@@ -337,7 +464,12 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                     id="intent"
                     placeholder="Example: Your goal is to assist customers by answering their questions, resolving issues, and providing helpful information about our products and services."
                     value={formData.intent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, intent: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        intent: e.target.value,
+                      }))
+                    }
                     rows={3}
                     className="resize-none"
                   />
@@ -348,12 +480,19 @@ const convertArrayToChannelsObject = (selected: string[]) => {
 
                 {/* Additional Information */}
                 <div className="space-y-2">
-                  <Label htmlFor="additionalInfo">Additional Guidelines (Optional)</Label>
+                  <Label htmlFor="additionalInfo">
+                    Additional Guidelines (Optional)
+                  </Label>
                   <Textarea
                     id="additionalInfo"
                     placeholder="Example: Keep responses between 20-50 words. Always ask follow-up questions. If you don't know something, direct customers to our support team."
                     value={formData.additionalInformation}
-                    onChange={(e) => setFormData(prev => ({ ...prev, additionalInformation: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        additionalInformation: e.target.value,
+                      }))
+                    }
                     rows={3}
                     className="resize-none"
                   />
@@ -363,21 +502,23 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                 </div>
 
                 {/* Variables */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Variables (Optional)</Label>
                   <div className="space-y-2">
                     <Input
                       placeholder="Variable name: value (e.g., business_name: Acme Corp)"
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           const input = e.target as HTMLInputElement;
-                          const [name, value] = input.value.split(':').map(s => s.trim());
+                          const [name, value] = input.value
+                            .split(":")
+                            .map((s) => s.trim());
                           if (name && value) {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              variables: { ...prev.variables, [name]: value }
+                              variables: { ...prev.variables, [name]: value },
                             }));
-                            input.value = '';
+                            input.value = "";
                           }
                         }
                       }}
@@ -385,51 +526,76 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                     <p className="text-xs text-muted-foreground">
                       Press Enter to add. Format: variable_name: value
                     </p>
-                    
+
                     {Object.entries(formData.variables).length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {Object.entries(formData.variables).map(([key, value]) => (
-                          <Badge key={key} variant="outline" className="text-xs">
-                            {`{{${key}}}`}: {value}
-                            <button
-                              onClick={() => {
-                                const newVars = { ...formData.variables };
-                                delete newVars[key];
-                                setFormData(prev => ({ ...prev, variables: newVars }));
-                              }}
-                              className="ml-1 text-muted-foreground hover:text-foreground"
+                        {Object.entries(formData.variables).map(
+                          ([key, value]) => (
+                            <Badge
+                              key={key}
+                              variant="outline"
+                              className="text-xs"
                             >
-                              ×
-                            </button>
-                          </Badge>
-                        ))}
+                              {`{{${key}}}`}: {value}
+                              <button
+                                onClick={() => {
+                                  const newVars = { ...formData.variables };
+                                  delete newVars[key];
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    variables: newVars,
+                                  }));
+                                }}
+                                className="ml-1 text-muted-foreground hover:text-foreground"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          )
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
-                <Card className="p-4 space-y-3">
-            {SENDABLE_MESSAGE_TYPES.map((type) => (
-              <label
-                key={type.value}
-                className="flex items-center space-x-2 cursor-pointer"
-              >
-                <Checkbox
-                  checked={selectedMessageTypes.includes(type.value)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedMessageTypes((prev) => [...prev, type.value]);
-                    } else {
-                      setSelectedMessageTypes((prev) =>
-                        prev.filter((v) => v !== type.value)
-                      );
-                    }
-                  }}
-                />
-                <span className="text-sm font-medium">{type.label}</span>
-              </label>
-            ))}
-          </Card>
+
+              <Card className="p-4 space-y-3">
+                {SENDABLE_MESSAGE_TYPES.map((type) => (
+                  <label
+                    key={type.value}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedMessageTypes.includes(type.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedMessageTypes((prev) => [
+                            ...prev,
+                            type.value,
+                          ]);
+                        } else {
+                          setSelectedMessageTypes((prev) =>
+                            prev.filter((v) => v !== type.value)
+                          );
+                        }
+                      }}
+                    />
+                    <span className="text-sm font-medium">{type.label}</span>
+                  </label>
+                ))}
+              </Card>
+
+              <AddTagsModal
+                ghlTags={ghlTags}
+                editing={true}
+                setTag={setTag}
+                tag={tag}
+                setNewTag={setNewTag}
+                handleAddTag={handleAddTag}
+                newTag={newTag}
+                handleDeleteTag={handleDeleteTag}
+              />
+
               {/* AI Configuration */}
               <Card className="border">
                 <CardHeader className="pb-3">
@@ -448,26 +614,36 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                       <Label htmlFor="model">AI Model</Label>
                       <Select
                         value={formData.model}
-                        onValueChange={(value) => setFormData({...formData, model: value})}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, model: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gpt-4">GPT-4 (Best Quality)</SelectItem>
-                          <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast & Efficient)</SelectItem>
-                          <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                          <SelectItem value="gpt-4">
+                            GPT-4 (Best Quality)
+                          </SelectItem>
+                          <SelectItem value="gpt-4o-mini">
+                            GPT-4o Mini (Fast & Efficient)
+                          </SelectItem>
+                          <SelectItem value="claude-3-sonnet">
+                            Claude 3 Sonnet
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* Temperature */}
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="temperature">Creativity Level</Label>
                       <div className="space-y-2">
                         <Slider
                           value={[formData.temperature]}
-                          onValueChange={(value) => setFormData({...formData, temperature: value[0]})}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, temperature: value[0] })
+                          }
                           max={1}
                           min={0}
                           step={0.1}
@@ -475,31 +651,40 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Consistent</span>
-                          <span className="font-medium text-blue-600">{formData.temperature}</span>
+                          <span className="font-medium text-blue-600">
+                            {formData.temperature}
+                          </span>
                           <span>Creative</span>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Human-like Behavior */}
-                    <div className="space-y-2 col-span-1 md:col-span-2">
+                    {/* <div className="space-y-2 col-span-1 md:col-span-2">
                       <Label htmlFor="humanlikeBehavior">Response Style</Label>
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="humanlikeBehavior"
                           checked={formData.humanlikeBehavior}
-                          onCheckedChange={(checked) => setFormData({...formData, humanlikeBehavior: checked})}
+                          onCheckedChange={(checked) =>
+                            setFormData({
+                              ...formData,
+                              humanlikeBehavior: checked,
+                            })
+                          }
                         />
                         <Label htmlFor="humanlikeBehavior" className="text-sm">
-                          {formData.humanlikeBehavior ? 'Natural & Human-like' : 'Direct & Professional'}
+                          {formData.humanlikeBehavior
+                            ? "Natural & Human-like"
+                            : "Direct & Professional"}
                         </Label>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {formData.humanlikeBehavior 
-                          ? 'Responses will include natural variations and human-like expressions' 
-                          : 'Responses will be direct and to-the-point'}
+                        {formData.humanlikeBehavior
+                          ? "Responses will include natural variations and human-like expressions"
+                          : "Responses will be direct and to-the-point"}
                       </p>
-                    </div>
+                    </div> */}
                   </div>
                 </CardContent>
               </Card>
@@ -509,8 +694,8 @@ const convertArrayToChannelsObject = (selected: string[]) => {
 
       case 3:
         const filteredKBs = getFilteredKnowledgeBases();
-        const kbTypes = [...new Set(knowledgeBases.map(kb => kb.type))];
-        
+        const kbTypes = [...new Set(knowledgeBases.map((kb) => kb.type))];
+
         return (
           <div className="space-y-4">
             {/* Header */}
@@ -520,32 +705,11 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                 Knowledge Sources
               </h2>
               <p className="text-xs text-muted-foreground">
-                Connect your agent to knowledge bases for enhanced, contextual responses. This step is optional.
+                Connect your agent to knowledge bases for enhanced, contextual
+                responses. This step is optional.
               </p>
             </div>
-        
-            {/* Conversation KB Toggle */}
-            <Card className="border">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="w-3.5 h-3.5 text-blue-600" />
-                      <h4 className="text-xs font-medium text-blue-900">Include Conversation Knowledge</h4>
-                    </div>
-                    <p className="text-[0.65rem] text-blue-700 mt-0.5">
-                      Auto-generated knowledge from past conversations
-                    </p>
-                  </div>
-                  <Switch
-                    checked={showConversationKBs}
-                    onCheckedChange={setShowConversationKBs}
-                    className="scale-90"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-        
+
             {/* Search and Filters */}
             <Card className="border">
               <CardHeader className="p-3">
@@ -558,7 +722,12 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                     variant="outline"
                     size="sm"
                     className="text-xs h-7 px-2"
-                    onClick={() => window.open('/dashboard/app/ai/knowledgebase', '_blank')}
+                    onClick={() =>
+                      window.open(
+                        "/dashboard/app/ai/knowledgebase/add-knowledge-base",
+                        "_blank"
+                      )
+                    }
                   >
                     <Plus className="w-2.5 h-2.5 mr-1" />
                     Create New
@@ -583,25 +752,33 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                       variant="ghost"
                       size="sm"
                       className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
-                      onClick={() => setKbSearchTerm('')}
+                      onClick={() => setKbSearchTerm("")}
                     >
                       <X className="w-2.5 h-2.5" />
                     </Button>
                   )}
                 </div>
-        
+
                 {/* Simple Filters Row */}
                 <div className="flex flex-col sm:flex-row gap-2">
                   {/* Type Filter */}
                   <div className="flex-1">
-                    <Select value={kbTypeFilter.toString()} onValueChange={(value) => setKbTypeFilter(value === 'all' ? 'all' : parseInt(value))}>
+                    <Select
+                      value={kbTypeFilter.toString()}
+                      onValueChange={(value) =>
+                        setKbTypeFilter(
+                          value === "all" ? "all" : parseInt(value)
+                        )
+                      }
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <Filter className="w-3.5 h-3.5 mr-1.5" />
                         <SelectValue placeholder="All Types" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
-                        {kbTypes.map(type => {
+                        {kbTypes.map((type) => {
+          
                           const typeInfo = getKBTypeInfo(type);
                           return (
                             <SelectItem key={type} value={type.toString()}>
@@ -612,10 +789,13 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                       </SelectContent>
                     </Select>
                   </div>
-        
+
                   {/* Sort Filter */}
                   <div className="flex-1">
-                    <Select value={kbSortBy} onValueChange={(value: any) => setKbSortBy(value)}>
+                    <Select
+                      value={kbSortBy}
+                      onValueChange={(value: any) => setKbSortBy(value)}
+                    >
                       <SelectTrigger className="h-8 text-xs">
                         <SortAsc className="w-3.5 h-3.5 mr-1.5" />
                         <SelectValue />
@@ -627,7 +807,7 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                       </SelectContent>
                     </Select>
                   </div>
-        
+
                   {/* Selection Summary */}
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className="text-xs">
@@ -638,61 +818,81 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-xs"
-                        onClick={() => setFormData(prev => ({ ...prev, knowledgeBaseIds: [] }))}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            knowledgeBaseIds: [],
+                          }))
+                        }
                       >
                         Clear
                       </Button>
                     )}
                   </div>
                 </div>
-        
+
                 {/* Active Filters */}
-                {(kbSearchTerm || kbTypeFilter !== 'all') && (
+                {(kbSearchTerm || kbTypeFilter !== "all") && (
                   <div className="flex flex-wrap gap-1.5 p-1.5 bg-gray-50 rounded border">
-                    <span className="text-[0.65rem] font-medium">Active Filters:</span>
+                    <span className="text-[0.65rem] font-medium">
+                      Active Filters:
+                    </span>
                     {kbSearchTerm && (
                       <Badge variant="secondary" className="gap-1 text-xs">
                         Search: "{kbSearchTerm}"
-                        <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setKbSearchTerm('')} />
+                        <X
+                          className="w-2.5 h-2.5 cursor-pointer"
+                          onClick={() => setKbSearchTerm("")}
+                        />
                       </Badge>
                     )}
-                    {kbTypeFilter !== 'all' && (
+                    {kbTypeFilter !== "all" && (
                       <Badge variant="secondary" className="gap-1 text-xs">
                         Type: {getKBTypeInfo(kbTypeFilter as number).label}
-                        <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setKbTypeFilter('all')} />
+                        <X
+                          className="w-2.5 h-2.5 cursor-pointer"
+                          onClick={() => setKbTypeFilter("all")}
+                        />
                       </Badge>
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
-        
+
             {/* Knowledge Base List */}
             {filteredKBs.length > 0 ? (
               <div className="space-y-3">
                 <div className="text-xs text-muted-foreground">
-                  Showing {filteredKBs.length} of {knowledgeBases.length} knowledge sources
+                  Showing {filteredKBs.length} of {knowledgeBases.length}{" "}
+                  knowledge sources
                 </div>
-                
+
                 <div className="grid gap-2 max-h-80 overflow-y-auto bg-gray-50/50 rounded-lg p-3 border">
-                  {filteredKBs.map(kb => {
+                  {filteredKBs.map((kb) => {
                     const typeInfo = getKBTypeInfo(kb.type);
-                    const isSelected = formData.knowledgeBaseIds.includes(kb.id);
-                    
+                    const isSelected = formData.knowledgeBaseIds.includes(
+                      kb.id
+                    );
+
                     return (
-                      <Card 
-                        key={kb.id} 
+                      <Card
+                        key={kb.id}
                         className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${
-                          isSelected 
-                            ? 'border-2 border-blue-500 bg-blue-50/80' 
-                            : 'hover:border-blue-300'
+                          isSelected
+                            ? "border-2 border-blue-500 bg-blue-50/80"
+                            : "hover:border-blue-300"
                         }`}
                         onClick={() => {
-                          setFormData(prev => ({
+                          setFormData((prev) => ({
                             ...prev,
-                            knowledgeBaseIds: prev.knowledgeBaseIds.includes(kb.id)
-                              ? prev.knowledgeBaseIds.filter(id => id !== kb.id)
-                              : [...prev.knowledgeBaseIds, kb.id]
+                            knowledgeBaseIds: prev.knowledgeBaseIds.includes(
+                              kb.id
+                            )
+                              ? prev.knowledgeBaseIds.filter(
+                                  (id) => id !== kb.id
+                                )
+                              : [...prev.knowledgeBaseIds, kb.id],
                           }));
                         }}
                       >
@@ -703,29 +903,34 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                               checked={isSelected}
                               className="mt-0.5 scale-90"
                               onCheckedChange={() => {
-                                setFormData(prev => ({
+                                setFormData((prev) => ({
                                   ...prev,
-                                  knowledgeBaseIds: prev.knowledgeBaseIds.includes(kb.id)
-                                    ? prev.knowledgeBaseIds.filter(id => id !== kb.id)
-                                    : [...prev.knowledgeBaseIds, kb.id]
+                                  knowledgeBaseIds:
+                                    prev.knowledgeBaseIds.includes(kb.id)
+                                      ? prev.knowledgeBaseIds.filter(
+                                          (id) => id !== kb.id
+                                        )
+                                      : [...prev.knowledgeBaseIds, kb.id],
                                 }));
                               }}
                             />
-                            
+
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm text-gray-900 truncate">{kb.name}</h4>
+                                  <h4 className="font-medium text-sm text-gray-400 truncate ">
+                                    {kb.name}
+                                  </h4>
                                   {kb.summary && (
                                     <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
                                       {kb.summary}
                                     </p>
                                   )}
                                 </div>
-                                
+
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                  <Badge 
-                                    variant="outline" 
+                                  <Badge
+                                    variant="outline"
                                     className={`text-[0.65rem] ${typeInfo.color} border-current px-1.5 py-0.5`}
                                   >
                                     <typeInfo.icon className="w-2.5 h-2.5 mr-0.5" />
@@ -736,7 +941,7 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center gap-2 mt-1 text-[0.65rem] text-gray-500">
                                 <span className="flex items-center gap-0.5">
                                   <Calendar className="w-2.5 h-2.5" />
@@ -752,10 +957,13 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                     );
                   })}
                 </div>
-                
+
                 <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
                   <Database className="w-3.5 h-3.5" />
-                  <span>💡 Selected knowledge sources will enhance your agent's responses.</span>
+                  <span>
+                    💡 Selected knowledge sources will enhance your agent's
+                    responses.
+                  </span>
                 </div>
               </div>
             ) : (
@@ -763,51 +971,30 @@ const convertArrayToChannelsObject = (selected: string[]) => {
                 <CardContent className="p-4 text-center">
                   <Database className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <h3 className="font-medium text-sm text-gray-900 mb-1">
-                    {kbSearchTerm || kbTypeFilter !== 'all' 
-                      ? 'No matching knowledge sources found' 
-                      : 'No knowledge sources available'}
+                    {kbSearchTerm || kbTypeFilter !== "all"
+                      ? "No matching knowledge sources found"
+                      : "No knowledge sources available"}
                   </h3>
                   <p className="text-xs text-gray-600 mb-3">
-                    {kbSearchTerm || kbTypeFilter !== 'all'
-                      ? 'Try adjusting your search or filter criteria.'
-                      : 'Create knowledge sources to enhance your AI agent.'}
+                    {kbSearchTerm || kbTypeFilter !== "all"
+                      ? "Try adjusting your search or filter criteria."
+                      : "Create knowledge sources to enhance your AI agent."}
                   </p>
-                  
+
                   <div className="flex gap-2 justify-center flex-wrap">
-                    {(kbSearchTerm || kbTypeFilter !== 'all') && (
-                      <Button 
-                        variant="outline" 
+                    {(kbSearchTerm || kbTypeFilter !== "all") && (
+                      <Button
+                        variant="outline"
                         size="sm"
                         className="h-7 px-2 text-xs"
                         onClick={() => {
-                          setKbSearchTerm('');
-                          setKbTypeFilter('all');
+                          setKbSearchTerm("");
+                          setKbTypeFilter("all");
                         }}
                       >
                         Clear Filters
                       </Button>
                     )}
-                    
-                    {!showConversationKBs && !(kbSearchTerm || kbTypeFilter !== 'all') && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => setShowConversationKBs(true)}
-                      >
-                        <MessageCircle className="w-3 h-3 mr-1" />
-                        Show Conversations
-                      </Button>
-                    )}
-                    
-                    <Button
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => window.open('/dashboard/app/ai/knowledgebase', '_blank')}
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Create Knowledge Base
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -821,14 +1008,14 @@ const convertArrayToChannelsObject = (selected: string[]) => {
 
   const handleNext = () => {
     if (currentStep < totalSteps && canProceed()) {
-      console.log('Moving to step:', currentStep + 1);
+      console.log("Moving to step:", currentStep + 1);
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      console.log('Moving back to step:', currentStep - 1);
+      console.log("Moving back to step:", currentStep - 1);
       setCurrentStep(currentStep - 1);
     }
   };
@@ -838,9 +1025,12 @@ const convertArrayToChannelsObject = (selected: string[]) => {
       case 1:
         return formData.name.trim().length >= 2;
       case 2:
-        return formData.name.trim().length >= 2 && 
-               formData.personality.trim().length >= 10 && 
-               formData.intent.trim().length >= 10;
+        return (
+          formData.name.trim().length >= 2 &&
+          formData.personality.trim().length >= 10 &&
+          formData.intent.trim().length >= 10 &&
+          tag.trim().length > 3
+        );
       case 3:
         return true; // Knowledge base selection is optional
       default:
@@ -850,40 +1040,72 @@ const convertArrayToChannelsObject = (selected: string[]) => {
 
   const getKBTypeInfo = (type: number) => {
     const types = {
-      1: { label: 'Conversation', icon: MessageCircle, color: 'text-blue-600 bg-blue-100 border-blue-200', description: 'Auto-generated from conversations' },
-      2: { label: 'File Upload', icon: FileText, color: 'text-green-600 bg-green-100 border-green-200', description: 'Uploaded documents and files' },
-      3: { label: 'FAQ', icon: MessageSquare, color: 'text-purple-600 bg-purple-100 border-purple-200', description: 'Frequently asked questions' },
-      4: { label: 'Web Scraper', icon: Globe, color: 'text-orange-600 bg-orange-100 border-orange-200', description: 'Content from websites' }
+      1: {
+        label: "Conversation",
+        icon: MessageCircle,
+        color: "text-blue-600 bg-blue-100 border-blue-200",
+        description: "Auto-generated from conversations",
+      },
+      2: {
+        label: "File Upload",
+        icon: FileText,
+        color: "text-green-600 bg-green-100 border-green-200",
+        description: "Uploaded documents and files",
+      },
+      3: {
+        label: "FAQ",
+        icon: MessageSquare,
+        color: "text-purple-600 bg-purple-100 border-purple-200",
+        description: "Frequently asked questions",
+      },
+      4: {
+        label: "Web Scraper",
+        icon: Globe,
+        color: "text-orange-600 bg-orange-100 border-orange-200",
+        description: "Content from websites",
+      },
     };
-    return types[type as keyof typeof types] || { label: 'Unknown', icon: Database, color: 'text-gray-600 bg-gray-100 border-gray-200', description: 'Unknown type' };
+    return (
+      types[type as keyof typeof types] || {
+        label: "Unknown",
+        icon: Database,
+        color: "text-gray-600 bg-gray-100 border-gray-200",
+        description: "Unknown type",
+      }
+    );
   };
 
   const getFilteredKnowledgeBases = () => {
-    let filtered = showConversationKBs 
-      ? knowledgeBases 
-      : knowledgeBases.filter(kb => kb.type !== KB_SETTINGS.KB_CONVERSATION.type);
+    let filtered = showConversationKBs
+      ? knowledgeBases
+      : knowledgeBases.filter(
+          (kb) => kb.type !== KB_SETTINGS.KB_CONVERSATION.type
+        );
 
     // Apply search filter
     if (kbSearchTerm) {
-      filtered = filtered.filter(kb => 
-        kb.name.toLowerCase().includes(kbSearchTerm.toLowerCase()) ||
-        kb.summary?.toLowerCase().includes(kbSearchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (kb) =>
+          kb.name.toLowerCase().includes(kbSearchTerm.toLowerCase()) ||
+          kb.summary?.toLowerCase().includes(kbSearchTerm.toLowerCase())
       );
     }
 
     // Apply type filter
-    if (kbTypeFilter !== 'all') {
-      filtered = filtered.filter(kb => kb.type === kbTypeFilter);
+    if (kbTypeFilter !== "all") {
+      filtered = filtered.filter((kb) => kb.type === kbTypeFilter);
     }
 
     // Apply sorting
     filtered.sort((a, b) => {
       switch (kbSortBy) {
-        case 'name':
+        case "name":
           return a.name.localeCompare(b.name);
-        case 'created':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'type':
+        case "created":
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case "type":
           return a.type - b.type;
         default:
           return 0;
@@ -902,13 +1124,18 @@ const convertArrayToChannelsObject = (selected: string[]) => {
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-                <a href="/dashboard/app/ai/agents" className="hover:text-foreground transition-colors">
+                <a
+                  href="/dashboard/app/ai/agents"
+                  className="hover:text-foreground transition-colors"
+                >
                   AI Agents
                 </a>
                 <span>/</span>
-                <span className="text-foreground font-medium">Create New Agent</span>
+                <span className="text-foreground font-medium">
+                  Create New Agent
+                </span>
               </div>
-              
+
               {/* Clean Page Header */}
               <div className="text-center space-y-4">
                 <div className="flex items-center justify-center">
@@ -929,38 +1156,44 @@ const convertArrayToChannelsObject = (selected: string[]) => {
               {/* Clean Progress Section */}
               <div className="space-y-4 mt-8">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Step {currentStep} of {totalSteps}</span>
-                  <Badge variant="outline">
-                    {agentTypeName}
-                  </Badge>
+                  <span className="text-sm font-medium">
+                    Step {currentStep} of {totalSteps}
+                  </span>
+                  <Badge variant="outline">{agentTypeName}</Badge>
                 </div>
-                
+
                 <div className="space-y-3">
                   <Progress value={progress} className="h-2" />
-                  
+
                   {/* Simple Step Navigation */}
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { step: 1, title: "Basic Info", icon: Bot },
                       { step: 2, title: "Configure", icon: Settings },
-                      { step: 3, title: "Knowledge", icon: Database }
+                      { step: 3, title: "Knowledge", icon: Database },
                     ].map((stepInfo) => (
-                      <div 
+                      <div
                         key={stepInfo.step}
                         className={`p-3 rounded-lg border text-center transition-colors ${
                           currentStep === stepInfo.step
-                            ? 'bg-primary text-primary-foreground border-primary'
+                            ? "bg-primary text-primary-foreground border-primary"
                             : currentStep > stepInfo.step
-                            ? 'bg-green-50 border-green-200 text-green-700'
-                            : 'bg-gray-50 border-gray-200 text-gray-600'
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-gray-50 border-gray-200 text-gray-600"
                         }`}
                       >
-                        <stepInfo.icon className={`h-4 w-4 mx-auto mb-1 ${
-                          currentStep === stepInfo.step ? 'text-primary-foreground' 
-                          : currentStep > stepInfo.step ? 'text-green-600'
-                          : 'text-gray-500'
-                        }`} />
-                        <div className="text-sm font-medium">{stepInfo.title}</div>
+                        <stepInfo.icon
+                          className={`h-4 w-4 mx-auto mb-1 ${
+                            currentStep === stepInfo.step
+                              ? "text-primary-foreground"
+                              : currentStep > stepInfo.step
+                              ? "text-green-600"
+                              : "text-gray-500"
+                          }`}
+                        />
+                        <div className="text-sm font-medium">
+                          {stepInfo.title}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -970,9 +1203,7 @@ const convertArrayToChannelsObject = (selected: string[]) => {
 
             {/* Step Content */}
             <Card className="mb-8 border">
-              <CardContent className="p-8">
-                {renderStepContent()}
-              </CardContent>
+              <CardContent className="p-8">{renderStepContent()}</CardContent>
             </Card>
 
             {/* Navigation */}
@@ -1024,4 +1255,4 @@ const convertArrayToChannelsObject = (selected: string[]) => {
       </div>
     </div>
   );
-} 
+}

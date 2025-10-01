@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 import { MessageInput } from "./MessageInput";
@@ -15,20 +14,15 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+
 import {
   MessageCircle,
-  Phone,
-  Mail,
-  Globe,
-  Activity,
-  RefreshCw,
   ChevronUp,
   Bot,
   X,
   Search,
   CheckCircle,
-  AlertCircle,
   Train,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,25 +33,11 @@ import {
 } from "@/components/ui/tooltip";
 import { AutopilotFloatingButton } from "./components/AutopilotFloatingButton";
 import { getFeatureAIConfig } from "@/utils/ai/config/aiSettings";
-import { useMessages } from "./hooks/getMessages";
-import { useSendMessage } from "./hooks/useSendMessage";
-import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  MessageSquare,
-  Settings,
-  Clock,
-  CheckCircle2,
-  Wifi,
-  WifiOff,
-  Zap,
-} from "lucide-react";
 import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnable";
-// import { EmailContent, loadEmailContent } from "@/lib/leadconnector/emailUtils";
-// import { EmailContent } from "@/lib/leadconnector/emailUtils";
 import { loadEmailContent } from "@/utils/ghl/emailClient";
 
 import { useSocket } from "../../../../context/SocketProvider";
+import debounce from "lodash.debounce";
 
 interface ConversationHeaderProps {
   contact: Contact;
@@ -165,22 +145,6 @@ async function fetchWithDebug(url: string, options?: RequestInit) {
   }
 }
 
-// Helper function to get contact info from messages
-function getContactInfo(messages: Message[]): Contact {
-  if (!messages.length) return {};
-
-  // Try to find the most recent message with contact info
-  const messageWithContact = messages.find(
-    (msg) => msg.contactName || msg.fullName || msg.email || msg.phone
-  );
-
-  return {
-    name: messageWithContact?.contactName || messageWithContact?.fullName,
-    email: messageWithContact?.email,
-    phone: messageWithContact?.phone,
-  };
-}
-
 // Helper function to get avatar letter for customer
 function getCustomerAvatarLetter(
   message: Message,
@@ -211,8 +175,6 @@ function MessageBubble({
 }) {
   const getSafeBody = (msg: any): string => {
     if (!msg) return "";
-
-    console.log("🔍 Message object in getSafeBody:", msg); // Keep this for debugging
 
     // Handle nested body object
     if (msg.body && typeof msg.body === "object") {
@@ -555,7 +517,6 @@ export function ConversationDetails({
   conversationId,
   locationId,
 }: ConversationDetailsProps) {
-  // console.log("conversationId:", conversationId, "locationId:", locationId);
   // URL params
   const searchParams = useSearchParams();
   const urlContactInfo = {
@@ -563,24 +524,17 @@ export function ConversationDetails({
     email: searchParams.get("email") || undefined,
     phone: searchParams.get("phone") || undefined,
   };
-  // console.log("urlContactInfo:", urlContactInfo);
-  // Add these constants near the top of the component
 
-  // Add these state variables
-
-  const [pollingIntervalId, setPollingIntervalId] =
-    useState<NodeJS.Timeout | null>(null);
   // State
   const [messages, setMessages] = useState<any[]>([]);
-  const [messagesList, setMessagesList] = useState<Message[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(
     null
   );
   const [showQueryInput, setShowQueryInput] = useState(false);
   const [activeAgent, setActiveAgent] = useState<any>(null);
-  const [autopilotEnabled, setAutopilotEnabled] = useState(false);
-  const [autopilotStatus, setAutopilotStatus] = useState<any>(null);
+
+  const [newMessage, setNewMessage] = useState("");
 
   // Pagination state
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -589,9 +543,13 @@ export function ConversationDetails({
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isTraining, setIsTraining] = useState(false);
   const [isRegeneratingSummary, setIsRegeneratingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🆕 Add request deduplication
+  const [isTrainingInProgress, setIsTrainingInProgress] = useState(false);
+  const [lastTrainingAttempt, setLastTrainingAttempt] = useState<number>(0);
+  const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -600,10 +558,7 @@ export function ConversationDetails({
   const { socket } = useSocket();
 
   // Add disabled state for UI interactions
-  const disabled = isLoading || isTraining || isRegeneratingSummary;
-
-  // Add state for summary expansion
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+  const disabled = isLoading || isRegeneratingSummary;
 
   // Conversation settings state
   const [conversationSettings, setConversationSettings] = useState<any>(null);
@@ -658,45 +613,6 @@ export function ConversationDetails({
     }
   };
 
-  // Helper function to extract messages from API response
-  // const extractMessagesFromResponse = (messagesData: any) => {
-  //   let pageMessages = [];
-
-  //   if (messagesData?.success && messagesData?.data) {
-  //     // New standardized format: { success: true, data: { messages: { messages: [...] } } }
-  //     if (messagesData.data.messages?.messages) {
-  //       pageMessages = messagesData.data.messages.messages;
-  //       debug.log('ConversationDetails', 'Using standardized format - nested messages');
-  //     }
-  //     // Alternative format: { success: true, data: { messages: [...] } }
-  //     else if (Array.isArray(messagesData.data.messages)) {
-  //       pageMessages = messagesData.data.messages;
-  //       debug.log('ConversationDetails', 'Using standardized format - direct messages array');
-  //     }
-  //     // Direct data format: { success: true, data: [...] }
-  //     else if (Array.isArray(messagesData.data)) {
-  //       pageMessages = messagesData.data;
-  //       debug.log('ConversationDetails', 'Using standardized format - data is messages array');
-  //     }
-  //   }
-  //   // Legacy format: { messages: { messages: [...] } }
-  //   else if (messagesData?.messages?.messages) {
-  //     pageMessages = messagesData.messages.messages;
-  //     debug.log('ConversationDetails', 'Using legacy format');
-  //   }
-  //   // Direct messages array
-  //   else if (Array.isArray(messagesData?.messages)) {
-  //     pageMessages = messagesData.messages;
-  //     debug.log('ConversationDetails', 'Using direct messages array');
-  //   }
-  //   // Root level messages array
-  //   else if (Array.isArray(messagesData)) {
-  //     pageMessages = messagesData;
-  //     debug.log('ConversationDetails', 'Using root level messages array');
-  //   }
-
-  //   return pageMessages;
-  // };
   const extractMessagesFromResponse = (messagesData: any) => {
     let pageMessages = [];
 
@@ -749,6 +665,7 @@ export function ConversationDetails({
       return dateA - dateB;
     });
   };
+
   // Load conversation settings
   const loadConversationSettings = async () => {
     try {
@@ -948,11 +865,6 @@ export function ConversationDetails({
     }
   }
 
-  // 🆕 Add request deduplication
-  const [isTrainingInProgress, setIsTrainingInProgress] = useState(false);
-  const [lastTrainingAttempt, setLastTrainingAttempt] = useState<number>(0);
-  const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Enhanced background training function with deduplication
   async function startBackgroundTrainingWithRetry(
     aiConfig: any,
@@ -996,9 +908,6 @@ export function ConversationDetails({
         { method: "GET" }
       );
 
-      if (messagesResponse?.data.messages?.messages) {
-        setMessagesList(messagesResponse?.data.messages?.messages as Message[]);
-      }
       if (!messagesResponse?.messages?.messages?.length) {
         throw new Error("No messages found for training");
       }
@@ -1119,11 +1028,6 @@ export function ConversationDetails({
     }
   }
 
-  // Legacy function kept for compatibility
-  async function startBackgroundTraining(aiConfig: any) {
-    return startBackgroundTrainingWithRetry(aiConfig, 0);
-  }
-
   // 🔄 SYNC: Training status with conversation metadata
   async function syncTrainingStatusWithMetadata(
     trainingStatus: any,
@@ -1218,7 +1122,6 @@ export function ConversationDetails({
       );
       if (response.ok) {
         const data = await response.json();
-        setAutopilotEnabled(data.config?.isEnabled || false);
         debug.log(
           "ConversationDetails",
           "✅ BACKGROUND: Autopilot status loaded"
@@ -1391,44 +1294,6 @@ export function ConversationDetails({
     }
   };
 
-  // Handle manual training
-  async function handleManualTraining() {
-    debug.log("ConversationDetails", "Manual training triggered", {
-      conversationId,
-      locationId,
-    });
-
-    try {
-      setIsTraining(true);
-      setError(null);
-
-      // Get AI configuration
-      const aiConfig = getFeatureAIConfig("training");
-
-      // Start manual training
-      await startBackgroundTrainingWithRetry(aiConfig);
-
-      toast.success("Training started manually!");
-    } catch (err) {
-      debug.error("ConversationDetails", "Manual training failed:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to start training";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      setTrainingStatus((prev) =>
-        prev
-          ? { ...prev, isTraining: false }
-          : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
-      );
-    }
-  }
-
   // Handle manual summary regeneration
   async function handleRegenerateSummary() {
     debug.log("ConversationDetails", "Regenerating summary", {
@@ -1450,16 +1315,6 @@ export function ConversationDetails({
 
       // Get AI configuration for summary feature
       const aiConfig = getFeatureAIConfig("summary");
-
-      // console.log("📝 Summary generation request:", {
-      //   conversationId,
-      //   locationId,
-      //   aiConfig: {
-      //     model: aiConfig.model,
-      //     temperature: aiConfig.temperature,
-      //     humanlikeBehavior: aiConfig.humanlikeBehavior,
-      //   },
-      // });
 
       // Call FastAPI directly to generate a fresh summary with AI configuration
       const summaryData = await fetchWithDebug(`/api/ai/conversation/summary`, {
@@ -1810,36 +1665,10 @@ export function ConversationDetails({
     }
   };
 
-  // Auto-scroll to bottom
-  // useEffect(() => {
-  //   const scrollToBottom = () => {
-  //     const scrollArea = messagesEndRef.current?.closest(
-  //       "[data-radix-scroll-area-viewport]"
-  //     );
-  //     if (scrollArea) {
-  //       scrollArea.scrollTop = scrollArea.scrollHeight;
-  //     }
-  //   };
-
-  //   // Small delay to ensure DOM is updated
-  //   const timeoutId = setTimeout(scrollToBottom, 100);
-  //   return () => clearTimeout(timeoutId);
-  // }, [messages]);
-
   // Load conversation settings (moved from old useEffect)
   useEffect(() => {
     loadConversationSettings();
   }, [conversationId]);
-
-  // Auto-scroll to bottom when new messages arrive (latest messages)
-  // useEffect(() => {
-  //   if (messages.length > 0) {
-  //     // Small delay to ensure DOM is updated
-  //     setTimeout(() => {
-  //       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  //     }, 100);
-  //   }
-  // }, [messages.length]);
 
   // Load initial data - FAST LOADING: Messages first, AI features in background
   useEffect(() => {
@@ -1987,14 +1816,10 @@ export function ConversationDetails({
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
-      console.log("🆕 Messages changed. Total messages:", messages.length);
-
       // Small delay to ensure DOM is updated before scroll
       const timeoutId = setTimeout(() => {
         if (messagesEndRef.current) {
-          console.log("📌 Scrolling to last message:", messagesEndRef.current);
           messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-          console.log("✅ Auto-scrolled to bottom");
         } else {
           console.warn("⚠️ messagesEndRef not found, cannot scroll");
         }
@@ -2007,342 +1832,111 @@ export function ConversationDetails({
     }
   }, [messages]);
 
-  // Handle autopilot toggle - actually save the setting and fetch conversation metadata
-  const handleAutopilotToggle = async () => {
-    try {
-      const newAutopilotState = !autopilotEnabled;
-      // console.log("🔄 Toggling autopilot:", {
-      //   from: autopilotEnabled,
-      //   to: newAutopilotState,
-      // });
 
-      // PRIORITY 1: Use URL contact info if available (most reliable)
-      let effectiveContactInfo = null;
-      let conversationDetails = null;
+  // const sendReply = async (message: string) => {
+  //   // Get all agents and match tags - 
+  //   try {
+  //     const replyResponse = await fetch("/api/autopilot/reply-ai", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         message,
+  //       }),
+  //     });
 
-      if (
-        urlContactInfo &&
-        (urlContactInfo.name || urlContactInfo.email || urlContactInfo.phone)
-      ) {
-        effectiveContactInfo = {
-          firstName: urlContactInfo.name?.split(" ")[0] || "",
-          lastName: urlContactInfo.name?.split(" ").slice(1).join(" ") || "",
-          email: urlContactInfo.email || "",
-          phone: urlContactInfo.phone || "",
-          id: "url-contact-info", // placeholder ID
-        };
+  //     if (!replyResponse.ok) {
+  //       throw new Error(`Failed to send reply: ${replyResponse.status}`);
+  //     }
 
-        // console.log("✅ Using URL contact info (highest priority):", {
-        //   contactName: urlContactInfo.name,
-        //   contactEmail: urlContactInfo.email,
-        //   contactPhone: urlContactInfo.phone,
-        //   source: "URL_PARAMS",
-        // });
-      }
+  //     const data = await replyResponse.json();
 
-      // Save to conversation settings first
-      const currentSettings = conversationSettings || {
-        agents: {},
-        features: {
-          query: { enabled: true, contextDepth: 20 },
-          suggestions: { enabled: true, limit: 3, contextDepth: 20 },
-          autopilot: {
-            enabled: false,
-            contextDepth: 20,
-            confidenceThreshold: 0.7,
-          },
-        },
-      };
+  //     setNewMessage(data?.reply);
 
-      const updatedSettings = {
-        ...currentSettings,
-        features: {
-          ...currentSettings.features,
-          autopilot: {
-            enabled: true,
-            contextDepth:
-              currentSettings.features?.autopilot?.contextDepth || 20,
-            confidenceThreshold:
-              currentSettings.features?.autopilot?.confidenceThreshold || 0.7,
-          },
-        },
-      };
+  //     return data;
+  //   } catch (error) {
+  //     console.error("❌ Error in sendReply:", error);
+  //     return null;
+  //   }
+  // };
 
-      // PRIORITY 2: Fetch conversation details from GHL API as fallback
 
-      if (newAutopilotState) {
-        // Only fetch GHL API data if we don't have URL contact info
-        if (!effectiveContactInfo) {
-          try {
-            // console.log(
-            //   "🔍 Fetching conversation details from GHL API (fallback)..."
-            // );
-            const conversationResponse = await fetch(
-              `/api/leadconnector/conversations/${conversationId}`
-            );
+  // useEffect(() => {
+  //   if (!socket) {
+  //     console.log("⚠️ No socket found, skipping listener setup");
+  //     return;
+  //   }
 
-            if (conversationResponse.ok) {
-              const conversationData = await conversationResponse.json();
-              if (conversationData.success && conversationData.data) {
-                conversationDetails = conversationData.data;
-                effectiveContactInfo = conversationData.data.contact;
+  //   const handleNewMessage = (response: any) => {
+  //     sendReply(response?.message || response?.message?.body || "");
 
-                // console.log("✅ Retrieved conversation details from API:", {
-                //   conversationId: conversationDetails.id,
-                //   conversationName:
-                //     conversationDetails.name ||
-                //     `Conversation ${conversationId.slice(0, 8)}`,
-                //   contactName: effectiveContactInfo
-                //     ? `${effectiveContactInfo.firstName || ""} ${
-                //         effectiveContactInfo.lastName || ""
-                //       }`.trim()
-                //     : "Unknown",
-                //   contactEmail: effectiveContactInfo?.email,
-                //   contactPhone: effectiveContactInfo?.phone,
-                //   contactId: effectiveContactInfo?.id,
-                //   conversationType: conversationDetails.type,
-                //   source: "GHL_API",
-                // });
-              }
-            }
-          } catch (error) {
-            // console.warn(
-            //   "⚠️ Could not fetch conversation details, continuing with autopilot setup:",
-            //   error
-            // );
-          }
-        } else {
-          // console.log("⏭️ Skipping GHL API fetch - using URL contact info");
-        }
-      }
+  //     // If response already has the complete message structure, use it directly
+  //     if (response && response.id && response.direction) {
+  //       setMessages((prev) => [...prev, response]);
+  //     } else {
+  //       // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
+  //       // OR maybe the opposite? Let's try both ways...
 
-      // Save conversation metadata with enhanced contact and conversation info
-      const enhancedSettings = {
-        ...updatedSettings,
-        // Store contact information for future reference
-        contactInfo: effectiveContactInfo
-          ? {
-              name:
-                `${effectiveContactInfo.firstName || ""} ${
-                  effectiveContactInfo.lastName || ""
-                }`.trim() || urlContactInfo?.name,
-              email: effectiveContactInfo.email,
-              phone: effectiveContactInfo.phone,
-              source:
-                effectiveContactInfo.id === "url-contact-info"
-                  ? "url_params"
-                  : "ghl_api",
-            }
-          : urlContactInfo?.name ||
-            urlContactInfo?.email ||
-            urlContactInfo?.phone
-          ? {
-              name: urlContactInfo.name,
-              email: urlContactInfo.email,
-              phone: urlContactInfo.phone,
-              source: "url_params",
-            }
-          : null,
-        // Store conversation metadata
-        conversationInfo: {
-          lastUpdated: new Date().toISOString(),
-          autopilotEnabledAt: newAutopilotState
-            ? new Date().toISOString()
-            : null,
-        },
-      };
+  //       // Try option 1: type 19 = inbound (received)
+  //       const direction = response?.type === 19 ? "inbound" : "outbound";
+  //       const status = direction === "outbound" ? "sent" : "delivered";
 
-      const metaResponse = await fetch("/api/conversation-meta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          locationId,
-          ai_settings: enhancedSettings,
-        }),
-      });
+  //       // If that doesn't work, try option 2: type 19 = outbound (sent)
+  //       // const direction = response?.type === 19 ? "outbound" : "inbound";
+  //       // const status = direction === "outbound" ? "sent" : "delivered";
 
-      if (!metaResponse.ok) {
-        throw new Error("Failed to save conversation settings");
-      }
+  //       // Fallback: construct message object if response is incomplete
+  //       const newMessage = {
+  //         id: response?.id || Date.now().toString(),
+  //         body: response?.body || response?.message || "",
+  //         type: response?.type || "text",
+  //         direction: direction,
+  //         conversationId: response?.conversationId || "temp",
+  //         contactId: response?.contactId || "unknown",
+  //         dateAdded: response?.dateAdded || new Date().toISOString(),
+  //         dateUpdated: response?.dateUpdated || new Date().toISOString(),
+  //         source: response?.source || "app",
+  //         altId: response?.altId || Math.random().toString(36).substring(2),
+  //         messageType: response?.messageType || "TYPE_WHATSAPP",
+  //         status: status,
+  //         contentType: response?.contentType || "text/plain",
+  //         attachments: response?.attachments || [],
+  //         locationId: response?.locationId || "",
+  //       };
 
-      if (newAutopilotState) {
-        // Enable autopilot - create/update autopilot config with enhanced metadata
-        const autopilotConfig = {
-          conversationId,
-          locationId,
-          isEnabled: true,
-          replyDelayMinutes: 5,
-          maxRepliesPerConversation: 5,
-          maxRepliesPerDay: 10,
-          messageType: "SMS",
-          preferConversationType: true,
-          operatingHours: {
-            enabled: false,
-            start: "09:00",
-            end: "17:00",
-            timezone: "UTC",
-            days: [1, 2, 3, 4, 5],
-          },
-          aiModel: "gpt-4o-mini",
-          aiTemperature: 0.7,
-          aiMaxTokens: 500,
-          fallbackMessage:
-            "Thank you for your message. I will get back to you as soon as possible.",
-          customPrompt: "",
-          cancelOnUserReply: true,
-          requireHumanKeywords: [],
-          excludeKeywords: [],
-          // Fix: Pass null instead of 'default' when no agent is selected (database expects UUID)
-          aiAgentId: (updatedSettings.agents as any)?.autopilot || null,
-          // NEW: Include conversation and contact metadata
-          conversationMetadata: conversationDetails
-            ? {
-                conversationName: conversationDetails.name || "",
-                lastUpdated:
-                  conversationDetails.lastMessageDate ||
-                  new Date().toISOString(),
-                messageCount: conversationDetails.messageCount || 0,
-                status: conversationDetails.status || "open",
-              }
-            : null,
-          contactMetadata: effectiveContactInfo
-            ? {
-                contactId: effectiveContactInfo.id || "url-contact",
-                firstName: effectiveContactInfo.firstName || "",
-                lastName: effectiveContactInfo.lastName || "",
-                fullName:
-                  `${effectiveContactInfo.firstName || ""} ${
-                    effectiveContactInfo.lastName || ""
-                  }`.trim() ||
-                  urlContactInfo?.name ||
-                  "",
-                email: effectiveContactInfo.email || "",
-                phone: effectiveContactInfo.phone || "",
-                source: effectiveContactInfo.source || "url_params",
-                dateAdded:
-                  effectiveContactInfo.dateAdded || new Date().toISOString(),
-              }
-            : null,
-        };
+  //       setMessages((prev) => [...prev, newMessage]);
+  //     }
+  //   };
 
-        const autopilotResponse = await fetch("/api/autopilot/config", {
+  //   socket.on("new_message", handleNewMessage);
+
+  //   return () => {
+  //     socket.off("new_message", handleNewMessage);
+  //   };
+  // }, [socket]);
+
+
+
+  const processedMessagesRef = useRef<Set<string>>(new Set());
+
+  // ✅ Debounced reply (runs once even if spammed)
+  const debouncedSendReply = useRef(
+    debounce(async (message: string, messageId: string) => {
+      try {
+        const replyResponse = await fetch("/api/autopilot/reply-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(autopilotConfig),
+          body: JSON.stringify({ message, messageId }),
         });
 
-        if (!autopilotResponse.ok) {
-          const errorData = await autopilotResponse.json();
-          throw new Error(errorData.error || "Failed to enable autopilot");
+        const data = await replyResponse.json();
+        if (!data?.skipped && data?.reply) {
+          setNewMessage(data.reply);
         }
-
-        // NEW: Also create/update autopilot conversation tracking with contact details
-        try {
-          const fullContactName = effectiveContactInfo
-            ? `${effectiveContactInfo.firstName || ""} ${
-                effectiveContactInfo.lastName || ""
-              }`.trim()
-            : "";
-          // Create a better conversation name using contact info if available
-          const contactName =
-            fullContactName || urlContactInfo?.name || "Unknown Contact";
-          const conversationName =
-            conversationDetails?.name ||
-            (contactName !== "Unknown Contact"
-              ? `${contactName} Conversation`
-              : `Conversation ${conversationId.slice(0, 8)}`);
-
-          const trackingData = {
-            conversationId,
-            locationId,
-            contactName:
-              fullContactName || urlContactInfo?.name || "Unknown Contact",
-            contactPhone: effectiveContactInfo?.phone || "",
-            contactEmail: effectiveContactInfo?.email || "",
-            conversationStatus: conversationDetails?.status || "open",
-            conversationType: conversationDetails?.type || "SMS",
-            conversationName: conversationName,
-            autopilotEnabled: true,
-            lastSeen: new Date().toISOString(),
-          };
-
-          const trackingResponse = await fetch("/api/autopilot/tracking", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(trackingData),
-          });
-
-          if (trackingResponse.ok) {
-            // console.log("✅ Autopilot tracking created with contact details:", {
-            //   conversationId,
-            //   contactName: trackingData.contactName,
-            //   conversationName: trackingData.conversationName,
-            //   contactSource:
-            //     effectiveContactInfo?.id === "url-contact-info"
-            //       ? "URL_PARAMS"
-            //       : "GHL_API",
-            //   hasUrlContact: !!urlContactInfo?.name,
-            //   hasEffectiveContact: !!effectiveContactInfo,
-            // });
-          } else {
-            console.warn(
-              "⚠️ Could not create autopilot tracking, but autopilot is still enabled"
-            );
-          }
-        } catch (trackingError) {
-          console.warn("⚠️ Tracking setup failed:", trackingError);
-        }
-
-        toast.success(
-          <div className="space-y-1">
-            <p className="font-medium">
-              🤖 Autopilot enabled for this conversation
-            </p>
-            {effectiveContactInfo && (
-              <p className="text-sm text-muted-foreground">
-                Contact: {effectiveContactInfo.firstName}{" "}
-                {effectiveContactInfo.lastName}
-                {effectiveContactInfo.email &&
-                  ` (${effectiveContactInfo.email})`}
-              </p>
-            )}
-            {!effectiveContactInfo && urlContactInfo?.name && (
-              <p className="text-sm text-muted-foreground">
-                Contact: {urlContactInfo.name}
-                {urlContactInfo.email && ` (${urlContactInfo.email})`}
-              </p>
-            )}
-          </div>
-        );
-      } else {
-        // Disable autopilot - delete autopilot config
-        const deleteResponse = await fetch(
-          `/api/autopilot/config?conversationId=${conversationId}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        if (!deleteResponse.ok) {
-          console.warn("Failed to delete autopilot config, but continuing...");
-        }
-
-        toast.success("🚫 Autopilot disabled for this conversation");
+      } catch (error) {
+        console.error("❌ Error in sendReply:", error);
       }
-
-      // Update local state
-      setAutopilotEnabled(newAutopilotState);
-      setConversationSettings(updatedSettings);
-    } catch (error) {
-      console.error("Error toggling autopilot:", error);
-      toast.error(
-        `Failed to ${autopilotEnabled ? "disable" : "enable"} autopilot: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  };
+    }, 1000)
+  ).current;
 
   useEffect(() => {
     if (!socket) {
@@ -2351,58 +1945,51 @@ export function ConversationDetails({
     }
 
     const handleNewMessage = (response: any) => {
-      handleAutopilotToggle();
-      console.log("📩 Incoming socket event:", response);
+      const messageId =
+        response?.id ||
+        response?.altId ||
+        response?.dateAdded ||
+        Date.now().toString();
 
-      // If response already has the complete message structure, use it directly
-      if (response && response.id && response.direction) {
-        console.log("📝 Complete message object received:", response);
-        setMessages((prev) => [...prev, response]);
-      } else {
-        // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
-        // OR maybe the opposite? Let's try both ways...
-
-        // Try option 1: type 19 = inbound (received)
-        const direction = response?.type === 19 ? "inbound" : "outbound";
-        const status = direction === "outbound" ? "sent" : "delivered";
-
-        // If that doesn't work, try option 2: type 19 = outbound (sent)
-        // const direction = response?.type === 19 ? "outbound" : "inbound";
-        // const status = direction === "outbound" ? "sent" : "delivered";
-
-        // Fallback: construct message object if response is incomplete
-        const newMessage = {
-          id: response?.id || Date.now().toString(),
-          body: response?.body || response?.message || "",
-          type: response?.type || "text",
-          direction: direction,
-          conversationId: response?.conversationId || "temp",
-          contactId: response?.contactId || "unknown",
-          dateAdded: response?.dateAdded || new Date().toISOString(),
-          dateUpdated: response?.dateUpdated || new Date().toISOString(),
-          source: response?.source || "app",
-          altId: response?.altId || Math.random().toString(36).substring(2),
-          messageType: response?.messageType || "TYPE_WHATSAPP",
-          status: status,
-          contentType: response?.contentType || "text/plain",
-          attachments: response?.attachments || [],
-          locationId: response?.locationId || "",
-        };
-
-        console.log("📝 Constructed message:", newMessage);
-        setMessages((prev) => [...prev, newMessage]);
+      // ✅ Process only inbound once
+      if (response?.type === 19 && !processedMessagesRef.current.has(messageId)) {
+        processedMessagesRef.current.add(messageId);
+        debouncedSendReply(response?.message || response?.body || "", messageId);
       }
+
+      // Always add to UI
+      const direction = response?.type === 19 ? "inbound" : "outbound";
+      const status = direction === "outbound" ? "sent" : "delivered";
+
+      const newMessageObj = {
+        id: messageId,
+        body: response?.body || response?.message || "",
+        type: response?.type || "text",
+        direction,
+        conversationId: response?.conversationId || "temp",
+        contactId: response?.contactId || "unknown",
+        dateAdded: response?.dateAdded || new Date().toISOString(),
+        dateUpdated: response?.dateUpdated || new Date().toISOString(),
+        source: response?.source || "app",
+        altId: response?.altId || Math.random().toString(36).substring(2),
+        messageType: response?.messageType || "TYPE_WHATSAPP",
+        status,
+        contentType: response?.contentType || "text/plain",
+        attachments: response?.attachments || [],
+        locationId: response?.locationId || "",
+      };
+
+      setMessages((prev) => [...prev, newMessageObj]);
     };
 
     socket.on("new_message", handleNewMessage);
-    console.log("🔌 Listener attached for: new_message");
 
     return () => {
       socket.off("new_message", handleNewMessage);
-      console.log("❌ Listener removed for: new_message");
+      processedMessagesRef.current.clear();
+      debouncedSendReply.cancel();
     };
-  }, [socket]);
-
+  }, [socket, debouncedSendReply]);
   // Loading state
   if (isLoading) {
     return (
@@ -2450,13 +2037,6 @@ export function ConversationDetails({
                 size="sm"
                 variant={trainingStatus?.isTrained ? "outline" : "default"}
                 onClick={() => {
-                  // console.log("TRAIN BUTTON CLICKED!");
-                  // console.log("Button state:", {
-                  //   isTraining: trainingStatus?.isTraining,
-                  //   fastApiOnline: fastApiStatus.isOnline,
-                  //   disabled:
-                  //     trainingStatus?.isTraining || !fastApiStatus.isOnline,
-                  // });
                   handleManualTrain();
                 }}
                 disabled={trainingStatus?.isTraining || !fastApiStatus.isOnline}
@@ -2677,6 +2257,7 @@ export function ConversationDetails({
       {/* Message Input - Fixed bottom with responsive sizing */}
       <div className="border-t border-border/30 bg-background flex-shrink-0">
         <MessageInput
+          newMessage={newMessage}
           conversationId={conversationId}
           recentMessages={messages}
           onToggleQuery={setShowQueryInput}

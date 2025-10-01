@@ -111,23 +111,21 @@ function AgentDetailClientPage({
   });
   const [testInput, setTestInput] = useState("");
   const [testResult, setTestResult] = useState<string | null>(null);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
   const [ghlTags, setGhlTags] = useState<
     { id: string; name: string; locationId: string }[]
   >([]);
+  const [tag, setTag] = useState<string>(""); // instead of tags[]
+  const [newTag, setNewTag] = useState("");
 
   const handleAddTag = () => {
-    if (newTag.trim() !== "" && !tags.includes(newTag)) {
-      setTags([...tags, newTag]);
+    if (newTag.trim() !== "") {
+      setTag(newTag.trim());
       setNewTag("");
     }
   };
 
-  const handleDeleteTag = (tagToDelete: string) => {
-    debugger
-    console.log("tagToDelete",tagToDelete)
-    setTags(tags.filter((t) => t !== tagToDelete));
+  const handleDeleteTag = () => {
+    setTag("");
   };
 
   // Helper function to convert agent type number to string
@@ -278,7 +276,7 @@ function AgentDetailClientPage({
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
-        setTags(agentData.tags || []);
+        setTag(agentData.tag);
       } else {
         throw new Error(data.error || "Failed to load agent");
       }
@@ -314,7 +312,6 @@ function AgentDetailClientPage({
       setGhlTags(json.data?.tags);
       return json.data?.tags || [];
     } catch (error) {
-      // console.error("Error fetching tags:", error);
       toast.error("Failed to load tags");
       return [];
     }
@@ -346,7 +343,7 @@ function AgentDetailClientPage({
             personality: editForm.personality,
             intent: editForm.intent,
             additionalInformation: editForm.additionalInformation,
-            tags,
+            tag,
           },
           is_active: editForm.isActive,
           channels: channelsObject,
@@ -990,89 +987,16 @@ function AgentDetailClientPage({
           </Card>
 
           {/* Tags editing={editing}*/}
-          <AddTagsModal ghlTags={ghlTags}  editing={editing} setTags={setTags} tags={tags} setNewTag={setNewTag} handleAddTag={handleAddTag} newTag={newTag} handleDeleteTag={handleDeleteTag} />
-          {/* <Card>
-            <CardHeader>
-              <CardTitle>Tags</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {tags?.length > 0 ? (
-                tags?.map((tag, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between space-x-2 mb-3"
-                  >
-                 
-                    <div className="flex items-center space-x-2">
-                      <label
-                        htmlFor={tag}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {tag}
-                      </label>
-                    </div>
-
-                    {editing && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTag(tag)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500 italic">
-                  No tags available. Enable editing to add tags.
-                </p>
-              )}
-
-      
-              {editing && (
-                <>
-         
-                  <div className="mt-2">
-                    <label htmlFor="tags-dropdown" className="sr-only">
-                      Choose tag
-                    </label>
-                    <select
-                      id="tags-dropdown"
-                      value=""
-                      onChange={(e) => {
-                        const selected = e.target.value;
-                        if (
-                          selected &&
-                          !tags.includes(selected) 
-                        ) {
-                          setTags([...tags, selected]);
-                        }
-                      }}
-                      className="w-full rounded-md border px-3 py-2 text-sm"
-                    >
-                      <option value="">Choose your GHL tags</option>
-                      {ghlTags?.map((tag, idx) => (
-                        <option key={idx} value={tag?.name}>
-                          {tag?.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                 
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Input
-                      placeholder="Enter new tag"
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                    />
-                    <Button onClick={handleAddTag}>Add</Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card> */}
+          <AddTagsModal
+            ghlTags={ghlTags}
+            editing={editing}
+            setTag={setTag}
+            tag={tag}
+            setNewTag={setNewTag}
+            handleAddTag={handleAddTag}
+            newTag={newTag}
+            handleDeleteTag={handleDeleteTag}
+          />
         </div>
       </div>
     </div>
