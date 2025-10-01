@@ -168,11 +168,15 @@ export default function CreateAgentPage() {
       try {
         setLoadingKB(true);
         const response = await fetch("/api/ai/knowledgebase");
+        console.log("response......",response)
         const data = await response.json();
+        console.log("data......",data)
 
         if (data.success) {
+          
           const kbData = Array.isArray(data.data) ? data.data : [];
           console.log("Loaded all knowledge bases:", kbData);
+          
           setKnowledgeBases(kbData);
         } else {
           console.error("Failed to load knowledge bases:", data.error);
@@ -258,6 +262,7 @@ export default function CreateAgentPage() {
         model: formData.model,
         humanlikeBehavior: formData.humanlikeBehavior,
         channels: convertArrayToChannelsObject(selectedMessageTypes),
+        tag,//add tags
       };
 
       console.log("Creating agent with payload:", payload);
@@ -267,7 +272,6 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -475,7 +479,7 @@ export default function CreateAgentPage() {
                 </div>
 
                 {/* Additional Information */}
-                {/* <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="additionalInfo">
                     Additional Guidelines (Optional)
                   </Label>
@@ -495,7 +499,7 @@ export default function CreateAgentPage() {
                   <p className="text-xs text-muted-foreground">
                     Optional rules, tone guidelines, or specific instructions
                   </p>
-                </div> */}
+                </div>
 
                 {/* Variables */}
                 {/* <div className="space-y-2">
@@ -774,6 +778,7 @@ export default function CreateAgentPage() {
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
                         {kbTypes.map((type) => {
+          
                           const typeInfo = getKBTypeInfo(type);
                           return (
                             <SelectItem key={type} value={type.toString()}>
@@ -913,7 +918,7 @@ export default function CreateAgentPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm text-gray-900 truncate">
+                                  <h4 className="font-medium text-sm text-gray-400 truncate ">
                                     {kb.name}
                                   </h4>
                                   {kb.summary && (
