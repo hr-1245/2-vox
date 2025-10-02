@@ -365,7 +365,7 @@ export default function AIAgentsPage() {
       <TableHead>Agent</TableHead>
       <TableHead>Description</TableHead>
       <TableHead>Type</TableHead>
-      <TableHead>Status</TableHead>
+      {/* <TableHead>Status</TableHead> */}
       <TableHead>Created</TableHead>
       <TableHead className="text-right">Actions</TableHead>
     </TableRow>

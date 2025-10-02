@@ -100,7 +100,7 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
       </TableCell>
 
       {/* Status Toggle */}
-      <TableCell>
+      {/* <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {isActive ? 'Active' : 'Inactive'}
@@ -110,7 +110,7 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
             onCheckedChange={() => toggleAgentStatus(agent.id, isActive)}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* Created At */}
       <TableCell className="text-muted-foreground">
