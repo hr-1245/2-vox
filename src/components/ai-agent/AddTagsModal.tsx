@@ -93,7 +93,7 @@ export default function AddTagsModal({
             <Button
               variant="default"
               className="justify-between"
-              onClick={handleDeleteTag}
+              // onClick={handleDeleteTag}
             >
               {tag}
               {editing && (

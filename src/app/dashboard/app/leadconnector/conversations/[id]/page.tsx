@@ -9,6 +9,7 @@ interface ConversationPageProps {
     contact?: string;
     email?: string;
     phone?: string;
+    tags?:string[];
   }>;
 }
 
@@ -16,9 +17,26 @@ export default async function ConversationPage({
   params,
   searchParams,
 }: ConversationPageProps) {
-  const { id } = await params;
-  const { contact, email, phone } = await searchParams;
+  // const { id } = await params;
+  // const { contact, email, phone } = await searchParams;
 
+  // // Get provider data to get location ID
+  // const providerData = await getCurrentUserProviderData(
+  //   PROVIDER_TYPE.GHL_LOCATION
+  // );
+  // if (!providerData?.data?.location_id) {
+  //   notFound();
+  // }
+
+  // // Add query params for contact info that ConversationDetails will pick up
+  // const searchParamsString = new URLSearchParams({
+  //   ...(contact && { contact }),
+  //   ...(email && { email }),
+  //   ...(phone && { phone }),
+  // }).toString();
+  const { id } = await params;
+  const { contact, email, phone, tags } = await searchParams;
+console.log("tags.............t",tags)
   // Get provider data to get location ID
   const providerData = await getCurrentUserProviderData(
     PROVIDER_TYPE.GHL_LOCATION
@@ -27,18 +45,19 @@ export default async function ConversationPage({
     notFound();
   }
 
-  // Add query params for contact info that ConversationDetails will pick up
-  const searchParamsString = new URLSearchParams({
-    ...(contact && { contact }),
-    ...(email && { email }),
-    ...(phone && { phone }),
-  }).toString();
-
+  // Build search params string (include tags if present)
+  // const searchParamsString = new URLSearchParams({
+  //   ...(contact && { contact }),
+  //   ...(email && { email }),
+  //   ...(phone && { phone }),
+  //   ...(tags && { tags }), // 👈 add tags
+  // }).toString();
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <ConversationDetails
           conversationId={id}
+          tags={tags}
           locationId={providerData.data.location_id}
         />
       </div>

@@ -31,12 +31,13 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     fetchConversations,
     loadMore,
     refresh
-  } = useConversations({ 
+  } = useConversations({
     initialFilters: filters,
-    locationId: locationId 
+    locationId: locationId
   });
 
   // Auto-load conversations on mount
+  console.log("conversations,,,,,,,,,,", conversations)
   useEffect(() => {
     if (!isLoading && conversations.length === 0 && !error) {
       console.log('Auto-loading conversations...');
@@ -46,10 +47,10 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-    fetchConversations({
-      ...filters,
+      fetchConversations({
+        ...filters,
         query: searchQuery.trim()
-    });
+      });
     } else {
       // If search is empty, just refresh
       refresh();
@@ -61,14 +62,28 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     refresh();
   };
 
+  // const handleConversationClick = (conversation: Conversation) => {
+  //   const params = new URLSearchParams({
+  //     contact: conversation.contactName || conversation.fullName || '',
+  //     ...(conversation.email && { email: conversation.email }),
+  //     ...(conversation.phone && { phone: conversation.phone })
+  //   });
+
+  //   // Open conversation in a new tab
+  //   const url = `/dashboard/app/leadconnector/conversations/${conversation.id}?${params.toString()}`;
+  //   window.open(url, '_blank', 'noopener,noreferrer');
+  // };
   const handleConversationClick = (conversation: Conversation) => {
     const params = new URLSearchParams({
       contact: conversation.contactName || conversation.fullName || '',
       ...(conversation.email && { email: conversation.email }),
-      ...(conversation.phone && { phone: conversation.phone })
+      ...(conversation.phone && { phone: conversation.phone }),
+      ...(conversation.tags?.length
+        ? { tags: conversation.tags.join(",") } // serialize tags as comma-separated string
+        : {})
     });
-    
-    // Open conversation in a new tab
+console.log("params......:",params)
+    // Open conversation n a new tab
     const url = `/dashboard/app/leadconnector/conversations/${conversation.id}?${params.toString()}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -95,18 +110,18 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
               )}
             </div>
           </div>
-          
+
           {isLoading && (
             <div className="flex items-center text-muted-foreground">
               <RefreshCw className="w-4 h-4 animate-spin" />
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={isLoading}
             className="h-8 w-8 p-0"
@@ -125,9 +140,9 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
               <p className="font-semibold">Failed to load conversations</p>
               <p className="text-sm">{error}</p>
               {error.includes('connect') && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => router.push('/dashboard/app/leadconnector')}
                 >
                   Go to Lead Connector Settings
@@ -142,13 +157,13 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
+          <Input
             placeholder="Search conversations by contact name, email, or message content..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-10"
-        />
+          />
         </div>
         <Button onClick={handleSearch} disabled={isLoading} className="w-full sm:w-auto">
           <Search className="w-4 h-4 mr-2 sm:mr-1" />
@@ -156,8 +171,8 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
           <span className="hidden sm:inline">Search</span>
         </Button>
         {searchQuery && (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               setSearchQuery('');
               refresh();
@@ -185,19 +200,19 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
             <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No conversations found</h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery ? 
+              {searchQuery ?
                 'Try adjusting your search terms or clear the search to see all conversations.' :
                 'No conversations available at the moment.'
               }
             </p>
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
               disabled={isLoading}
               className="h-8 w-8 p-0"
-          >
+            >
               <RefreshCw className="w-4 h-4" />
-          </Button>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -205,12 +220,12 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
       {/* Conversations List */}
       {conversations.length > 0 && (
         <div className="space-y-6">
-        <ConversationsList 
-          conversations={conversations} 
-          isLoading={isLoading}
-          onConversationClick={handleConversationClick}
-        />
-          
+          <ConversationsList
+            conversations={conversations}
+            isLoading={isLoading}
+            onConversationClick={handleConversationClick}
+          />
+
           {/* Load More Section */}
           {hasMore && (
             <div className="flex flex-col items-center py-6 space-y-4">
@@ -219,14 +234,14 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
                   Showing {conversations.length} of {total.toLocaleString()} conversations
                 </p>
                 <div className="w-full max-w-md bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min((conversations.length / total) * 100, 100)}%` }}
                   />
                 </div>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore || isLoading}
                 variant="outline"
@@ -244,7 +259,7 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
               </Button>
             </div>
           )}
-          
+
           {/* End of Results */}
           {!hasMore && conversations.length > 0 && (
             <div className="text-center py-6">

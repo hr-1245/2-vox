@@ -388,6 +388,7 @@ export interface AIAgent {
   created_at?: string;
   updated_at?: string;
   tag: string;
+  model:string;
 }
 
 export interface AIAgentInsert {

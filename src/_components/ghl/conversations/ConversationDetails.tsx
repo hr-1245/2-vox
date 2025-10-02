@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
@@ -24,6 +24,8 @@ import {
   Search,
   CheckCircle,
   Train,
+  MessageSquare,
+  Phone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -70,6 +72,7 @@ const messageTypeLabels: Record<string, string> = {
 interface ConversationDetailsProps {
   conversationId: string;
   locationId: string;
+  tags: string;
 }
 
 interface Contact {
@@ -345,17 +348,17 @@ function MessageBubble({
         >
           {Array.isArray(message.messageType)
             ? message.messageType
-                .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
-                .map((type) => (
-                  <Badge key={type} variant="outline" className="h-5 px-2">
-                    {messageTypeLabels[type]}
-                  </Badge>
-                ))
-            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
-                <Badge variant="outline" className="h-5 px-2">
-                  {messageTypeLabels[message.messageType]}
+              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+              .map((type) => (
+                <Badge key={type} variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[type]}
                 </Badge>
-              )}
+              ))
+            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
+              <Badge variant="outline" className="h-5 px-2">
+                {messageTypeLabels[message.messageType]}
+              </Badge>
+            )}
           {/* <Badge variant="outline" className="h-5 px-2">
 
             {messageTypeLabels[message.messageType] || message.messageType}
@@ -512,9 +515,39 @@ function ConversationHeader({ contact, children }: ConversationHeaderProps) {
     </div>
   );
 }
+interface Agent {
+  id: string;
+  created_at: string;
+  name: string;
+  type: number;
+  description?: string;
+  is_active?: boolean;
+  user_id: string;
+}
+
+
+const AGENT_TYPES = {
+  conversation: {
+    value: 1,
+    label: "Conversation AI",
+    description: "AI assistant for text conversations and customer support",
+    icon: MessageSquare,
+    color: "bg-primary/10 text-primary border-primary/20",
+    badge: "bg-primary",
+  },
+  voice: {
+    value: 5,
+    label: "Voice AI",
+    description: "AI assistant for voice calls and phone interactions",
+    icon: Phone,
+    color: "bg-purple-100 text-purple-600 border-purple-200",
+    badge: "bg-purple-600",
+  },
+};
 
 export function ConversationDetails({
   conversationId,
+  tags,
   locationId,
 }: ConversationDetailsProps) {
   // URL params
@@ -564,6 +597,15 @@ export function ConversationDetails({
   const [conversationSettings, setConversationSettings] = useState<any>(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
 
+  //agents
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<number | "all">("all");
+  const [activeTab, setActiveTab] = useState<"conversation" | "voice">(
+    "conversation"
+  );
+
+
   // FastAPI Health Check State
   const [fastApiStatus, setFastApiStatus] = useState<{
     isOnline: boolean;
@@ -573,6 +615,53 @@ export function ConversationDetails({
     isOnline: false,
     lastChecked: null,
   });
+
+
+  //get all agents
+  const loadAgents = useCallback(async () => {
+    try {
+      const response = await fetch("/api/ai/agents");
+      const data = await response.json();
+
+      if (data.success) {
+        const agentsData = data.data?.agents || data.agents || [];
+        setAgents(Array.isArray(agentsData) ? agentsData : []);
+      } else {
+        throw new Error(data.error || "Failed to load agents");
+      }
+    } catch (error) {
+      console.error("Error loading agents:", error);
+      toast.error("Failed to load agents");
+      setAgents([]);
+    } finally {
+      // setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAgents();
+  }, [loadAgents]);
+
+
+  const filteredAgents = agents.filter((agent) => {
+    const matchesSearch =
+      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agent.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || agent.type === filterType;
+    const matchesTab =
+      activeTab === "conversation"
+        ? agent.type === AGENT_TYPES.conversation.value
+        : agent.type === AGENT_TYPES.voice.value;
+    return matchesSearch && matchesType && matchesTab;
+  });
+  const taginList = tags.split(",");
+
+  const results = filteredAgents.filter((a: any) =>
+    taginList.includes(a.data.tag)
+  );
+  console.log("results:", results)
+
+
 
   // 🆕 Check FastAPI Health - moved inside component
   const checkFastAPIHealth = async () => {
@@ -801,7 +890,7 @@ export function ConversationDetails({
         !isCurrentlyTrained ||
         (lastUpdated &&
           new Date(lastUpdated) <
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
       if (shouldAutoTrain) {
         debug.log(
@@ -813,16 +902,16 @@ export function ConversationDetails({
         setTrainingStatus((prev) =>
           prev
             ? {
-                ...prev,
-                isTraining: true,
-              }
+              ...prev,
+              isTraining: true,
+            }
             : {
-                isTrained: false,
-                isTraining: true,
-                lastUpdated: new Date().toISOString(),
-                messageCount,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: true,
+              lastUpdated: new Date().toISOString(),
+              messageCount,
+              vectorCount: 0,
+            }
         );
 
         // Start training in background with retry logic
@@ -898,8 +987,7 @@ export function ConversationDetails({
       // First, fetch messages for training
       debug.log(
         "ConversationDetails",
-        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
-          retryCount + 1
+        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${retryCount + 1
         }/${maxRetries + 1})...`
       );
 
@@ -1010,12 +1098,12 @@ export function ConversationDetails({
           prev
             ? { ...prev, isTraining: false }
             : {
-                isTrained: false,
-                isTraining: false,
-                lastUpdated: new Date().toISOString(),
-                messageCount: 0,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: false,
+              lastUpdated: new Date().toISOString(),
+              messageCount: 0,
+              vectorCount: 0,
+            }
         );
 
         // Show a non-intrusive notification
@@ -1366,16 +1454,16 @@ export function ConversationDetails({
       setTrainingStatus((prev) =>
         prev
           ? {
-              ...prev,
-              isTraining: true,
-            }
+            ...prev,
+            isTraining: true,
+          }
           : {
-              isTrained: false,
-              isTraining: true,
-              lastUpdated: new Date().toISOString(),
-              messageCount: messages.length,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: true,
+            lastUpdated: new Date().toISOString(),
+            messageCount: messages.length,
+            vectorCount: 0,
+          }
       );
 
       // console.log("MANUAL TRAIN: Loading state set, fetching messages...");
@@ -1655,12 +1743,12 @@ export function ConversationDetails({
         prev
           ? { ...prev, isTraining: false }
           : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: false,
+            lastUpdated: new Date().toISOString(),
+            messageCount: 0,
+            vectorCount: 0,
+          }
       );
     }
   };
@@ -1925,7 +2013,7 @@ export function ConversationDetails({
         const replyResponse = await fetch("/api/autopilot/reply-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, messageId }),
+          body: JSON.stringify({ message, messageId, }),
         });
 
         const data = await replyResponse.json();
@@ -2043,7 +2131,7 @@ export function ConversationDetails({
                 className={cn(
                   "h-8 px-3",
                   trainingStatus?.isTrained &&
-                    "border-green-500 text-green-700 hover:bg-green-50"
+                  "border-green-500 text-green-700 hover:bg-green-50"
                 )}
               >
                 {trainingStatus?.isTraining ? (
