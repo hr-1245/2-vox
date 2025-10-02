@@ -250,6 +250,7 @@ function AgentDetailClientPage({
       setLoading(true);
       const response = await fetch(`/api/ai/agents/${agentId}`);
       const data = await response.json();
+      console.log("Fetched agent data:", data);
 
       if (data.success && data.data) {
         // Transform database format to expected format
@@ -276,7 +277,8 @@ function AgentDetailClientPage({
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
-        setTag(agentData.tag);
+
+        setTag(agentData?.tag);
       } else {
         throw new Error(data.error || "Failed to load agent");
       }

@@ -36,7 +36,6 @@ import {
   X,
   Settings,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import type { KnowledgeBase } from "@/utils/database/knowledgebase";
 import { KB_SETTINGS } from "@/utils/ai/knowledgebaseSettings";
 import {
@@ -46,7 +45,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 
@@ -168,15 +166,14 @@ export default function CreateAgentPage() {
       try {
         setLoadingKB(true);
         const response = await fetch("/api/ai/knowledgebase");
-        console.log("response......",response)
+        console.log("response......", response);
         const data = await response.json();
-        console.log("data......",data)
+        console.log("data......", data);
 
         if (data.success) {
-          
           const kbData = Array.isArray(data.data) ? data.data : [];
           console.log("Loaded all knowledge bases:", kbData);
-          
+
           setKnowledgeBases(kbData);
         } else {
           console.error("Failed to load knowledge bases:", data.error);
@@ -240,6 +237,7 @@ export default function CreateAgentPage() {
             return "generic";
         }
       };
+
       const payload = {
         userId: USER_ID,
         name: formData.name,
@@ -248,7 +246,7 @@ export default function CreateAgentPage() {
         type: agentType, // Pass the numeric type (1 or 5)
         personality: formData.personality,
         intent: formData.intent,
-        additionalInformation: formData.additionalInformation || null,
+        // additionalInformation: formData.additionalInformation || "",
         variables:
           Object.keys(formData.variables).length > 0
             ? formData.variables
@@ -262,10 +260,8 @@ export default function CreateAgentPage() {
         model: formData.model,
         humanlikeBehavior: formData.humanlikeBehavior,
         channels: convertArrayToChannelsObject(selectedMessageTypes),
-        tag,//add tags
+        tag,
       };
-
-      console.log("Creating agent with payload:", payload);
 
       const response = await fetch("/api/ai/agents", {
         method: "POST",
@@ -479,7 +475,7 @@ export default function CreateAgentPage() {
                 </div>
 
                 {/* Additional Information */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="additionalInfo">
                     Additional Guidelines (Optional)
                   </Label>
@@ -499,7 +495,7 @@ export default function CreateAgentPage() {
                   <p className="text-xs text-muted-foreground">
                     Optional rules, tone guidelines, or specific instructions
                   </p>
-                </div>
+                </div> */}
 
                 {/* Variables */}
                 {/* <div className="space-y-2">
@@ -778,7 +774,6 @@ export default function CreateAgentPage() {
                       <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
                         {kbTypes.map((type) => {
-          
                           const typeInfo = getKBTypeInfo(type);
                           return (
                             <SelectItem key={type} value={type.toString()}>

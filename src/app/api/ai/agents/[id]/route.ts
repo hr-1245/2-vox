@@ -67,6 +67,7 @@ export async function GET(
     });
 
     const result = await getAgentById(id, user.id);
+    console.log("getAgentById result: ------------------------- ", result);
 
     if (!result.success) {
       const status = result.error === "Agent not found" ? 404 : 500;

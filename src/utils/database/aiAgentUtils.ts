@@ -235,8 +235,8 @@ export async function createAgent(
       // Use full default structure
       fullData = createDefaultAgentData(agentData.type);
       // Set basic fields if provided in legacy format
-      if (agentData.description)
-        fullData.additionalInformation = agentData.description;
+      // if (agentData.description)
+      //   fullData.additionalInformation = agentData.description;
     }
 
     // Validate the data
@@ -260,12 +260,13 @@ export async function createAgent(
       system_prompt: systemPrompt,
       knowledge_base_ids:
         agentData.knowledge_base_ids || fullData.knowledgeBase.preferredSources,
-      description: agentData.description || fullData.additionalInformation,
+      // description: agentData.description || fullData.additionalInformation,
       data: fullData,
       is_active: agentData.is_active !== undefined ? agentData.is_active : true,
       configuration: agentData.configuration || {},
       metadata: agentData.metadata || {},
       channels: agentData.channels || {}, // Add channels support
+      tag: agentData.tag || "", // Add tag support
     };
 
     const { data, error } = await supabase
@@ -523,8 +524,9 @@ export function convertFastAPIAgentToDatabase(
   // Map FastAPI data to new schema
   agentData.personality = fastApiAgent.personality || "";
   agentData.intent = fastApiAgent.intent || "";
-  agentData.additionalInformation = fastApiAgent.additionalInformation || "";
+  // agentData.additionalInformation = fastApiAgent.additionalInformation || "";
   agentData.variables = fastApiAgent.variables || {};
+  agentData.tag = fastApiAgent.tag || "";
 
   // Map model config to response config (handle both 'modelConfig' and 'configuration' from frontend)
   const modelConfig = fastApiAgent.modelConfig || fastApiAgent.configuration;
@@ -609,7 +611,7 @@ export function convertFastAPIAgentToDatabase(
     user_id: userId,
     system_prompt: systemPrompt,
     knowledge_base_ids: fastApiAgent.knowledgeBaseIds,
-    description: fastApiAgent.description || agentData.additionalInformation,
+    // description: fastApiAgent.description || agentData.additionalInformation,
     data: agentData,
     channels: channels, // Add channels support
     configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {},

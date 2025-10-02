@@ -1,11 +1,17 @@
-import {  Edit, MessageSquare, MoreVertical, Phone, Trash2 } from "lucide-react";
+import { Edit, MessageSquare, MoreVertical, Phone, Trash2 } from "lucide-react";
 import { TableCell, TableRow } from "../ui/table";
 import { Switch } from "../ui/switch";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 interface Agent {
   id: string;
   created_at: string;
@@ -20,26 +26,34 @@ interface Agent {
 const AGENT_TYPES = {
   conversation: {
     value: 1,
-    label: 'Conversation AI',
-    description: 'AI assistant for text conversations and customer support',
+    label: "Conversation AI",
+    description: "AI assistant for text conversations and customer support",
     icon: MessageSquare,
-    color: 'bg-primary/10 text-primary border-primary/20',
-    badge: 'bg-primary'
+    color: "bg-primary/10 text-primary border-primary/20",
+    badge: "bg-primary",
   },
   voice: {
     value: 5,
-    label: 'Voice AI',
-    description: 'AI assistant for voice calls and phone interactions',
+    label: "Voice AI",
+    description: "AI assistant for voice calls and phone interactions",
     icon: Phone,
-    color: 'bg-purple-100 text-purple-600 border-purple-200',
-    badge: 'bg-purple-600'
-  }
+    color: "bg-purple-100 text-purple-600 border-purple-200",
+    badge: "bg-purple-600",
+  },
 };
-    // Replace AgentCard with just a TableRow
-const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggleAgentStatus: (id: string, isActive: boolean) => void,loadAgents:()=>void}) => {
+// Replace AgentCard with just a TableRow
+const AgentRow = ({
+  agent,
+  toggleAgentStatus,
+  loadAgents,
+}: {
+  agent: Agent;
+  toggleAgentStatus: (id: string, isActive: boolean) => void;
+  loadAgents: () => void;
+}) => {
   // const typeInfo = getAgentTypeInfo(agent.type);
-    const router = useRouter();
-    const getAgentTypeInfo = (type: number) => {
+  const router = useRouter();
+  const getAgentTypeInfo = (type: number) => {
     if (type === AGENT_TYPES.conversation.value) {
       return AGENT_TYPES.conversation;
     } else if (type === AGENT_TYPES.voice.value) {
@@ -48,27 +62,27 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
     return AGENT_TYPES.conversation; // Default to conversation
   };
   const typeInfo = getAgentTypeInfo(agent.type);
-    const TypeIcon = typeInfo.icon;
-    const isActive = agent.is_active !== false;
+  const TypeIcon = typeInfo.icon;
+  const isActive = agent.is_active !== false;
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this agent?')) return;
+    if (!confirm("Are you sure you want to delete this agent?")) return;
 
     try {
       const response = await fetch(`/api/ai/agents/${agent.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Agent deleted successfully!');
+        toast.success("Agent deleted successfully!");
         await loadAgents();
       } else {
-        toast.error('Failed to delete agent: ' + data.error);
+        toast.error("Failed to delete agent: " + data.error);
       }
     } catch (error) {
-      console.error('Error deleting agent:', error);
-      toast.error('Failed to delete agent');
+      console.error("Error deleting agent:", error);
+      toast.error("Failed to delete agent");
     }
   };
 
@@ -100,7 +114,7 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
       </TableCell>
 
       {/* Status Toggle */}
-      <TableCell>
+      {/* <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {isActive ? 'Active' : 'Inactive'}
@@ -110,7 +124,7 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
             onCheckedChange={() => toggleAgentStatus(agent.id, isActive)}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* Created At */}
       <TableCell className="text-muted-foreground">
@@ -127,7 +141,9 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => router.push(`/dashboard/app/ai/agents/${agent.id}`)}
+              onClick={() =>
+                router.push(`/dashboard/app/ai/agents/${agent.id}`)
+              }
             >
               <Edit className="w-4 h-4 mr-2" />
               Edit
@@ -146,4 +162,4 @@ const AgentRow = ({ agent,toggleAgentStatus,loadAgents }: { agent: Agent,  toggl
     </TableRow>
   );
 };
- export default AgentRow
+export default AgentRow;

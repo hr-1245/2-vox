@@ -7,16 +7,27 @@ export interface AgentDataSchema {
   // Core Agent Properties (always present)
   personality: string;
   intent: string;
-  additionalInformation: string;
-  
+  tag: string;
+  // additionalInformation: string;
+
   // Agent Behavior Configuration
   behavior: {
-    responseStyle: 'formal' | 'casual' | 'friendly' | 'professional' | 'empathetic';
-    tone: 'helpful' | 'direct' | 'consultative' | 'supportive' | 'authoritative';
-    verbosity: 'concise' | 'detailed' | 'balanced';
+    responseStyle:
+      | "formal"
+      | "casual"
+      | "friendly"
+      | "professional"
+      | "empathetic";
+    tone:
+      | "helpful"
+      | "direct"
+      | "consultative"
+      | "supportive"
+      | "authoritative";
+    verbosity: "concise" | "detailed" | "balanced";
     creativity: number; // 0-100, affects temperature
   };
-  
+
   // Agent Capabilities & Features
   capabilities: {
     canHandleComplexQueries: boolean;
@@ -26,7 +37,7 @@ export interface AgentDataSchema {
     canRememberContext: boolean;
     maxContextLength: number;
   };
-  
+
   // Response Configuration
   responseConfig: {
     maxTokens: number;
@@ -36,7 +47,7 @@ export interface AgentDataSchema {
     presencePenalty: number;
     stopSequences?: string[];
   };
-  
+
   // Agent Variables & Context
   variables: Record<string, string | number | boolean>;
   contextVariables: {
@@ -48,7 +59,7 @@ export interface AgentDataSchema {
     specialOffers?: string;
     commonPolicies?: string;
   };
-  
+
   // Prompt Engineering
   prompts: {
     systemPrompt: string;
@@ -60,16 +71,16 @@ export interface AgentDataSchema {
     }>;
     fallbackResponses?: string[];
   };
-  
+
   // Knowledge Base Integration
   knowledgeBase: {
     preferredSources: string[]; // KB IDs
-    searchStrategy: 'semantic' | 'keyword' | 'hybrid';
+    searchStrategy: "semantic" | "keyword" | "hybrid";
     confidenceThreshold: number;
     maxSources: number;
     citeSources: boolean;
   };
-  
+
   // Conversation Flow Control
   conversationFlow: {
     canInitiateConversation: boolean;
@@ -78,7 +89,7 @@ export interface AgentDataSchema {
     escalationTriggers: string[];
     endConversationPhrases: string[];
   };
-  
+
   // Performance & Analytics
   performance: {
     successRate?: number;
@@ -87,16 +98,16 @@ export interface AgentDataSchema {
     totalInteractions?: number;
     lastOptimized?: string;
   };
-  
+
   // Compliance & Safety
   safety: {
     contentFiltering: boolean;
     blockedTopics: string[];
     allowedLanguages: string[];
     requireHumanApproval: boolean;
-    sensitivityLevel: 'low' | 'medium' | 'high';
+    sensitivityLevel: "low" | "medium" | "high";
   };
-  
+
   // Integration Settings
   integrations: {
     ghlSettings?: {
@@ -117,7 +128,7 @@ export interface AgentDataSchema {
     }>;
     apiKeys?: Record<string, string>;
   };
-  
+
   // Metadata & Management
   metadata: {
     version: string;
@@ -131,7 +142,7 @@ export interface AgentDataSchema {
     clonedFrom?: string;
     parentAgentId?: string;
   };
-  
+
   // Custom Extensions
   extensions: Record<string, any>;
 }
@@ -140,23 +151,23 @@ export interface AgentDataSchema {
  * Agent Type Definitions - NEW: Generic AI Agent System
  */
 export const AGENT_TYPES = {
-  GENERIC: 1,          // 🆕 NEW: Generic agent that can handle all features
-  QUERY: 2,           // Legacy/Feature-specific: Query-only agent  
-  SUGGESTIONS: 3,     // Legacy/Feature-specific: Suggestions-only agent
-  AUTOPILOT: 4,       // Legacy/Feature-specific: Autopilot-only agent
-  CUSTOM: 99          // Custom/Legacy agent types
+  GENERIC: 1, // 🆕 NEW: Generic agent that can handle all features
+  QUERY: 2, // Legacy/Feature-specific: Query-only agent
+  SUGGESTIONS: 3, // Legacy/Feature-specific: Suggestions-only agent
+  AUTOPILOT: 4, // Legacy/Feature-specific: Autopilot-only agent
+  CUSTOM: 99, // Custom/Legacy agent types
 } as const;
 
-export type AgentType = typeof AGENT_TYPES[keyof typeof AGENT_TYPES];
+export type AgentType = (typeof AGENT_TYPES)[keyof typeof AGENT_TYPES];
 
 /**
  * 🆕 NEW: Agent Usage Context - How a generic agent is being used
  */
 export interface AgentUsageContext {
-  feature: 'query' | 'suggestions' | 'autopilot' | 'response' | 'all';
+  feature: "query" | "suggestions" | "autopilot" | "response" | "all";
   conversationId?: string;
-  isDefault?: boolean;           // Is this the default agent for all features?
-  isFeatureSpecific?: boolean;   // Is this agent dedicated to one feature?
+  isDefault?: boolean; // Is this the default agent for all features?
+  isFeatureSpecific?: boolean; // Is this agent dedicated to one feature?
 }
 
 /**
@@ -165,17 +176,17 @@ export interface AgentUsageContext {
  */
 export interface GenericAgentConfig {
   // Core Identity - Same for ALL agents
-  personality: string;           // "You are a helpful AI assistant for {business_name}..."
-  intent: string;               // "Your goal is to help customers with their questions..."
-  additionalInformation: string; // Optional guidelines and context
-  
+  personality: string; // "You are a helpful AI assistant for {business_name}..."
+  intent: string; // "Your goal is to help customers with their questions..."
+  // additionalInformation: string; // Optional guidelines and context
+
   // Usage Configuration - How this agent behaves in different contexts
   usageConfig: {
-    defaultForAllFeatures: boolean;     // Use for query, suggestions, autopilot
-    allowedFeatures: Array<'query' | 'suggestions' | 'autopilot' | 'response'>;
-    priority: number;                   // Higher priority = preferred for feature conflicts
+    defaultForAllFeatures: boolean; // Use for query, suggestions, autopilot
+    allowedFeatures: Array<"query" | "suggestions" | "autopilot" | "response">;
+    priority: number; // Higher priority = preferred for feature conflicts
   };
-  
+
   // Variables & Context (same as before)
   variables: Record<string, string | number | boolean>;
   contextVariables: {
@@ -195,22 +206,23 @@ export interface GenericAgentConfig {
 export interface AgentTypeConfig {
   name: string;
   description: string;
-  defaultBehavior: Partial<AgentDataSchema['behavior']>;
-  defaultCapabilities: Partial<AgentDataSchema['capabilities']>;
-  defaultResponseConfig: Partial<AgentDataSchema['responseConfig']>;
+  defaultBehavior: Partial<AgentDataSchema["behavior"]>;
+  defaultCapabilities: Partial<AgentDataSchema["capabilities"]>;
+  defaultResponseConfig: Partial<AgentDataSchema["responseConfig"]>;
   requiredFields: (keyof AgentDataSchema)[];
   optionalFields: (keyof AgentDataSchema)[];
 }
 
 export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
   [AGENT_TYPES.GENERIC]: {
-    name: 'Generic AI Agent',
-    description: 'Versatile agent that can handle all AI features (queries, suggestions, autopilot)',
+    name: "Generic AI Agent",
+    description:
+      "Versatile agent that can handle all AI features (queries, suggestions, autopilot)",
     defaultBehavior: {
-      responseStyle: 'friendly',
-      tone: 'helpful',
-      verbosity: 'balanced',
-      creativity: 75
+      responseStyle: "friendly",
+      tone: "helpful",
+      verbosity: "balanced",
+      creativity: 75,
     },
     defaultCapabilities: {
       canHandleComplexQueries: true,
@@ -218,27 +230,29 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       canGenerateSuggestions: true,
       canEscalateToHuman: true,
       canRememberContext: true,
-      maxContextLength: 4000
+      maxContextLength: 4000,
     },
     defaultResponseConfig: {
       maxTokens: 500,
       temperature: 0.7,
       topP: 1.0,
       frequencyPenalty: 0.0,
-      presencePenalty: 0.0
+      presencePenalty: 0.0,
     },
-    requiredFields: ['personality', 'intent', 'additionalInformation'],
-    optionalFields: ['variables', 'contextVariables', 'knowledgeBase']
+    requiredFields: ["personality", "intent"],
+    // requiredFields: ["personality", "intent", "additionalInformation"],
+    optionalFields: ["variables", "contextVariables", "knowledgeBase"],
   },
 
   [AGENT_TYPES.QUERY]: {
-    name: 'Query Agent',
-    description: 'Specialized agent for answering customer questions and queries directly',
+    name: "Query Agent",
+    description:
+      "Specialized agent for answering customer questions and queries directly",
     defaultBehavior: {
-      responseStyle: 'friendly',
-      tone: 'supportive',
-      verbosity: 'balanced',
-      creativity: 70
+      responseStyle: "friendly",
+      tone: "supportive",
+      verbosity: "balanced",
+      creativity: 70,
     },
     defaultCapabilities: {
       canHandleComplexQueries: true,
@@ -246,27 +260,29 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       canGenerateSuggestions: false,
       canEscalateToHuman: true,
       canRememberContext: true,
-      maxContextLength: 4000
+      maxContextLength: 4000,
     },
     defaultResponseConfig: {
       maxTokens: 500,
       temperature: 0.7,
       topP: 1.0,
       frequencyPenalty: 0.0,
-      presencePenalty: 0.0
+      presencePenalty: 0.0,
     },
-    requiredFields: ['personality', 'intent', 'additionalInformation'],
-    optionalFields: ['variables', 'contextVariables', 'knowledgeBase']
+    requiredFields: ["personality", "intent"],
+    // requiredFields: ["personality", "intent", "additionalInformation"],
+    optionalFields: ["variables", "contextVariables", "knowledgeBase"],
   },
-  
+
   [AGENT_TYPES.SUGGESTIONS]: {
-    name: 'Suggestions Agent',
-    description: 'Specialized agent for generating follow-up suggestions for conversations',
+    name: "Suggestions Agent",
+    description:
+      "Specialized agent for generating follow-up suggestions for conversations",
     defaultBehavior: {
-      responseStyle: 'professional',
-      tone: 'consultative',
-      verbosity: 'concise',
-      creativity: 80
+      responseStyle: "professional",
+      tone: "consultative",
+      verbosity: "concise",
+      creativity: 80,
     },
     defaultCapabilities: {
       canHandleComplexQueries: false,
@@ -274,27 +290,29 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       canGenerateSuggestions: true,
       canEscalateToHuman: false,
       canRememberContext: true,
-      maxContextLength: 2000
+      maxContextLength: 2000,
     },
     defaultResponseConfig: {
       maxTokens: 300,
       temperature: 0.8,
       topP: 0.9,
       frequencyPenalty: 0.1,
-      presencePenalty: 0.1
+      presencePenalty: 0.1,
     },
-    requiredFields: ['personality', 'intent', 'additionalInformation'],
-    optionalFields: ['conversationFlow', 'variables']
+    requiredFields: ["personality", "intent"],
+    // requiredFields: ["personality", "intent", "additionalInformation"],
+    optionalFields: ["conversationFlow", "variables"],
   },
-  
+
   [AGENT_TYPES.AUTOPILOT]: {
-    name: 'Autopilot Agent',
-    description: 'Specialized agent for automated responses and autopilot functionality',
+    name: "Autopilot Agent",
+    description:
+      "Specialized agent for automated responses and autopilot functionality",
     defaultBehavior: {
-      responseStyle: 'empathetic',
-      tone: 'supportive',
-      verbosity: 'balanced',
-      creativity: 75
+      responseStyle: "empathetic",
+      tone: "supportive",
+      verbosity: "balanced",
+      creativity: 75,
     },
     defaultCapabilities: {
       canHandleComplexQueries: true,
@@ -302,27 +320,28 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       canGenerateSuggestions: false,
       canEscalateToHuman: true,
       canRememberContext: true,
-      maxContextLength: 3000
+      maxContextLength: 3000,
     },
     defaultResponseConfig: {
       maxTokens: 400,
       temperature: 0.7,
       topP: 0.95,
       frequencyPenalty: 0.1,
-      presencePenalty: 0.1
+      presencePenalty: 0.1,
     },
-    requiredFields: ['personality', 'intent', 'additionalInformation'],
-    optionalFields: ['conversationFlow', 'variables', 'contextVariables']
+    requiredFields: ["personality", "intent"],
+    // requiredFields: ["personality", "intent", "additionalInformation"],
+    optionalFields: ["conversationFlow", "variables", "contextVariables"],
   },
-  
+
   [AGENT_TYPES.CUSTOM]: {
-    name: 'Custom Agent',
-    description: 'Custom agent with user-defined configuration',
+    name: "Custom Agent",
+    description: "Custom agent with user-defined configuration",
     defaultBehavior: {
-      responseStyle: 'professional',
-      tone: 'helpful',
-      verbosity: 'balanced',
-      creativity: 70
+      responseStyle: "professional",
+      tone: "helpful",
+      verbosity: "balanced",
+      creativity: 70,
     },
     defaultCapabilities: {
       canHandleComplexQueries: true,
@@ -330,18 +349,24 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       canGenerateSuggestions: true,
       canEscalateToHuman: true,
       canRememberContext: true,
-      maxContextLength: 4000
+      maxContextLength: 4000,
     },
     defaultResponseConfig: {
       maxTokens: 500,
       temperature: 0.7,
       topP: 1.0,
       frequencyPenalty: 0.0,
-      presencePenalty: 0.0
+      presencePenalty: 0.0,
     },
-    requiredFields: ['personality', 'intent'],
-    optionalFields: ['additionalInformation', 'variables', 'contextVariables', 'knowledgeBase', 'conversationFlow']
-  }
+    requiredFields: ["personality", "intent"],
+    optionalFields: [
+      // "additionalInformation",
+      "variables",
+      "contextVariables",
+      "knowledgeBase",
+      "conversationFlow",
+    ],
+  },
 };
 
 /**
@@ -362,6 +387,7 @@ export interface AIAgent {
   channels?: Record<string, { enabled: boolean; settings?: any }>;
   created_at?: string;
   updated_at?: string;
+  tag: string;
 }
 
 export interface AIAgentInsert {
@@ -377,6 +403,7 @@ export interface AIAgentInsert {
   is_active?: boolean;
   metadata?: Record<string, any>;
   channels?: Record<string, { enabled: boolean; settings?: any }>;
+  tag: string;
 }
 
 export interface AIAgentUpdate {
@@ -401,22 +428,22 @@ export interface AgentFormData {
   name: string;
   description: string;
   type: AgentType;
-  
+
   // Core Configuration
   personality: string;
   intent: string;
-  additionalInformation: string;
-  
+  // additionalInformation: string;
+
   // Advanced Settings
-  behavior?: Partial<AgentDataSchema['behavior']>;
-  capabilities?: Partial<AgentDataSchema['capabilities']>;
-  responseConfig?: Partial<AgentDataSchema['responseConfig']>;
+  behavior?: Partial<AgentDataSchema["behavior"]>;
+  capabilities?: Partial<AgentDataSchema["capabilities"]>;
+  responseConfig?: Partial<AgentDataSchema["responseConfig"]>;
   variables?: Record<string, string | number | boolean>;
-  contextVariables?: Partial<AgentDataSchema['contextVariables']>;
-  knowledgeBase?: Partial<AgentDataSchema['knowledgeBase']>;
-  conversationFlow?: Partial<AgentDataSchema['conversationFlow']>;
-  safety?: Partial<AgentDataSchema['safety']>;
-  integrations?: Partial<AgentDataSchema['integrations']>;
+  contextVariables?: Partial<AgentDataSchema["contextVariables"]>;
+  knowledgeBase?: Partial<AgentDataSchema["knowledgeBase"]>;
+  conversationFlow?: Partial<AgentDataSchema["conversationFlow"]>;
+  safety?: Partial<AgentDataSchema["safety"]>;
+  integrations?: Partial<AgentDataSchema["integrations"]>;
 }
 
 /**
@@ -429,20 +456,22 @@ export interface AgentResponse<T = any> {
   message?: string;
 }
 
-export interface AgentListResponse extends AgentResponse<{
-  agents: AIAgent[];
-  total: number;
-  page?: number;
-  limit?: number;
-}> {}
+export interface AgentListResponse
+  extends AgentResponse<{
+    agents: AIAgent[];
+    total: number;
+    page?: number;
+    limit?: number;
+  }> {}
 
-export interface AgentTestResponse extends AgentResponse<{
-  response: string;
-  responseTime: number;
-  tokensUsed: number;
-  knowledgeSourcesUsed: string[];
-  confidence: number;
-}> {}
+export interface AgentTestResponse
+  extends AgentResponse<{
+    response: string;
+    responseTime: number;
+    tokensUsed: number;
+    knowledgeSourcesUsed: string[];
+    confidence: number;
+  }> {}
 
 /**
  * Validation Schemas
@@ -463,10 +492,10 @@ export interface AgentValidationRules {
     maxLength: number;
     required: boolean;
   };
-  additionalInformation: {
-    maxLength: number;
-    required: boolean;
-  };
+  // additionalInformation: {
+  //   maxLength: number;
+  //   required: boolean;
+  // };
   systemPrompt: {
     minLength: number;
     maxLength: number;
@@ -478,6 +507,6 @@ export const AGENT_VALIDATION_RULES: AgentValidationRules = {
   name: { minLength: 3, maxLength: 100, required: true },
   personality: { minLength: 10, maxLength: 10000, required: true },
   intent: { minLength: 10, maxLength: 10000, required: true },
-  additionalInformation: { maxLength: 10000, required: false },
-  systemPrompt: { minLength: 20, maxLength: 10000, required: true }
+  // additionalInformation: { maxLength: 10000, required: false },
+  systemPrompt: { minLength: 20, maxLength: 10000, required: true },
 };
