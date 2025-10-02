@@ -215,7 +215,7 @@ export function DashboardOverview() {
         
         <QuickAction
           title="View Conversations"
-          description="Access your GoHighLevel conversations"
+          description="Access your LeadConnector conversations"
           icon={<MessageSquare className="h-5 w-5" />}
           href="/dashboard/app/leadconnector/conversations"
         />

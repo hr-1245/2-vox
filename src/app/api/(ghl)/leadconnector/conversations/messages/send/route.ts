@@ -126,7 +126,7 @@ export async function POST(
       data: response,
     } satisfies SendMessageResponse);
   } catch (error) {
-    console.error("❌ Error sending message via GHL Messages API:", error);
+    console.error("❌ Error sending message via LeadConnector Messages API:", error);
 
     return NextResponse.json(
       {

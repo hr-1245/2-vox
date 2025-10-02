@@ -55,7 +55,7 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 2,
     title: "Smart Conversations",
-    description: "Connect your GoHighLevel account and let AI handle customer conversations intelligently.",
+    description: "Connect your LeadConnector account and let AI handle customer conversations intelligently.",
     icon: <MessageSquare className="h-8 w-8" />,
     features: [
       "Automatic conversation training",

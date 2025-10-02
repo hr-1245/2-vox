@@ -16,13 +16,13 @@ export const getConversations = async () => {
     // Get GHL provider data from database instead of cookies
     const providerData = await getCurrentUserProviderData(PROVIDER_TYPE.GHL_LOCATION);
     if (!providerData) {
-      throw new Error("No GoHighLevel connection found. Please connect your GHL account first.");
+      throw new Error("No LeadConnector connection found. Please connect your LeadConnector account first.");
     }
 
     // Extract location ID from provider data
     const locationId = providerData?.data?.location_id;
     if (!locationId) {
-      throw new Error("Location ID not found in provider data. Please reconnect your GoHighLevel account.");
+      throw new Error("Location ID not found in provider data. Please reconnect your LeadConnector account.");
     }
 
     console.log('🔄 Fetching conversations for location:', locationId);

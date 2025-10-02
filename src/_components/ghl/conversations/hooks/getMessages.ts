@@ -25,7 +25,7 @@ const getErrorMessage = (error: any, status?: number): string => {
     return 'Authentication failed. Your session may have expired. Trying to refresh...';
   }
   if (status === 403) {
-    return 'Access denied. Please check your GoHighLevel permissions.';
+    return 'Access denied. Please check your LeadConnector permissions.';
   }
   if (status === 429) {
     return 'Too many requests. Please wait a moment and try again.';

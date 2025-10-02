@@ -38,7 +38,7 @@ export function Conversations() {
       
       // If it's a missing location ID error, suggest reconnection
       if (errorMessage.includes("Missing required auth cookies")) {
-        setError("Missing location ID. Please reconnect your GoHighLevel account.");
+        setError("Missing location ID. Please reconnect your LeadConnector account.");
       }
     } finally {
       setLoading(false);

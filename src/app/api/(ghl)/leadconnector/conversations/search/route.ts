@@ -108,7 +108,7 @@ export async function GET(
     if (providerError || !providerData?.data?.location_id) {
       return NextResponse.json({
         success: false,
-        error: 'No GoHighLevel location found. Please connect your GHL account.'
+        error: 'No LeadConnector location found. Please connect your LeadConnector account.'
       } satisfies ErrorResponse, { status: 400 });
     }
 
@@ -182,7 +182,7 @@ export async function GET(
       }
     );
 
-    console.log('✅ GHL Conversation search SUCCESS:', {
+    console.log('✅ LeadConnector Conversation search SUCCESS:', {
       hasResponse: !!response,
       conversationCount: response?.conversations?.length || 0,
       total: response?.total
@@ -264,7 +264,7 @@ export async function POST(
     if (providerError || !providerData?.data?.location_id) {
       return NextResponse.json({
         success: false,
-        error: 'No GoHighLevel location found. Please connect your GHL account.'
+        error: 'No LeadConnector location found. Please connect your LeadConnector account.'
       } satisfies ErrorResponse, { status: 400 });
     }
 
@@ -286,7 +286,7 @@ export async function POST(
       ghlParams.set('limit', '20');
     }
 
-    console.log('🚀 Searching conversations with GHL API (POST):', {
+    console.log('🚀 Searching conversations with LeadConnector API (POST):', {
       locationId,
       params: Object.fromEntries(ghlParams.entries()),
       userId: user.id
@@ -304,7 +304,7 @@ export async function POST(
       }
     );
 
-    console.log('✅ GHL Conversation search SUCCESS (POST):', {
+    console.log('✅ LeadConnector Conversation search SUCCESS (POST):', {
       hasResponse: !!response,
       conversationCount: response?.conversations?.length || 0,
       total: response?.total

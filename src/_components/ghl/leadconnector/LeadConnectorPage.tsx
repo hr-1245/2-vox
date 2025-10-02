@@ -83,7 +83,7 @@ export default async function LeadConnectorPage() {
     // STEP 2: Retrieve GHL (GoHighLevel) provider data for the user
     const providerData = await getCurrentUserProviderData(PROVIDER_TYPE.GHL_LOCATION);
     if (!providerData) {
-      console.warn("No provider data found. Prompting user to connect GHL.");
+      console.warn("No provider data found. Prompting user to connect LeadConnector.");
       return <GhlConnect />;
     }
 
@@ -110,7 +110,7 @@ export default async function LeadConnectorPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Lead Connector</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your GoHighLevel location and conversations
+              Manage your LeadConnector location and conversations
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export default async function LeadConnectorPage() {
               {locationInfo.location?.name || 'Location Overview'}
             </CardTitle>
             <CardDescription>
-              {locationInfo.location?.address || 'Your GoHighLevel location details'}
+              {locationInfo.location?.address || 'Your LeadConnector location details'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -300,7 +300,7 @@ export default async function LeadConnectorPage() {
                 Connection Settings
               </CardTitle>
               <CardDescription>
-                Manage your GoHighLevel connection
+                Manage your LeadConnector connection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -320,7 +320,7 @@ export default async function LeadConnectorPage() {
               <div className="pt-4 border-t">
                 <GhlConnect label="Change Location" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Connect to a different GoHighLevel location
+                  Connect to a different LeadConnector location
                 </p>
               </div>
             </CardContent>
@@ -332,7 +332,7 @@ export default async function LeadConnectorPage() {
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
-              Latest updates from your GoHighLevel location
+              Latest updates from your LeadConnector location
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -357,12 +357,12 @@ export default async function LeadConnectorPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-2">
-              <p className="font-semibold">Error loading GoHighLevel data</p>
+              <p className="font-semibold">Error loading LeadConnector data</p>
               <p className="text-sm">
-                {error?.message || 'Unknown error occurred while connecting to GoHighLevel'}
+                {error?.message || 'Unknown error occurred while connecting to LeadConnector'}
               </p>
               <p className="text-xs text-muted-foreground">
-                If the issue persists, try reconnecting your GoHighLevel account below.
+                If the issue persists, try reconnecting your LeadConnector account below.
               </p>
             </div>
           </AlertDescription>
@@ -371,9 +371,9 @@ export default async function LeadConnectorPage() {
         {/* Offer reconnection as a recovery path */}
         <Card>
           <CardHeader>
-            <CardTitle>Reconnect GoHighLevel</CardTitle>
+            <CardTitle>Reconnect LeadConnector</CardTitle>
             <CardDescription>
-              Connect or reconnect your GoHighLevel account to continue
+              Connect or reconnect your LeadConnector account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
