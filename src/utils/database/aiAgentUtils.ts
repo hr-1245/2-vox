@@ -617,8 +617,9 @@ export function convertFastAPIAgentToDatabase(
     data: agentData,
     channels: channels, // Add channels support
     configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {},
-    is_active:
-      fastApiAgent.isActive !== undefined ? fastApiAgent.isActive : true,
+    is_active:fastApiAgent.isActive !== undefined ? fastApiAgent.isActive : true,
+    tag: fastApiAgent.tag ?? agentData.tag ?? "",
+    model: fastApiAgent.model ?? agentData.model ?? "gpt-4o-mini",
   };
 }
 
@@ -642,11 +643,11 @@ export function convertDatabaseAgentToFastAPI(dbAgent: AIAgent): any {
   return {
     id: dbAgent.id,
     name: dbAgent.name,
-    description: dbAgent.description || data.additionalInformation || "",
+    description: dbAgent.description,
     agentType: agentType,
     personality: data.personality || "",
     intent: data.intent || "",
-    additionalInformation: data.additionalInformation || "",
+    // additionalInformation: data.additionalInformation || "",
     variables: data.variables || {},
     customPrompt: dbAgent.system_prompt || "",
     isActive: dbAgent.is_active !== undefined ? dbAgent.is_active : true,

@@ -28,12 +28,14 @@ export default async function ConversationPage({
     notFound();
   }
 
+  const tag = (Array.isArray(tags) && tags.length > 0) ? tags[0] : "";
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <ConversationDetails
           conversationId={id}
-          tags={tags}
+          tags={tag}
           locationId={providerData.data.location_id}
         />
       </div>

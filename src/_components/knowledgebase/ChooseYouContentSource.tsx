@@ -82,6 +82,18 @@ export default function ChooseYourContentSource({
   const [showFaqInput, setShowFaqInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+const [loading, setLoading] = useState(false);
+
+const showMessage = (type: "success" | "error", message: string) => {
+  if (type === "error") {
+    setError(message);
+    console.error(message);
+  } else {
+    console.log(message);
+  }
+};
+
+
   // validate uploaded files
   const validateFiles = (selectedFiles: FileList): File[] => {
     const supportedTypes = [
@@ -381,13 +393,17 @@ export default function ChooseYourContentSource({
         ))}
       </div>
 
+     
       {/* FAQ modal */}
       {showFaqInput && (
         <FAQGenerator
-          isOpen={showFaqInput}
-          onClose={() => setShowFaqInput(false)}
+          setShowFaqInput={setShowFaqInput}
+          loading={loading}
+          setLoading={setLoading}
+          showMessage={showMessage}
         />
       )}
+
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { getCurrentUser } from '@/utils/auth/user';
 import { 
   getUserAgents, 
   createAgent, 
-  // Removed automatic default agent creation
 } from '@/utils/database/aiAgentUtils';
 import { AGENT_TYPES, AIAgentInsert, AgentType } from '@/types/aiAgent';
 
@@ -17,11 +16,9 @@ const FALLBACK_USER_ID = 'ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21';
 // GET - List hybrid agents (both database + default agents)
 export async function GET(req: NextRequest): Promise<Response> {
   try {
-    // Get current user or use fallback
     const user = await getCurrentUser();
     const userId = user?.id || FALLBACK_USER_ID;
 
-    // Get query parameters
     const { searchParams } = new URL(req.url);
     const agentType = searchParams.get('agentType');
 
@@ -30,12 +27,11 @@ export async function GET(req: NextRequest): Promise<Response> {
       agentType: agentType || null
     });
 
-    // Get agents from database
     const agentTypeFilter = agentType ? parseInt(agentType) : undefined;
     const result = await getUserAgents(userId, {
       type: agentTypeFilter,
       is_active: true
-      });
+    });
       
     if (!result.success) {
       console.error('Error fetching agents from database:', result.error);
@@ -47,7 +43,6 @@ export async function GET(req: NextRequest): Promise<Response> {
 
     const { agents, total } = result.data;
 
-    // Transform agents for consistent response format
     const agentTypes = agents.map(agent => ({
       id: agent.id,
       type: getAgentTypeString(agent.type),
@@ -79,11 +74,9 @@ export async function GET(req: NextRequest): Promise<Response> {
 // POST - Create new agent directly in database (bypass FastAPI)
 export async function POST(req: NextRequest): Promise<Response> {
   try {
-    // Get current user or use fallback
     const user = await getCurrentUser();
     const userId = user?.id || FALLBACK_USER_ID;
 
-    // Parse request body
     const body = await req.json();
     
     if (!body.name || !body.agentType || !body.personality || !body.intent) {
@@ -93,29 +86,32 @@ export async function POST(req: NextRequest): Promise<Response> {
       } satisfies ErrorResponse, { status: 400 });
     }
 
+    // Ensure required top-level fields for insert
+    const tag: string = typeof body.tag === 'string' && body.tag.trim() ? body.tag.trim() : 'general';
+    const model: string = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : 'default';
+
     console.log('Creating agent directly in database:', {
       userId,
       name: body.name,
-      agentType: body.agentType
+      agentType: body.agentType,
+      tag,
+      model
     });
 
-    // Convert agent type string to number - Updated for new generic agent system
     const agentTypeMapping: Record<string, number> = {
       'query': AGENT_TYPES.QUERY,
       'suggestions': AGENT_TYPES.SUGGESTIONS,
-      'response': AGENT_TYPES.AUTOPILOT,     // Response functionality is now part of autopilot
-      'autopilot': AGENT_TYPES.AUTOPILOT,   // Explicit autopilot mapping
-      'generic': AGENT_TYPES.GENERIC        // New generic agent type
+      'response': AGENT_TYPES.AUTOPILOT,
+      'autopilot': AGENT_TYPES.AUTOPILOT,
+      'generic': AGENT_TYPES.GENERIC
     };
 
-    // Generate comprehensive system prompt based on agent type and configuration
     const generateSystemPrompt = (type: number, data: any): string => {
       const basePrompt = `You are a ${getAgentTypeString(type)} AI agent named "${body.name}".`;
       const personalityPrompt = `Personality: ${data.personality}`;
       const intentPrompt = `Intent: ${data.intent}`;
-      const additionalInfo = data.additionalInformation ? `Additional Information: ${data.additionalInformation}` : '';
       
-      return [basePrompt, personalityPrompt, intentPrompt, additionalInfo]
+      return [basePrompt, personalityPrompt, intentPrompt]
         .filter(Boolean)
         .join('\n\n');
     };
@@ -131,12 +127,13 @@ export async function POST(req: NextRequest): Promise<Response> {
       system_prompt: generateSystemPrompt(agentType, {
         personality: body.personality,
         intent: body.intent,
-        additionalInformation: body.additionalInformation || ''
       }),
+      // ✅ required fields on AIAgentInsert
+      tag,
+      model,
       data: {
         personality: body.personality,
         intent: body.intent,
-        additionalInformation: body.additionalInformation || '',
         variables: body.variables || {},
         responseConfig: body.modelConfig || {
           maxTokens: 2048,
@@ -165,7 +162,6 @@ export async function POST(req: NextRequest): Promise<Response> {
       }
     };
 
-    // Create agent directly in database
     const result = await createAgent(agentData);
 
     if (!result.success) {
@@ -202,4 +198,4 @@ function getAgentTypeString(type: number): string {
     case AGENT_TYPES.CUSTOM: return 'custom';
     default: return 'unknown';
   }
-} 
+}
