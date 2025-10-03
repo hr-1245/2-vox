@@ -348,17 +348,17 @@ function MessageBubble({
         >
           {Array.isArray(message.messageType)
             ? message.messageType
-              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
-              .map((type) => (
-                <Badge key={type} variant="outline" className="h-5 px-2">
-                  {messageTypeLabels[type]}
-                </Badge>
-              ))
+                .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+                .map((type) => (
+                  <Badge key={type} variant="outline" className="h-5 px-2">
+                    {messageTypeLabels[type]}
+                  </Badge>
+                ))
             : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
-              <Badge variant="outline" className="h-5 px-2">
-                {messageTypeLabels[message.messageType]}
-              </Badge>
-            )}
+                <Badge variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[message.messageType]}
+                </Badge>
+              )}
           {/* <Badge variant="outline" className="h-5 px-2">
 
             {messageTypeLabels[message.messageType] || message.messageType}
@@ -523,8 +523,8 @@ interface Agent {
   description?: string;
   is_active?: boolean;
   user_id: string;
+  model?: string;
 }
-
 
 const AGENT_TYPES = {
   conversation: {
@@ -605,7 +605,6 @@ export function ConversationDetails({
     "conversation"
   );
 
-
   // FastAPI Health Check State
   const [fastApiStatus, setFastApiStatus] = useState<{
     isOnline: boolean;
@@ -615,7 +614,6 @@ export function ConversationDetails({
     isOnline: false,
     lastChecked: null,
   });
-
 
   //get all agents
   const loadAgents = useCallback(async () => {
@@ -642,7 +640,6 @@ export function ConversationDetails({
     loadAgents();
   }, [loadAgents]);
 
-
   const filteredAgents = agents.filter((agent) => {
     const matchesSearch =
       agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -654,14 +651,11 @@ export function ConversationDetails({
         : agent.type === AGENT_TYPES.voice.value;
     return matchesSearch && matchesType && matchesTab;
   });
-  const taginList = tags.split(",");
+  const taginList = tags?.split(",");
 
-  const results = filteredAgents.filter((a: any) =>
-    taginList.includes(a.data.tag)
+  const agent = filteredAgents?.filter((a: any) =>
+    taginList?.includes(a.data?.tag)
   );
-  console.log("results:", results)
-
-
 
   // 🆕 Check FastAPI Health - moved inside component
   const checkFastAPIHealth = async () => {
@@ -890,7 +884,7 @@ export function ConversationDetails({
         !isCurrentlyTrained ||
         (lastUpdated &&
           new Date(lastUpdated) <
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
       if (shouldAutoTrain) {
         debug.log(
@@ -902,16 +896,16 @@ export function ConversationDetails({
         setTrainingStatus((prev) =>
           prev
             ? {
-              ...prev,
-              isTraining: true,
-            }
+                ...prev,
+                isTraining: true,
+              }
             : {
-              isTrained: false,
-              isTraining: true,
-              lastUpdated: new Date().toISOString(),
-              messageCount,
-              vectorCount: 0,
-            }
+                isTrained: false,
+                isTraining: true,
+                lastUpdated: new Date().toISOString(),
+                messageCount,
+                vectorCount: 0,
+              }
         );
 
         // Start training in background with retry logic
@@ -987,7 +981,8 @@ export function ConversationDetails({
       // First, fetch messages for training
       debug.log(
         "ConversationDetails",
-        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${retryCount + 1
+        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
+          retryCount + 1
         }/${maxRetries + 1})...`
       );
 
@@ -1098,12 +1093,12 @@ export function ConversationDetails({
           prev
             ? { ...prev, isTraining: false }
             : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
+                isTrained: false,
+                isTraining: false,
+                lastUpdated: new Date().toISOString(),
+                messageCount: 0,
+                vectorCount: 0,
+              }
         );
 
         // Show a non-intrusive notification
@@ -1454,16 +1449,16 @@ export function ConversationDetails({
       setTrainingStatus((prev) =>
         prev
           ? {
-            ...prev,
-            isTraining: true,
-          }
+              ...prev,
+              isTraining: true,
+            }
           : {
-            isTrained: false,
-            isTraining: true,
-            lastUpdated: new Date().toISOString(),
-            messageCount: messages.length,
-            vectorCount: 0,
-          }
+              isTrained: false,
+              isTraining: true,
+              lastUpdated: new Date().toISOString(),
+              messageCount: messages.length,
+              vectorCount: 0,
+            }
       );
 
       // console.log("MANUAL TRAIN: Loading state set, fetching messages...");
@@ -1743,12 +1738,12 @@ export function ConversationDetails({
         prev
           ? { ...prev, isTraining: false }
           : {
-            isTrained: false,
-            isTraining: false,
-            lastUpdated: new Date().toISOString(),
-            messageCount: 0,
-            vectorCount: 0,
-          }
+              isTrained: false,
+              isTraining: false,
+              lastUpdated: new Date().toISOString(),
+              messageCount: 0,
+              vectorCount: 0,
+            }
       );
     }
   };
@@ -1920,100 +1915,25 @@ export function ConversationDetails({
     }
   }, [messages]);
 
-
-  // const sendReply = async (message: string) => {
-  //   // Get all agents and match tags - 
-  //   try {
-  //     const replyResponse = await fetch("/api/autopilot/reply-ai", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         message,
-  //       }),
-  //     });
-
-  //     if (!replyResponse.ok) {
-  //       throw new Error(`Failed to send reply: ${replyResponse.status}`);
-  //     }
-
-  //     const data = await replyResponse.json();
-
-  //     setNewMessage(data?.reply);
-
-  //     return data;
-  //   } catch (error) {
-  //     console.error("❌ Error in sendReply:", error);
-  //     return null;
-  //   }
-  // };
-
-
-  // useEffect(() => {
-  //   if (!socket) {
-  //     console.log("⚠️ No socket found, skipping listener setup");
-  //     return;
-  //   }
-
-  //   const handleNewMessage = (response: any) => {
-  //     sendReply(response?.message || response?.message?.body || "");
-
-  //     // If response already has the complete message structure, use it directly
-  //     if (response && response.id && response.direction) {
-  //       setMessages((prev) => [...prev, response]);
-  //     } else {
-  //       // FIXED: If type is 19, it should be INBOUND (received), otherwise OUTBOUND (sent)
-  //       // OR maybe the opposite? Let's try both ways...
-
-  //       // Try option 1: type 19 = inbound (received)
-  //       const direction = response?.type === 19 ? "inbound" : "outbound";
-  //       const status = direction === "outbound" ? "sent" : "delivered";
-
-  //       // If that doesn't work, try option 2: type 19 = outbound (sent)
-  //       // const direction = response?.type === 19 ? "outbound" : "inbound";
-  //       // const status = direction === "outbound" ? "sent" : "delivered";
-
-  //       // Fallback: construct message object if response is incomplete
-  //       const newMessage = {
-  //         id: response?.id || Date.now().toString(),
-  //         body: response?.body || response?.message || "",
-  //         type: response?.type || "text",
-  //         direction: direction,
-  //         conversationId: response?.conversationId || "temp",
-  //         contactId: response?.contactId || "unknown",
-  //         dateAdded: response?.dateAdded || new Date().toISOString(),
-  //         dateUpdated: response?.dateUpdated || new Date().toISOString(),
-  //         source: response?.source || "app",
-  //         altId: response?.altId || Math.random().toString(36).substring(2),
-  //         messageType: response?.messageType || "TYPE_WHATSAPP",
-  //         status: status,
-  //         contentType: response?.contentType || "text/plain",
-  //         attachments: response?.attachments || [],
-  //         locationId: response?.locationId || "",
-  //       };
-
-  //       setMessages((prev) => [...prev, newMessage]);
-  //     }
-  //   };
-
-  //   socket.on("new_message", handleNewMessage);
-
-  //   return () => {
-  //     socket.off("new_message", handleNewMessage);
-  //   };
-  // }, [socket]);
-
-
-
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
   // ✅ Debounced reply (runs once even if spammed)
   const debouncedSendReply = useRef(
-    debounce(async (message: string, messageId: string) => {
+    debounce(async (message: string, messageId: string, model: string) => {
       try {
+        console.log("🤖 Sending reply for message: -- just before api call", {
+          message,
+          messageId,
+          model,
+        });
         const replyResponse = await fetch("/api/autopilot/reply-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, messageId, }),
+          body: JSON.stringify({
+            message,
+            messageId,
+            model,
+          }),
         });
 
         const data = await replyResponse.json();
@@ -2040,9 +1960,17 @@ export function ConversationDetails({
         Date.now().toString();
 
       // ✅ Process only inbound once
-      if (response?.type === 19 && !processedMessagesRef.current.has(messageId)) {
+      if (
+        response?.type === 19 &&
+        !processedMessagesRef.current.has(messageId)
+      ) {
         processedMessagesRef.current.add(messageId);
-        debouncedSendReply(response?.message || response?.body || "", messageId);
+
+        debouncedSendReply(
+          response?.message || response?.body || "",
+          messageId,
+          agent?.[0]?.model || "gpt-3.5-turbo"
+        );
       }
 
       // Always add to UI
@@ -2075,9 +2003,10 @@ export function ConversationDetails({
     return () => {
       socket.off("new_message", handleNewMessage);
       processedMessagesRef.current.clear();
-      debouncedSendReply.cancel();
+      // debouncedSendReply.cancel();
     };
-  }, [socket, debouncedSendReply]);
+  }, [socket, debouncedSendReply, agent]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -2131,7 +2060,7 @@ export function ConversationDetails({
                 className={cn(
                   "h-8 px-3",
                   trainingStatus?.isTrained &&
-                  "border-green-500 text-green-700 hover:bg-green-50"
+                    "border-green-500 text-green-700 hover:bg-green-50"
                 )}
               >
                 {trainingStatus?.isTraining ? (

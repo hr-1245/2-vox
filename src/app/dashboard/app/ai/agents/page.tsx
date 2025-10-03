@@ -179,7 +179,7 @@ export default function AIAgentsPage() {
         : agent.type === AGENT_TYPES.voice.value;
     return matchesSearch && matchesType && matchesTab;
   });
-console.log("filteredAgentsfilteredAgentsfilteredAgents",filteredAgents)
+
   const AgentCard = ({ agent }: { agent: Agent }) => {
     const typeInfo = getAgentTypeInfo(agent.type);
     const TypeIcon = typeInfo.icon;

@@ -19,6 +19,7 @@ export function createDefaultAgentData(type: AgentType): AgentDataSchema {
     // Core Properties
     personality: "",
     intent: "",
+    model: "",
     // additionalInformation: '',
 
     // Behavior Configuration

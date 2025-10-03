@@ -149,7 +149,7 @@ export default function CreateAgentPage() {
     isActive: true,
     // AI Configuration (required by FastAPI)
     temperature: 0.7,
-    model: "gpt-4",
+    model: "gpt-4.1",
     humanlikeBehavior: false,
   });
   const [ghlTags, setGhlTags] = useState<
@@ -608,6 +608,27 @@ export default function CreateAgentPage() {
                     {/* Model Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="model">AI Model</Label>
+                      {/* <Select
+                        value={formData.model}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, model: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="llama-3.1-8b-instant">
+                            llama-3.1-8b-instant
+                          </SelectItem>
+                          <SelectItem value="llama-3.3-70b-versatile">
+                            llama-3.3-70b-versatile
+                          </SelectItem>
+                          <SelectItem value="meta-llama/llama-guard-4-12b">
+                            meta-llama/llama-guard-4-12b
+                          </SelectItem>
+                        </SelectContent>
+                      </Select> */}
                       <Select
                         value={formData.model}
                         onValueChange={(value) =>
@@ -618,15 +639,18 @@ export default function CreateAgentPage() {
                           <SelectValue placeholder="Select model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gpt-4">
-                            GPT-4 (Best Quality)
+                          <SelectItem value="gpt-4.1">gpt-4.1</SelectItem>
+                          <SelectItem value="gpt-4.1-mini">
+                            gpt-4.1-mini
                           </SelectItem>
-                          <SelectItem value="gpt-4o-mini">
-                            GPT-4o Mini (Fast & Efficient)
+                          <SelectItem value="gpt-4.1-nano">
+                            gpt-4.1-nano
                           </SelectItem>
-                          <SelectItem value="claude-3-sonnet">
-                            Claude 3 Sonnet
+                          <SelectItem value="gpt-3.5-turbo">
+                            gpt-3.5-turbo
                           </SelectItem>
+                          <SelectItem value="o3-mini">o3-mini</SelectItem>
+                          {/* Add others as needed */}
                         </SelectContent>
                       </Select>
                     </div>

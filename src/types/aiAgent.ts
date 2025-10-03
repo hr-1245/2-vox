@@ -8,6 +8,7 @@ export interface AgentDataSchema {
   personality: string;
   intent: string;
   tag: string;
+  model: string;
   // additionalInformation: string;
 
   // Agent Behavior Configuration
@@ -388,7 +389,7 @@ export interface AIAgent {
   created_at?: string;
   updated_at?: string;
   tag: string;
-  model:string;
+  model: string;
 }
 
 export interface AIAgentInsert {
@@ -405,6 +406,7 @@ export interface AIAgentInsert {
   metadata?: Record<string, any>;
   channels?: Record<string, { enabled: boolean; settings?: any }>;
   tag: string;
+  model: string;
 }
 
 export interface AIAgentUpdate {

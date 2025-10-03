@@ -3,12 +3,6 @@
 import React, { useState, useRef } from "react";
 import { CloudUpload, File, CheckCircle2, Loader2, X } from "lucide-react";
 
-// interface UploadFile {
-//   id: string;
-//   name: string;
-//   size: string;
-//   status: "uploading" | "processing" | "completed" | "failed";
-// }
 interface UploadFile {
   id: string;
   name: string;
@@ -20,6 +14,7 @@ interface UploadFile {
 interface UploadComponentProps {
   onFilesUploaded?: (fileIds: string[]) => void; // Callback to pass file IDs to parent
 }
+
 const SUPPORTED_TYPES = [
   "application/pdf",
   "application/msword",
@@ -31,7 +26,9 @@ const SUPPORTED_TYPES = [
 const MAX_FILES = 3;
 const MAX_FILE_SIZE_MB = 50;
 
-const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) => {
+const UploadComponent: React.FC<UploadComponentProps> = ({
+  onFilesUploaded,
+}) => {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,13 +62,27 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) =>
 
   const uploadFile = async (file: File, tempId: string) => {
     try {
+      console.log("📂 Starting upload for:", file.name, {
+        id: tempId,
+        type: file.type,
+        size: file.size,
+      });
+
       // Mark as uploading
       setFiles((prev) =>
         prev.map((f) => (f.id === tempId ? { ...f, status: "uploading" } : f))
       );
 
+      console.log("🔄 Reading file as base64...");
       const base64Content = await readFileAsBase64(file);
+      console.log(
+        "✅ Finished reading file. Base64 length:",
+        base64Content.length
+      );
 
+      console.log(
+        "🚀 Sending upload request to /api/ai/knowledgebase/upload..."
+      );
       const res = await fetch("/api/ai/knowledgebase/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,46 +95,54 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) =>
         }),
       });
 
+      console.log("📡 Upload response status:", res.status);
+
       if (!res.ok) {
         const errText = await res.text();
+        console.error("❌ Upload failed. Server response:", errText);
         throw new Error(errText);
       }
 
       // Mark as processing
       setFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId ? { ...f, status: "processing" } : f
-        )
+        prev.map((f) => (f.id === tempId ? { ...f, status: "processing" } : f))
       );
+      console.log("⚙️ File marked as processing...");
 
       const data = await res.json();
-      const knowledgeBaseId = data.data?.id; // This is the ID you need for training
+      console.log("✅ Upload response JSON:", data);
 
-      console.log ("Upload response:", data);
+      const knowledgeBaseId = data.data?.id; // This is the ID you need for training
+      console.log("📘 Extracted knowledgeBaseId:", knowledgeBaseId);
 
       // Mark as completed
       setFiles((prev) =>
         prev.map((f) =>
-          f.id === tempId ? { 
-            ...f, 
-            status: "completed", 
-            knowledgeBaseId: knowledgeBaseId 
-          } : f
+          f.id === tempId
+            ? {
+                ...f,
+                status: "completed",
+                knowledgeBaseId: knowledgeBaseId,
+              }
+            : f
         )
       );
+      console.log("🎉 File marked as completed");
 
-            // Notify parent component about the uploaded file
+      // Notify parent component about the uploaded file
       if (knowledgeBaseId && onFilesUploaded) {
+        console.log(
+          "📤 Notifying parent about uploaded file ID:",
+          knowledgeBaseId
+        );
         onFilesUploaded([knowledgeBaseId]);
       }
-            return knowledgeBaseId;
 
+      return knowledgeBaseId;
     } catch (err: any) {
-      console.error("Upload failed:", err);
+      console.error("🔥 Upload failed:", err.message || err);
       setFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId ? { ...f, status: "failed" } : f
-        )
+        prev.map((f) => (f.id === tempId ? { ...f, status: "failed" } : f))
       );
       setError(err.message || "Upload failed");
     }
@@ -150,9 +169,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) =>
     setFiles((prev) => [...prev, ...newFiles]);
 
     // Trigger real upload
-    validFiles.forEach((file, i) =>
-      uploadFile(file, newFiles[i].id)
-    );
+    validFiles.forEach((file, i) => uploadFile(file, newFiles[i].id));
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -175,7 +192,11 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) =>
   const handleRemove = (id: string) => {
     setFiles((prev) => prev.filter((file) => file.id !== id));
   };
-    const completedFiles = files.filter(file => file.status === "completed" && file.knowledgeBaseId);
+
+  const completedFiles = files.filter(
+    (file) => file.status === "completed" && file.knowledgeBaseId
+  );
+
   return (
     <div className="w-full mx-auto p-4 md:p-6 bg-[#171717] rounded-2xl border border-gray-700 shadow-md">
       {/* Header */}
@@ -305,12 +326,12 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFilesUploaded }) =>
           </div>
         ))}
       </div>
-            {/* Debug info - remove in production */}
+      {/* Debug info - remove in production */}
       {completedFiles.length > 0 && (
         <div className="mt-4 p-3 bg-blue-900/20 rounded-lg">
           <p className="text-blue-400 text-sm">
-            ✅ {completedFiles.length} file(s) ready for training. 
-            File IDs: {completedFiles.map(f => f.knowledgeBaseId).join(', ')}
+            ✅ {completedFiles.length} file(s) ready for training. File IDs:{" "}
+            {completedFiles.map((f) => f.knowledgeBaseId).join(", ")}
           </p>
         </div>
       )}

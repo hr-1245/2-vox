@@ -267,6 +267,7 @@ export async function createAgent(
       metadata: agentData.metadata || {},
       channels: agentData.channels || {}, // Add channels support
       tag: agentData.tag || "", // Add tag support
+      model: agentData.data?.model || "gpt-4o-mini", // Add model support
     };
 
     const { data, error } = await supabase
@@ -527,6 +528,7 @@ export function convertFastAPIAgentToDatabase(
   // agentData.additionalInformation = fastApiAgent.additionalInformation || "";
   agentData.variables = fastApiAgent.variables || {};
   agentData.tag = fastApiAgent.tag || "";
+  agentData.model = fastApiAgent.model || "gpt-4o-mini";
 
   // Map model config to response config (handle both 'modelConfig' and 'configuration' from frontend)
   const modelConfig = fastApiAgent.modelConfig || fastApiAgent.configuration;
