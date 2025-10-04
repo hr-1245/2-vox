@@ -175,84 +175,146 @@ interface FAQGenerationRequest {
 }
 
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
+const API_KEY = process.env.FASTAPI_API_KEY || "AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012";
 
-export async function POST(req: NextRequest): Promise<Response> {
+
+// export async function POST(req: NextRequest): Promise<Response> {
+//   try {
+//     const user = await getCurrentUser();
+
+//     if (!user?.id) {
+//       return Response.json(
+//         { success: false, error: "Unauthorized" },
+//         { status: 401 }
+//       );
+//     }
+
+//     const body: FAQGenerationRequest = await req.json();
+//     console.log("FAQ API Request:", { userId: user.id, ...body });
+
+//     // Determine which FastAPI endpoint to use
+//     let fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/legacy?X-API-Key=AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`;
+    
+//     // Use the new endpoint for auto-generation
+//     if (body.options?.autoGenerate) {
+//       fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/generate`;
+//     }
+
+//     console.log(`Calling FastAPI: ${fastApiEndpoint}`);
+
+//     // Call FastAPI
+//     const fastApiResponse = await fetch(fastApiEndpoint, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Accept": "application/json",
+//         'Authorization': `Bearer ${user.id}`,
+//         'X-API-Key':`AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`
+   
+//       },
+//       body: JSON.stringify({
+//         userId: user.id,
+//         knowledgebaseId: body.knowledgebaseId,
+//         faqs: body.faqs || [],
+//         options: body.options
+//       }),
+//     });
+
+//     console.log("FastAPI response status:", fastApiResponse.status);
+
+//     if (!fastApiResponse.ok) {
+//       const errorText = await fastApiResponse.text();
+//       console.error("FastAPI error:", errorText);
+//       throw new Error(`FastAPI error: ${fastApiResponse.status} - ${errorText}`);
+//     }
+
+//     const fastApiData = await fastApiResponse.json();
+//     console.log("FastAPI success:", fastApiData);
+
+//     // Save to database
+//     const savedData = await saveFAQsToDatabase(
+//       user.id, 
+//       body.knowledgebaseId, 
+//       fastApiData.faqs || []
+//     );
+
+//     return Response.json({
+//       success: true,
+//       data: {
+//         ...savedData,
+//         source: "FastAPI"
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("FAQ API Error:", error);
+//     return Response.json(
+//       {
+//         success: false,
+//         error: error instanceof Error ? error.message : "Internal server error",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+/**
+ * Create or train FAQs manually
+ */
+export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-
     if (!user?.id) {
-      return Response.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: FAQGenerationRequest = await req.json();
-    console.log("FAQ API Request:", { userId: user.id, ...body });
+    const body = await req.json();
+    const { knowledgebaseId, faqs, options } = body;
 
-    // Determine which FastAPI endpoint to use
-    let fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/legacy`;
-    
-    // Use the new endpoint for auto-generation
-    if (body.options?.autoGenerate) {
-      fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/generate`;
-    }
+    console.log("📤 Sending FAQ training to FastAPI:", {
+      userId: user.id,
+      knowledgebaseId,
+      faqCount: faqs?.length,
+      options,
+    });
 
-    console.log(`Calling FastAPI: ${fastApiEndpoint}`);
+    // Select endpoint
+    const endpoint = options?.autoGenerate
+      ? `${FASTAPI_URL}/ai/conversation/training/faq/generate`
+      : `${FASTAPI_URL}/ai/conversation/training/faq/legacy`;
 
-    // Call FastAPI
-    const fastApiResponse = await fetch(fastApiEndpoint, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        'Authorization': `Bearer ${user.id}`,
-        'X-API-Key':`AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`
-   
+        "Authorization": `Bearer ${user.id}`,
+        "X-API-Key": API_KEY,
       },
       body: JSON.stringify({
         userId: user.id,
-        knowledgebaseId: body.knowledgebaseId,
-        faqs: body.faqs || [],
-        options: body.options
+        knowledgebaseId,
+        faqs,
+        options,
       }),
     });
 
-    console.log("FastAPI response status:", fastApiResponse.status);
+    const data = await response.json();
+    console.log("✅ FastAPI response:", data);
 
-    if (!fastApiResponse.ok) {
-      const errorText = await fastApiResponse.text();
-      console.error("FastAPI error:", errorText);
-      throw new Error(`FastAPI error: ${fastApiResponse.status} - ${errorText}`);
+    if (!response.ok) {
+      throw new Error(data.error || "FastAPI error");
     }
-
-    const fastApiData = await fastApiResponse.json();
-    console.log("FastAPI success:", fastApiData);
-
-    // Save to database
-    const savedData = await saveFAQsToDatabase(
-      user.id, 
-      body.knowledgebaseId, 
-      fastApiData.faqs || []
-    );
 
     return Response.json({
       success: true,
-      data: {
-        ...savedData,
-        source: "FastAPI"
-      }
+      message: "FAQ processed successfully",
+      data,
     });
-
-  } catch (error) {
-    console.error("FAQ API Error:", error);
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Internal server error",
-      },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("❌ FAQ API Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
