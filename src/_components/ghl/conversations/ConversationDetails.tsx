@@ -628,7 +628,7 @@ export function ConversationDetails({
     email: searchParams.get("email") || undefined,
     phone: searchParams.get("phone") || undefined,
   };
-  const [selectedMessageType, setSelectedMessageType] = useState<string>("");
+ 
   // State
   const [messages, setMessages] = useState<any[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
@@ -1992,7 +1992,7 @@ const [availableMessageTypes, setAvailableMessageTypes] = useState<MessageTypeOp
 
   // ✅ Debounced reply (runs once even if spammed)
   const debouncedSendReply = useRef(
-    debounce(async (message: string, messageId: string, model: string,messageType:string) => {
+    debounce(async (message: string, messageId: string, model: string) => {
       try {
         console.log("🤖 Sending reply for message: -- just before api call", {
           message,
@@ -2006,7 +2006,7 @@ const [availableMessageTypes, setAvailableMessageTypes] = useState<MessageTypeOp
             message,
             messageId,
             model,
-            messageType
+            // messageType
           }),
         });
 
@@ -2039,16 +2039,15 @@ const [availableMessageTypes, setAvailableMessageTypes] = useState<MessageTypeOp
         !processedMessagesRef.current.has(messageId)
       ) {
         processedMessagesRef.current.add(messageId);
-  const lastInboundType = [...messages]
-    .reverse()
-    .find((msg) => msg.direction === "inbound")?.messageType || "TYPE_WHATSAPP";
+debugger
         debouncedSendReply(
           response?.message || response?.body || "",
-          messageId,
+          messageId, //  lastInboundType,
           agent?.[0]?.model || "gpt-3.5-turbo",
-           lastInboundType,
+         
         );
       }
+
 
       // Always add to UI
       const direction = response?.type === 19 ? "inbound" : "outbound";
@@ -2083,23 +2082,7 @@ const [availableMessageTypes, setAvailableMessageTypes] = useState<MessageTypeOp
       // debouncedSendReply.cancel();
     };
   }, [socket, debouncedSendReply, agent]);
-useEffect(() => {
-  if (!messages?.length) return;
 
-  const latestInbound = [...messages]
-    .reverse()
-    .find((msg) => msg.direction === "inbound");
-
-  if (!latestInbound) return;
-
-  // Only update if changed and valid
-  if (
-    latestInbound.messageType &&
-    latestInbound.messageType !== selectedMessageType
-  ) {
-    setSelectedMessageType(latestInbound.messageType);
-  }
-}, [messages]);
 
   // Loading state
   if (isLoading) {
@@ -2389,9 +2372,9 @@ useEffect(() => {
           messagesList={messages as any}
           // messagesList={messagesList as any}
           isTrainingInProgresss={isTrainingInProgress}
-          selectedMessageType={selectedMessageType}
-          setSelectedMessageType={setSelectedMessageType}
-          getAvailableMessageTypes={getAvailableMessageTypes}
+          // selectedMessageType={selectedMessageType}
+          // setSelectedMessageType={setSelectedMessageType}
+          // getAvailableMessageTypes={getAvailableMessageTypes}
 
         />
       </div>
