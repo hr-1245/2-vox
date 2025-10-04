@@ -128,6 +128,9 @@ interface MessageInputProps {
   messagesList: MessageList;
   isTrainingInProgresss: boolean;
   newMessage: string;
+  selectedMessageType:string;
+  setSelectedMessageType:any;
+ getAvailableMessageTypes: (messagesList: any[]) => MessageTypeOption[];
 }
 
 interface ApiResponse<T> {
@@ -269,27 +272,27 @@ interface MessageTypeOption {
   description: string;
 }
 
-const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
-  if (!messagesList || messagesList.length === 0) {
-    return [
-      {
-        value: "SMS",
-        internal: "TYPE_SMS",
-        label: "SMS",
-        description: "Text message",
-      },
-    ];
-  }
+// const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
+//   if (!messagesList || messagesList.length === 0) {
+//     return [
+//       {
+//         value: "SMS",
+//         internal: "TYPE_SMS",
+//         label: "SMS",
+//         description: "Text message",
+//       },
+//     ];
+//   }
 
-  const existingTypes = new Set(messagesList.map((msg) => msg.messageType));
+//   const existingTypes = new Set(messagesList.map((msg) => msg.messageType));
 
-  // Filter to only include types that exist in messages AND are in SENDABLE_MESSAGE_TYPES
-  const result = SENDABLE_MESSAGE_TYPES.filter((type) => {
-    return existingTypes.has(type.internal);
-  });
+//   // Filter to only include types that exist in messages AND are in SENDABLE_MESSAGE_TYPES
+//   const result = SENDABLE_MESSAGE_TYPES.filter((type) => {
+//     return existingTypes.has(type.internal);
+//   });
 
-  return result as MessageTypeOption[];
-};
+//   return result as MessageTypeOption[];
+// };
 
 // Function to auto-detect default message type
 const getDefaultMessageType = (
@@ -391,6 +394,9 @@ export function MessageInput({
   conversationType,
   messagesList,
   newMessage,
+  selectedMessageType,
+  setSelectedMessageType,
+  getAvailableMessageTypes
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [loadingType, setLoadingType] = useState<
@@ -408,14 +414,15 @@ export function MessageInput({
 
   const { sendMessage } = useSocket();
 
-  const [selectedMessageType, setSelectedMessageType] = useState<string>("");
+  
 
-  useEffect(() => {
-    const availableTypes = getAvailableMessageTypes(messagesList);
-    if (availableTypes.length > 0 && !selectedMessageType) {
-      setSelectedMessageType(availableTypes[0].internal);
-    }
-  }, [messagesList, selectedMessageType]);
+  // useEffect(() => {
+  //   const availableTypes = getAvailableMessageTypes(messagesList);
+  //   if (availableTypes.length > 0 && !selectedMessageType) {
+  //     setSelectedMessageType(availableTypes[0].internal);
+  //   }
+  // }, [messagesList, selectedMessageType]);
+
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
