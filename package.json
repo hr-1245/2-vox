@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node api.js && next dev --turbopack",
     "pdev": "next build && next start",
-    "build": "next build",
-    "start": "next start -p $PORT",
+    "build": "node api.js && next build",
+    "start": "node api.js && next start -p $PORT",
     "clean": "rm -rf .next node_modules",
     "lint": "next lint",
     "health": "curl -s http://localhost:8000/health || echo 'FastAPI server not running. Start with: uvicorn main:app --reload --port 8000'",
-    "check-fastapi": "node -e \"fetch('http://localhost:8000/health').then(r=>r.text()).then(d=>console.log('✅ FastAPI:', d)).catch(()=>console.log('❌ FastAPI not running. Start with: uvicorn main:app --reload --port 8000'))\"",
-    "dev:full": "echo 'Note: Start FastAPI server separately with: uvicorn main:app --reload --port 8000' && pnpm dev"
+    "check-fastapi": "node -e \"fetch('http://localhost:8000/health').then(r=>r.text()).then(d=>console.log('\u2705 FastAPI:', d)).catch(()=>console.log('\u274c FastAPI not running. Start with: uvicorn main:app --reload --port 8000'))\"",
+    "dev:full": "node api.js && echo 'Note: Start FastAPI server separately with: uvicorn main:app --reload --port 8000' && pnpm dev"
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.22",
