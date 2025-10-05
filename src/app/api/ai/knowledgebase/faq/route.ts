@@ -150,22 +150,21 @@
 //     } satisfies ErrorResponse, { status: 500 });
 //   }
 // }
-
+// app/api/ai/knowledgebase/faq/route.ts
 import { NextRequest } from "next/server";
 import { getCurrentUser } from "@/utils/auth/user";
 import { getSupabase } from "@/utils/supabase/getSupabase";
 
 interface FAQItem {
-  question: string;
-  answer: string;
-  category?: string;
+  additionalProp1: string;
+  additionalProp2: string;
+  additionalProp3?: string;
   tags?: string[];
   confidenceLevel?: string;
   source?: string;
 }
 
 interface FAQGenerationRequest {
-  token: string;
   knowledgebaseId: string;
   faqs: FAQItem[];
   options?: {
@@ -175,142 +174,367 @@ interface FAQGenerationRequest {
   };
 }
 
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
+const API_KEY = process.env.FASTAPI_API_KEY || "AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012";
 
-interface SuccessResponse {
-  success: true;
-  data: any;
-}
 
-const FASTAPI_URL = "http://localhost:8000";
-// process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000";
+// export async function POST(req: NextRequest): Promise<Response> {
+//   try {
+//     const user = await getCurrentUser();
 
-// POST - Create or generate FAQs
-export async function POST(req: NextRequest): Promise<Response> {
+//     if (!user?.id) {
+//       return Response.json(
+//         { success: false, error: "Unauthorized" },
+//         { status: 401 }
+//       );
+//     }
+
+//     const body: FAQGenerationRequest = await req.json();
+//     console.log("FAQ API Request:", { userId: user.id, ...body });
+
+//     // Determine which FastAPI endpoint to use
+//     let fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/legacy?X-API-Key=AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`;
+    
+//     // Use the new endpoint for auto-generation
+//     if (body.options?.autoGenerate) {
+//       fastApiEndpoint = `${FASTAPI_URL}/ai/conversation/training/faq/generate`;
+//     }
+
+//     console.log(`Calling FastAPI: ${fastApiEndpoint}`);
+
+//     // Call FastAPI
+//     const fastApiResponse = await fetch(fastApiEndpoint, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Accept": "application/json",
+//         'Authorization': `Bearer ${user.id}`,
+//         'X-API-Key':`AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`
+   
+//       },
+//       body: JSON.stringify({
+//         userId: user.id,
+//         knowledgebaseId: body.knowledgebaseId,
+//         faqs: body.faqs || [],
+//         options: body.options
+//       }),
+//     });
+
+//     console.log("FastAPI response status:", fastApiResponse.status);
+
+//     if (!fastApiResponse.ok) {
+//       const errorText = await fastApiResponse.text();
+//       console.error("FastAPI error:", errorText);
+//       throw new Error(`FastAPI error: ${fastApiResponse.status} - ${errorText}`);
+//     }
+
+//     const fastApiData = await fastApiResponse.json();
+//     console.log("FastAPI success:", fastApiData);
+
+//     // Save to database
+//     const savedData = await saveFAQsToDatabase(
+//       user.id, 
+//       body.knowledgebaseId, 
+//       fastApiData.faqs || []
+//     );
+
+//     return Response.json({
+//       success: true,
+//       data: {
+//         ...savedData,
+//         source: "FastAPI"
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("FAQ API Error:", error);
+//     return Response.json(
+//       {
+//         success: false,
+//         error: error instanceof Error ? error.message : "Internal server error",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+/**
+ * Create or train FAQs manually
+ */
+export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-
     if (!user?.id) {
-      return Response.json(
-        {
-          success: false,
-          error: "Unauthorized",
-        } satisfies ErrorResponse,
-        { status: 401 }
-      );
+      return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await req.json()) as FAQGenerationRequest;
+    const body = await req.json();
+    const { knowledgebaseId, faqs, options } = body;
 
-    // Call FastAPI FAQ endpoint
-    const fastApiResponse = await fetch(
-      `${FASTAPI_URL}/ai/conversation/training/faq`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`, // Replace with actual token if needed
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          faqs: body.faqs || [],
-        }),
-      }
-    );
-    console.log("FastAPI FAQ endpoint called ---- before", fastApiResponse);
+    console.log("📤 Sending FAQ training to FastAPI:", {
+      userId: user.id,
+      knowledgebaseId,
+      faqCount: faqs?.length,
+      options,
+    });
 
-    if (!fastApiResponse.ok) {
-      const errorText = await fastApiResponse.text();
+    // Select endpoint
+    const endpoint = options?.autoGenerate
+      ? `${FASTAPI_URL}/ai/conversation/training/faq/generate`
+      : `${FASTAPI_URL}/ai/conversation/training/faq/legacy`;
 
-      return Response.json(
-        {
-          success: false,
-          error: `FAQ generation failed: ${errorText}`,
-        } satisfies ErrorResponse,
-        { status: 500 }
-      );
-    }
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${user.id}`,
+        "X-API-Key": API_KEY,
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        knowledgebaseId,
+        faqs,
+        options,
+      }),
+    });
 
-    const fastApiData = await fastApiResponse.json();
+    const data = await response.json();
+    console.log("✅ FastAPI response:", data);
 
-    // Update knowledge base with generated FAQs
-    const supabase = await getSupabase();
-
-    const { data: kbData, error: kbError }: any = await supabase
-      .from("knowledge_bases")
-      .select("faq, data, name")
-      .eq("user_id", user.id);
-    // .eq("id", body.knowledgebaseId)
-    // .single();
-
-    if (kbError) {
-      console.error("Error fetching knowledge base:", kbError);
-    }
-
-    const existingFaqs = Array.isArray(kbData?.faq) ? kbData.faq : [];
-
-    const newFaqs = fastApiData.faqs || body.faqs || [];
-
-    // Enhance FAQs with additional metadata
-    const enhancedFaqs = newFaqs.map((faq: any, index: number) => ({
-      ...faq,
-      id: `faq-${Date.now()}-${index}`,
-      confidenceLevel:
-        faq.confidenceLevel || `${Math.floor(Math.random() * 10) + 85}%`,
-      source: faq.source || "AI Generated",
-      generatedBy: "AI Generated",
-      createdAt: new Date().toISOString(),
-    }));
-
-    const updatedFaqs = [...existingFaqs, ...enhancedFaqs];
-
-    if (kbData) {
-      const { error: updateError } = await supabase
-        .from("knowledge_bases")
-        .update({
-          faq: updatedFaqs,
-          data: {
-            ...kbData.data,
-            faqs: updatedFaqs,
-            last_faq_update: new Date().toISOString(),
-            total_faqs: updatedFaqs.length,
-          },
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
-
-      // .eq("id", body.knowledgebaseId);
-
-      if (updateError) {
-        console.error("Error updating knowledge base:", updateError);
-      }
+    if (!response.ok) {
+      throw new Error(data.error || "FastAPI error");
     }
 
     return Response.json({
       success: true,
-      data: {
-        message: "FAQs generated successfully",
-        knowledgebaseId: body.knowledgebaseId,
-        // faqs: enhancedFaqs,
-        // totalGenerated: enhancedFaqs.length,
-        // totalFaqs: updatedFaqs.length,
-      },
-    } satisfies SuccessResponse);
-  } catch (error) {
-    console.error("Error in FAQ generation:", error);
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Internal server error",
-      } satisfies ErrorResponse,
-      { status: 500 }
-    );
+      message: "FAQ processed successfully",
+      data,
+    });
+  } catch (error: any) {
+    console.error("❌ FAQ API Error:", error);
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+async function saveFAQsToDatabase(userId: string, knowledgebaseId: string, faqs: any[]) {
+  const supabase = await getSupabase();
+
+  // Get current knowledge base
+  const { data: kbData, error: kbError } = await supabase
+    .from("knowledge_bases")
+    .select("faq, data, name, id")
+    .eq("id", knowledgebaseId)
+    .single();
+
+  if (kbError) {
+    throw new Error("Knowledge base not found");
+  }
+
+  const existingFaqs = Array.isArray(kbData?.faq) ? kbData.faq : [];
+
+  // Enhance FAQs with additional metadata
+  const enhancedFaqs = faqs.map((faq, index) => ({
+    ...faq,
+    id: faq.id || `faq-${Date.now()}-${index}`,
+    createdAt: faq.createdAt || new Date().toISOString(),
+  }));
+
+  const updatedFaqs = [...existingFaqs, ...enhancedFaqs];
+
+  // Update knowledge base
+  const { error: updateError } = await supabase
+    .from("knowledge_bases")
+    .update({
+      faq: updatedFaqs,
+      data: {
+        ...kbData.data,
+        faqs: updatedFaqs,
+        last_faq_update: new Date().toISOString(),
+        total_faqs: updatedFaqs.length,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", knowledgebaseId);
+
+  if (updateError) {
+    throw new Error("Failed to save FAQs to database");
+  }
+
+  return {
+    message: "FAQs processed successfully",
+    knowledgebaseId: knowledgebaseId,
+    faqs: enhancedFaqs,
+    totalGenerated: enhancedFaqs.length,
+    totalFaqs: updatedFaqs.length,
+  };
+}
+
+// GET endpoint remains the same...
+// export async function GET(req: NextRequest): Promise<Response> {
+//   // ... your existing GET implementation
+// }
+// import { NextRequest } from "next/server";
+// import { getCurrentUser } from "@/utils/auth/user";
+// import { getSupabase } from "@/utils/supabase/getSupabase";
+
+// interface FAQItem {
+//   question: string;
+//   answer: string;
+//   category?: string;
+//   tags?: string[];
+//   confidenceLevel?: string;
+//   source?: string;
+// }
+
+// interface FAQGenerationRequest {
+//   token: string;
+//   knowledgebaseId: string;
+//   faqs: FAQItem[];
+//   options?: {
+//     autoGenerate?: boolean;
+//     numberOfQuestions?: number;
+//     sourceContent?: string;
+//   };
+// }
+
+// interface ErrorResponse {
+//   success: false;
+//   error: string;
+// }
+
+// interface SuccessResponse {
+//   success: true;
+//   data: any;
+// }
+
+// const FASTAPI_URL = "http://localhost:8000";
+// // process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000";
+
+// // POST - Create or generate FAQs
+// export async function POST(req: NextRequest): Promise<Response> {
+//   try {
+//     const user = await getCurrentUser();
+
+//     if (!user?.id) {
+//       return Response.json(
+//         {
+//           success: false,
+//           error: "Unauthorized",
+//         } satisfies ErrorResponse,
+//         { status: 401 }
+//       );
+//     }
+
+//     const body = (await req.json()) as FAQGenerationRequest;
+
+//     // Call FastAPI FAQ endpoint
+//     const fastApiResponse = await fetch(
+//       `${FASTAPI_URL}/ai/conversation/training/faq`,
+//       {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Accept: "application/json",
+//           Authorization: `Bearer AbC123xYz_Def456UvW_789GhiJklMnoPqrStuVwxYz012`, // Replace with actual token if needed
+//         },
+//         body: JSON.stringify({
+//           userId: user.id,
+//           faqs: body.faqs || [],
+//         }),
+//       }
+//     );
+//     console.log("FastAPI FAQ endpoint called ---- before", fastApiResponse);
+
+//     if (!fastApiResponse.ok) {
+//       const errorText = await fastApiResponse.text();
+
+//       return Response.json(
+//         {
+//           success: false,
+//           error: `FAQ generation failed: ${errorText}`,
+//         } satisfies ErrorResponse,
+//         { status: 500 }
+//       );
+//     }
+
+//     const fastApiData = await fastApiResponse.json();
+
+//     // Update knowledge base with generated FAQs
+//     const supabase = await getSupabase();
+
+//     const { data: kbData, error: kbError }: any = await supabase
+//       .from("knowledge_bases")
+//       .select("faq, data, name")
+//       .eq("user_id", user.id);
+//     // .eq("id", body.knowledgebaseId)
+//     // .single();
+
+//     if (kbError) {
+//       console.error("Error fetching knowledge base:", kbError);
+//     }
+
+//     const existingFaqs = Array.isArray(kbData?.faq) ? kbData.faq : [];
+
+//     const newFaqs = fastApiData.faqs || body.faqs || [];
+
+//     // Enhance FAQs with additional metadata
+//     const enhancedFaqs = newFaqs.map((faq: any, index: number) => ({
+//       ...faq,
+//       id: `faq-${Date.now()}-${index}`,
+//       confidenceLevel:
+//         faq.confidenceLevel || `${Math.floor(Math.random() * 10) + 85}%`,
+//       source: faq.source || "AI Generated",
+//       generatedBy: "AI Generated",
+//       createdAt: new Date().toISOString(),
+//     }));
+
+//     const updatedFaqs = [...existingFaqs, ...enhancedFaqs];
+
+//     if (kbData) {
+//       const { error: updateError } = await supabase
+//         .from("knowledge_bases")
+//         .update({
+//           faq: updatedFaqs,
+//           data: {
+//             ...kbData.data,
+//             faqs: updatedFaqs,
+//             last_faq_update: new Date().toISOString(),
+//             total_faqs: updatedFaqs.length,
+//           },
+//           updated_at: new Date().toISOString(),
+//         })
+//         .eq("user_id", user.id);
+
+//       // .eq("id", body.knowledgebaseId);
+
+//       if (updateError) {
+//         console.error("Error updating knowledge base:", updateError);
+//       }
+//     }
+
+//     return Response.json({
+//       success: true,
+//       data: {
+//         message: "FAQs generated successfully",
+//         knowledgebaseId: body.knowledgebaseId,
+//         // faqs: enhancedFaqs,
+//         // totalGenerated: enhancedFaqs.length,
+//         // totalFaqs: updatedFaqs.length,
+//       },
+//     } satisfies SuccessResponse);
+//   } catch (error) {
+//     console.error("Error in FAQ generation:", error);
+//     return Response.json(
+//       {
+//         success: false,
+//         error: error instanceof Error ? error.message : "Internal server error",
+//       } satisfies ErrorResponse,
+//       { status: 500 }
+//     );
+//   }
+// }
 
 // GET - Retrieve FAQs for a knowledge base
 // export async function GET(req: NextRequest): Promise<Response> {

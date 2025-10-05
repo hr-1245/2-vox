@@ -94,6 +94,77 @@ const debug = {
   },
 };
 
+const SENDABLE_MESSAGE_TYPES = [
+  {
+    value: "SMS",
+    internal: "TYPE_SMS",
+    label: "SMS",
+    description: "Text message",
+  },
+  {
+    value: "Email",
+    internal: "TYPE_EMAIL",
+    label: "Email",
+    description: "Email message",
+  },
+  {
+    value: "WhatsApp",
+    internal: "TYPE_WHATSAPP",
+    label: "WhatsApp",
+    description: "WhatsApp message",
+  },
+  {
+    value: "FB",
+    internal: "TYPE_FACEBOOK",
+    label: "Facebook",
+    description: "Facebook message",
+  },
+  {
+    value: "IG",
+    internal: "TYPE_INSTAGRAM",
+    label: "Instagram",
+    description: "Instagram message",
+  },
+  {
+    value: "Live_Chat",
+    internal: "TYPE_WEBCHAT",
+    label: "Web Chat",
+    description: "Website chat message",
+  },
+  {
+    value: "Custom",
+    internal: "TYPE_GMB",
+    label: "Google Business",
+    description: "Google My Business message",
+  },
+] as const;
+interface MessageTypeOption {
+  value: string;
+  internal: string;
+  label: string;
+  description: string;
+}
+const getAvailableMessageTypes = (messagesList: any[]): MessageTypeOption[] => {
+  if (!messagesList || messagesList.length === 0) {
+    return [
+      {
+        value: "SMS",
+        internal: "TYPE_SMS",
+        label: "SMS",
+        description: "Text message",
+      },
+    ];
+  }
+
+  const existingTypes = new Set(messagesList.map((msg) => msg.messageType));
+
+  // Filter to only include types that exist in messages AND are in SENDABLE_MESSAGE_TYPES
+  const result = SENDABLE_MESSAGE_TYPES.filter((type) => {
+    return existingTypes.has(type.internal);
+  });
+
+  return result as MessageTypeOption[];
+};
 // API helper with debug logging
 async function fetchWithDebug(url: string, options?: RequestInit) {
   const requestId = Math.random().toString(36).substring(7);
@@ -348,17 +419,17 @@ function MessageBubble({
         >
           {Array.isArray(message.messageType)
             ? message.messageType
-                .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
-                .map((type) => (
-                  <Badge key={type} variant="outline" className="h-5 px-2">
-                    {messageTypeLabels[type]}
-                  </Badge>
-                ))
-            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
-                <Badge variant="outline" className="h-5 px-2">
-                  {messageTypeLabels[message.messageType]}
+              .filter((type) => messageTypeLabels[type]) // ✅ only keep known types
+              .map((type) => (
+                <Badge key={type} variant="outline" className="h-5 px-2">
+                  {messageTypeLabels[type]}
                 </Badge>
-              )}
+              ))
+            : messageTypeLabels[message.messageType] && ( // ✅ only render if valid
+              <Badge variant="outline" className="h-5 px-2">
+                {messageTypeLabels[message.messageType]}
+              </Badge>
+            )}
           {/* <Badge variant="outline" className="h-5 px-2">
 
             {messageTypeLabels[message.messageType] || message.messageType}
@@ -557,7 +628,7 @@ export function ConversationDetails({
     email: searchParams.get("email") || undefined,
     phone: searchParams.get("phone") || undefined,
   };
-
+ 
   // State
   const [messages, setMessages] = useState<any[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
@@ -596,6 +667,7 @@ export function ConversationDetails({
   // Conversation settings state
   const [conversationSettings, setConversationSettings] = useState<any>(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
+const [availableMessageTypes, setAvailableMessageTypes] = useState<MessageTypeOption[]>([]);
 
   //agents
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -884,7 +956,7 @@ export function ConversationDetails({
         !isCurrentlyTrained ||
         (lastUpdated &&
           new Date(lastUpdated) <
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
       if (shouldAutoTrain) {
         debug.log(
@@ -896,16 +968,16 @@ export function ConversationDetails({
         setTrainingStatus((prev) =>
           prev
             ? {
-                ...prev,
-                isTraining: true,
-              }
+              ...prev,
+              isTraining: true,
+            }
             : {
-                isTrained: false,
-                isTraining: true,
-                lastUpdated: new Date().toISOString(),
-                messageCount,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: true,
+              lastUpdated: new Date().toISOString(),
+              messageCount,
+              vectorCount: 0,
+            }
         );
 
         // Start training in background with retry logic
@@ -981,8 +1053,7 @@ export function ConversationDetails({
       // First, fetch messages for training
       debug.log(
         "ConversationDetails",
-        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
-          retryCount + 1
+        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${retryCount + 1
         }/${maxRetries + 1})...`
       );
 
@@ -1093,12 +1164,12 @@ export function ConversationDetails({
           prev
             ? { ...prev, isTraining: false }
             : {
-                isTrained: false,
-                isTraining: false,
-                lastUpdated: new Date().toISOString(),
-                messageCount: 0,
-                vectorCount: 0,
-              }
+              isTrained: false,
+              isTraining: false,
+              lastUpdated: new Date().toISOString(),
+              messageCount: 0,
+              vectorCount: 0,
+            }
         );
 
         // Show a non-intrusive notification
@@ -1449,16 +1520,16 @@ export function ConversationDetails({
       setTrainingStatus((prev) =>
         prev
           ? {
-              ...prev,
-              isTraining: true,
-            }
+            ...prev,
+            isTraining: true,
+          }
           : {
-              isTrained: false,
-              isTraining: true,
-              lastUpdated: new Date().toISOString(),
-              messageCount: messages.length,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: true,
+            lastUpdated: new Date().toISOString(),
+            messageCount: messages.length,
+            vectorCount: 0,
+          }
       );
 
       // console.log("MANUAL TRAIN: Loading state set, fetching messages...");
@@ -1738,12 +1809,12 @@ export function ConversationDetails({
         prev
           ? { ...prev, isTraining: false }
           : {
-              isTrained: false,
-              isTraining: false,
-              lastUpdated: new Date().toISOString(),
-              messageCount: 0,
-              vectorCount: 0,
-            }
+            isTrained: false,
+            isTraining: false,
+            lastUpdated: new Date().toISOString(),
+            messageCount: 0,
+            vectorCount: 0,
+          }
       );
     }
   };
@@ -1808,6 +1879,8 @@ export function ConversationDetails({
         setIsLoading(false);
       }
     }
+
+
 
     // Background AI features loading
     async function loadAIFeaturesInBackground(messageCount: number) {
@@ -1933,6 +2006,7 @@ export function ConversationDetails({
             message,
             messageId,
             model,
+            // messageType
           }),
         });
 
@@ -1965,13 +2039,15 @@ export function ConversationDetails({
         !processedMessagesRef.current.has(messageId)
       ) {
         processedMessagesRef.current.add(messageId);
-
+debugger
         debouncedSendReply(
           response?.message || response?.body || "",
-          messageId,
-          agent?.[0]?.model || "gpt-3.5-turbo"
+          messageId, //  lastInboundType,
+          agent?.[0]?.model || "gpt-3.5-turbo",
+         
         );
       }
+
 
       // Always add to UI
       const direction = response?.type === 19 ? "inbound" : "outbound";
@@ -2006,6 +2082,7 @@ export function ConversationDetails({
       // debouncedSendReply.cancel();
     };
   }, [socket, debouncedSendReply, agent]);
+
 
   // Loading state
   if (isLoading) {
@@ -2060,7 +2137,7 @@ export function ConversationDetails({
                 className={cn(
                   "h-8 px-3",
                   trainingStatus?.isTrained &&
-                    "border-green-500 text-green-700 hover:bg-green-50"
+                  "border-green-500 text-green-700 hover:bg-green-50"
                 )}
               >
                 {trainingStatus?.isTraining ? (
@@ -2295,6 +2372,10 @@ export function ConversationDetails({
           messagesList={messages as any}
           // messagesList={messagesList as any}
           isTrainingInProgresss={isTrainingInProgress}
+          // selectedMessageType={selectedMessageType}
+          // setSelectedMessageType={setSelectedMessageType}
+          // getAvailableMessageTypes={getAvailableMessageTypes}
+
         />
       </div>
     </Card>
