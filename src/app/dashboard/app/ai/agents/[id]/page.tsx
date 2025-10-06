@@ -250,7 +250,6 @@ function AgentDetailClientPage({
       setLoading(true);
       const response = await fetch(`/api/ai/agents/${agentId}`);
       const data = await response.json();
-      console.log("Fetched agent data:", data);
 
       if (data.success && data.data) {
         // Transform database format to expected format
@@ -753,7 +752,7 @@ function AgentDetailClientPage({
                   </div>
 
                   {/* Additional Information Field */}
-                  <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label htmlFor="additionalInformation">
                       Additional Guidelines
                     </Label>
@@ -778,7 +777,7 @@ function AgentDetailClientPage({
                         </p>
                       </div>
                     )}
-                  </div>
+                  </div> */}
 
                   {/* System Prompt Preview (Read-only) */}
                   {!editing && (
@@ -954,14 +953,14 @@ function AgentDetailClientPage({
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button
+              {/* <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => setEditing(!editing)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 {editing ? "Cancel Edit" : "Edit Agent"}
-              </Button>
+              </Button> */}
 
               <Button
                 variant="outline"

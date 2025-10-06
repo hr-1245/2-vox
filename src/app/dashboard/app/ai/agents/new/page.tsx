@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
+import { is } from "date-fns/locale";
 
 // Constants
 const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
@@ -146,7 +147,7 @@ export default function CreateAgentPage() {
     additionalInformation: "",
     variables: {},
     knowledgeBaseIds: [],
-    isActive: true,
+    isActive: false,
     // AI Configuration (required by FastAPI)
     temperature: 0.7,
     model: "gpt-4.1",
@@ -261,6 +262,7 @@ export default function CreateAgentPage() {
         humanlikeBehavior: formData.humanlikeBehavior,
         channels: convertArrayToChannelsObject(selectedMessageTypes),
         tag,
+        isActive: formData.isActive,
       };
 
       const response = await fetch("/api/ai/agents", {
@@ -268,12 +270,12 @@ export default function CreateAgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Agent creation response:", data);
 
       if (data.success) {
         toast.success("🎉 AI Agent created successfully! Redirecting...");
@@ -289,9 +291,7 @@ export default function CreateAgentPage() {
       }
     } catch (error) {
       console.error("Error creating agent:", error);
-      toast.error(
-        "Failed to create agent. Please check your connection and try again."
-      );
+      toast.error("Failed to create agent. Please try again.");
     } finally {
       setCreating(false);
     }

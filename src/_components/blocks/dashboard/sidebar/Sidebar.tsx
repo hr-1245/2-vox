@@ -76,12 +76,12 @@ const sidebarItems: SidebarItemType[] = [
       //   protected: true,
       //   badge: "Auto"
       // },
-      // {
-      //   title: "Knowledge Base",
-      //   href: "/dashboard/app/ai/knowledgebase",
-      //   icon: "BookOpen",
-      //   protected: true
-      // }
+      {
+        title: "Knowledge Base",
+        href: "/dashboard/app/ai/knowledgebase",
+        icon: "BookOpen",
+        protected: true,
+      },
     ],
   },
   {

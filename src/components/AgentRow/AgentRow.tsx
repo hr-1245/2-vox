@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
 interface Agent {
   id: string;
   created_at: string;
@@ -20,6 +21,9 @@ interface Agent {
   description?: string;
   is_active?: boolean;
   user_id: string;
+  data?: {
+    tag?: string;
+  };
 }
 
 // Agent types for tabs
@@ -62,7 +66,6 @@ const AgentRow = ({
     return AGENT_TYPES.conversation; // Default to conversation
   };
   const typeInfo = getAgentTypeInfo(agent.type);
-  const TypeIcon = typeInfo.icon;
   const isActive = agent.is_active !== false;
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this agent?")) return;
@@ -103,28 +106,23 @@ const AgentRow = ({
             variant="outline"
             className={`${typeInfo.color} text-xs border-current`}
           >
-            {typeInfo.label}
+            {agent?.data?.tag ? agent?.data?.tag : "No Tag"}
           </Badge>
-          {isActive && (
-            <Badge className={`${typeInfo.badge} text-white text-xs`}>
-              Active
-            </Badge>
-          )}
         </div>
       </TableCell>
 
       {/* Status Toggle */}
-      {/* <TableCell>
+      <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            {isActive ? 'Active' : 'Inactive'}
+            {isActive ? "Active" : "Inactive"}
           </span>
           <Switch
             checked={isActive}
             onCheckedChange={() => toggleAgentStatus(agent.id, isActive)}
           />
         </div>
-      </TableCell> */}
+      </TableCell>
 
       {/* Created At */}
       <TableCell className="text-muted-foreground">

@@ -123,27 +123,27 @@ export default function AIAgentsPage() {
   const toggleAgentStatus = async (agentId: string, currentStatus: boolean) => {
     try {
       // If activating an agent, first deactivate all other agents
-      if (!currentStatus) {
-        const otherActiveAgents = agents.filter(
-          (agent) => agent.id !== agentId && agent.is_active !== false
-        );
+      // if (!currentStatus) {
+      //   const otherActiveAgents = agents.filter(
+      //     (agent) => agent.id !== agentId && agent.is_active !== false
+      //   );
 
-        if (otherActiveAgents.length > 0) {
-          // Deactivate all other agents first
-          const deactivatePromises = otherActiveAgents.map((agent) =>
-            fetch(`/api/ai/agents/${agent.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ is_active: false }),
-            })
-          );
+      //   if (otherActiveAgents.length > 0) {
+      //     // Deactivate all other agents first
+      //     const deactivatePromises = otherActiveAgents.map((agent) =>
+      //       fetch(`/api/ai/agents/${agent.id}`, {
+      //         method: "PATCH",
+      //         headers: { "Content-Type": "application/json" },
+      //         body: JSON.stringify({ is_active: false }),
+      //       })
+      //     );
 
-          await Promise.all(deactivatePromises);
-          toast.info(
-            "Deactivated other agents - only one AI agent can be active at a time"
-          );
-        }
-      }
+      //     await Promise.all(deactivatePromises);
+      //     toast.info(
+      //       "Deactivated other agents - only one AI agent can be active at a time"
+      //     );
+      //   }
+      // }
 
       // Now activate/deactivate the selected agent
       const response = await fetch(`/api/ai/agents/${agentId}`, {
@@ -155,9 +155,9 @@ export default function AIAgentsPage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success(
-          `Agent ${!currentStatus ? "activated" : "deactivated"} successfully!`
-        );
+        // toast.success(
+        //   `Agent ${!currentStatus ? "activated" : "deactivated"} successfully!`
+        // );
         await loadAgents();
       } else {
         toast.error("Failed to update agent status: " + data.error);
@@ -424,8 +424,8 @@ export default function AIAgentsPage() {
                     <TableRow>
                       <TableHead>Agent</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead>Type</TableHead>
-                      {/* <TableHead>Status</TableHead> */}
+                      <TableHead>Tag</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>

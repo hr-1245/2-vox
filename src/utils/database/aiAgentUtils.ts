@@ -222,8 +222,29 @@ export async function createAgent(
       };
     }
 
+    // Check if tag already exists (must be unique)
+    if (agentData.tag) {
+      const { data: existingTag, error: tagCheckError } = await supabase
+        .from("ai_agents")
+        .select("id")
+        .eq("tag", agentData.tag)
+        .maybeSingle();
+
+      if (tagCheckError) {
+        return { success: false, error: "Failed to validate tag uniqueness" };
+      }
+
+      if (existingTag) {
+        return {
+          success: false,
+          error: `Tag '${agentData.tag}' already exists. Please choose another one.`,
+        };
+      }
+    }
+
     // Create default data structure if not provided
     let fullData: AgentDataSchema;
+
     if (agentData.data && Object.keys(agentData.data).length > 0) {
       // Merge provided data with defaults
       const defaultData = createDefaultAgentData(agentData.type);
@@ -262,7 +283,7 @@ export async function createAgent(
         agentData.knowledge_base_ids || fullData.knowledgeBase.preferredSources,
       // description: agentData.description || fullData.additionalInformation,
       data: fullData,
-      is_active: agentData.is_active !== undefined ? agentData.is_active : true,
+      is_active: agentData.is_active,
       configuration: agentData.configuration || {},
       metadata: agentData.metadata || {},
       channels: agentData.channels || {}, // Add channels support
@@ -272,7 +293,7 @@ export async function createAgent(
 
     const { data, error } = await supabase
       .from("ai_agents")
-      .insert(insertData)
+      .insert(insertData as any)
       .select()
       .single();
 
@@ -281,7 +302,6 @@ export async function createAgent(
       return { success: false, error: "Failed to create agent" };
     }
 
-    console.log("Successfully created agent:", data.id);
     return { success: true, data };
   } catch (error) {
     console.error("Error in createAgent:", error);
@@ -617,7 +637,7 @@ export function convertFastAPIAgentToDatabase(
     data: agentData,
     channels: channels, // Add channels support
     configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {},
-    is_active:fastApiAgent.isActive !== undefined ? fastApiAgent.isActive : true,
+    is_active: fastApiAgent.isActive,
     tag: fastApiAgent.tag ?? agentData.tag ?? "",
     model: fastApiAgent.model ?? agentData.model ?? "gpt-4o-mini",
   };
