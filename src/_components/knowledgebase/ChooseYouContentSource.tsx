@@ -1,22 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import {
-  FileText,
-  Mic,
-  Youtube,
-  Table,
-  Globe,
-  HelpCircle,
-  X,
-  Loader2,
-  CheckCircle2,
-  File,
-} from "lucide-react";
+import { FileText, Loader2, CheckCircle2, File, X } from "lucide-react";
 import FAQGenerator from "./FAQGenerator";
 
 interface ChooseYourContentSourceProps {
   onFilesUploaded: (files: string[]) => void;
+  setIsUploading: (uploading: boolean) => void;
 }
 
 interface FileWithStatus {
@@ -24,7 +14,7 @@ interface FileWithStatus {
   name: string;
   size: number;
   type: string;
-  status: "uploading" | "processing" | "completed" | "failed";
+  status: "ready" | "uploading" | "processing" | "completed" | "failed";
   progress: number;
   knowledgeBaseId?: string;
 }
@@ -33,55 +23,21 @@ const sources = [
   {
     id: 1,
     title: "Upload Files",
-    description: "PDF, Word, Excel, PowerPoint, and text files",
+    description: "PDF, DOCX or CSV",
     action: "Drag & Drop",
     icon: <FileText className="w-8 h-8 text-gray-300" />,
   },
-  // {
-  //   id: 2,
-  //   title: "Audio Content",
-  //   description: "MP3, WAV files with auto-transcription",
-  //   action: "AI Transcription",
-  //   icon: <Mic className="w-8 h-8 text-gray-300" />,
-  // },
-  // {
-  //   id: 3,
-  //   title: "YouTube Videos",
-  //   description: "Import and transcribe video content",
-  //   action: "URL Import",
-  //   icon: <Youtube className="w-8 h-8 text-gray-300" />,
-  // },
-  // {
-  //   id: 4,
-  //   title: "CSV Data",
-  //   description: "Structured data and spreadsheets",
-  //   action: "Data Mapping",
-  //   icon: <Table className="w-8 h-8 text-gray-300" />,
-  // },
-  // {
-  //   id: 5,
-  //   title: "Web Crawler",
-  //   description: "Index websites and web pages",
-  //   action: "Auto-Index",
-  //   icon: <Globe className="w-8 h-8 text-gray-300" />,
-  // },
-  // {
-  //   id: 6,
-  //   title: "FAQ Generator",
-  //   description: "Auto-generate from existing content",
-  //   action: "AI Generated",
-  //   icon: <HelpCircle className="w-8 h-8 text-gray-300" />,
-  // },
 ];
 
 export default function ChooseYourContentSource({
   onFilesUploaded,
+  setIsUploading,
 }: ChooseYourContentSourceProps) {
   const [files, setFiles] = useState<FileWithStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showFaqInput, setShowFaqInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const fileStoreRef = useRef<Map<string, File>>(new Map());
   const [loading, setLoading] = useState(false);
 
   const showMessage = (type: "success" | "error", message: string) => {
@@ -93,7 +49,7 @@ export default function ChooseYourContentSource({
     }
   };
 
-  // validate uploaded files
+  // ✅ validate uploaded files
   const validateFiles = (selectedFiles: FileList): File[] => {
     const supportedTypes = [
       "application/pdf",
@@ -127,7 +83,7 @@ export default function ChooseYourContentSource({
     return validFiles;
   };
 
-  // helper to convert file → base64
+  // ✅ convert file → base64
   const readFileAsBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -137,30 +93,14 @@ export default function ChooseYourContentSource({
       reader.onerror = (err) => reject(err);
     });
 
-  // upload file → then train
+  // ✅ upload file
   const uploadFile = async (file: File, tempId: number) => {
+    setIsUploading(true);
     try {
-      console.log("📂 Starting upload for:", file.name, {
-        id: tempId,
-        type: file.type,
-        size: file.size,
-      });
-
-      // Mark as uploading
-      // setFiles((prev) =>
-      //   prev.map((f) => (f.id === tempId ? { ...f, status: "uploading" } : f))
-      // );
-
       console.log("🔄 Reading file as base64...");
       const base64Content = await readFileAsBase64(file);
-      console.log(
-        "✅ Finished reading file. Base64 length:",
-        base64Content.length
-      );
+      console.log("✅ Base64 ready. Sending upload...");
 
-      console.log(
-        "🚀 Sending upload request to /api/ai/knowledgebase/upload..."
-      );
       const res = await fetch("/api/ai/knowledgebase/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,50 +113,29 @@ export default function ChooseYourContentSource({
         }),
       });
 
-      console.log("📡 Upload response status:", res.status);
-
       if (!res.ok) {
         const errText = await res.text();
-        console.error("❌ Upload failed. Server response:", errText);
         throw new Error(errText);
       }
 
-      // Mark as processing
       setFiles((prev) =>
         prev.map((f) => (f.id === tempId ? { ...f, status: "processing" } : f))
       );
-      console.log("⚙️ File marked as processing...");
 
       const data = await res.json();
-      console.log("✅ Upload response JSON:", data);
+      const knowledgeBaseId = data.data?.id;
 
-      const knowledgeBaseId = data.data?.id; // This is the ID you need for training
-      console.log("📘 Extracted knowledgeBaseId:", knowledgeBaseId);
-
-      // Mark as completed
       setFiles((prev) =>
         prev.map((f) =>
-          f.id === tempId
-            ? {
-                ...f,
-                status: "completed",
-                knowledgeBaseId: knowledgeBaseId,
-              }
-            : f
+          f.id === tempId ? { ...f, status: "completed", knowledgeBaseId } : f
         )
       );
-      console.log("🎉 File marked as completed");
 
-      // Notify parent component about the uploaded file
       if (knowledgeBaseId && onFilesUploaded) {
-        console.log(
-          "📤 Notifying parent about uploaded file ID:",
-          knowledgeBaseId
-        );
         onFilesUploaded([knowledgeBaseId]);
       }
 
-      return knowledgeBaseId;
+      console.log("🎉 Upload complete:", file.name);
     } catch (err: any) {
       console.error("🔥 Upload failed:", err.message || err);
       setFiles((prev) =>
@@ -226,7 +145,7 @@ export default function ChooseYourContentSource({
     }
   };
 
-  // file select (click)
+  // ✅ select file manually
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const selected = validateFiles(e.target.files);
@@ -234,13 +153,13 @@ export default function ChooseYourContentSource({
 
     const newFiles = selected.map((file, idx) => {
       const fileId = Date.now() + idx;
-      uploadFile(file, fileId);
+      fileStoreRef.current.set(file.name, file);
       return {
         id: fileId,
         name: file.name,
         size: file.size,
         type: file.type,
-        status: "uploading",
+        status: "ready",
         progress: 0,
       } as FileWithStatus;
     });
@@ -248,7 +167,7 @@ export default function ChooseYourContentSource({
     setFiles((prev) => [...prev, ...newFiles]);
   };
 
-  // drag & drop
+  // ✅ handle drag & drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const dropped = validateFiles(e.dataTransfer.files);
@@ -256,13 +175,13 @@ export default function ChooseYourContentSource({
 
     const newFiles = dropped.map((file, idx) => {
       const fileId = Date.now() + idx;
-      uploadFile(file, fileId);
+      fileStoreRef.current.set(file.name, file);
       return {
         id: fileId,
         name: file.name,
         size: file.size,
         type: file.type,
-        status: "uploading",
+        status: "ready",
         progress: 0,
       } as FileWithStatus;
     });
@@ -270,12 +189,31 @@ export default function ChooseYourContentSource({
     setFiles((prev) => [...prev, ...newFiles]);
   };
 
-  // remove file
+  // ✅ upload all ready files
+  const handleUploadAll = async () => {
+    if (!files.length) return;
+
+    const readyFiles = files.filter((f) => f.status === "ready");
+    if (!readyFiles.length) return;
+
+    for (const f of readyFiles) {
+      const realFile = fileStoreRef.current.get(f.name);
+      if (!realFile) continue;
+
+      setFiles((prev) =>
+        prev.map((x) => (x.id === f.id ? { ...x, status: "uploading" } : x))
+      );
+
+      await uploadFile(realFile, f.id);
+    }
+  };
+
+  // ✅ remove file
   const handleRemove = (fileId: number) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
-  // click card handler
+  // ✅ click card
   const handleClick = (sourceId: number) => {
     if (sourceId === 1) {
       fileInputRef.current?.click();
@@ -293,7 +231,8 @@ export default function ChooseYourContentSource({
         Select how you'd like to add knowledge to your AI agent. You can use
         multiple sources.
       </p>
-      {/* hidden input for file picker */}
+
+      {/* Hidden input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -301,6 +240,16 @@ export default function ChooseYourContentSource({
         className="hidden"
         onChange={handleFileChange}
       />
+      {/* ✅ Upload Button */}
+
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleUploadAll}
+          className="bg-[#ef3e6d] text-white px-6 py-2 rounded-lg hover:bg-[#d6345f] transition"
+        >
+          Upload Files
+        </button>
+      </div>
 
       {/* Source cards */}
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -328,10 +277,10 @@ export default function ChooseYourContentSource({
         ))}
       </div>
 
-      {/* error */}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {/* Error */}
+      {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
 
-      {/* files list */}
+      {/* File list */}
       <div className="mt-6 space-y-3">
         {files.map((file) => (
           <div
@@ -343,51 +292,50 @@ export default function ChooseYourContentSource({
               <div>
                 <p className="text-white text-sm font-medium">{file.name}</p>
                 <div className="flex mt-1">
-                  <p className="text-gray-400 text-xs mr-1">{file.size} • </p>
+                  <p className="text-gray-400 text-xs mr-1">
+                    {(file.size / 1024).toFixed(1)} KB •{" "}
+                  </p>
+                  {file.status === "ready" && (
+                    <div className="flex items-center text-yellow-400 text-xs">
+                      Ready to upload
+                    </div>
+                  )}
                   {file.status === "uploading" && (
                     <div className="flex items-center text-gray-400 text-xs">
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />{" "}
                       Uploading...
                     </div>
                   )}
                   {file.status === "processing" && (
                     <div className="flex items-center text-gray-400 text-xs">
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />{" "}
                       Processing...
                     </div>
                   )}
                   {file.status === "completed" && (
                     <div className="flex items-center text-green-400 text-xs">
-                      Completed
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> Completed
+                    </div>
+                  )}
+                  {file.status === "failed" && (
+                    <div className="flex items-center text-red-400 text-xs">
+                      Failed
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
-              {file.status === "uploading" && (
-                <div className="flex items-center text-gray-400 text-xs">
-                  <Loader2 className="w-4 h-4 animate-spin mr-1" /> Uploading...
-                </div>
-              )}
-              {file.status === "processing" && (
-                <div className="flex items-center text-gray-400 text-xs">
-                  <Loader2 className="w-4 h-4 animate-spin mr-1" />{" "}
-                  Processing...
-                </div>
-              )}
-              {file.status === "completed" && (
-                <div className="flex items-center text-green-400 text-xs">
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Ready
-                </div>
-              )}
-              {/* Delete Button */}
-              <button
-                onClick={() => handleRemove(file.id)}
-                className="text-gray-400 hover:text-red-500"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            {file.status !== "completed" && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => handleRemove(file.id)}
+                  className="text-gray-400 hover:text-red-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -1,5 +1,7 @@
+"use client";
+
 import { Brain, Check, Loader2 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 type Status = "completed" | "processing" | "pending";
 
@@ -8,9 +10,9 @@ interface Step {
   status: Status;
 }
 
-const steps: Step[] = [
-  { title: "Text Extraction", status: "completed" },
-  { title: "Content Chunking", status: "processing" },
+const initialSteps: Step[] = [
+  { title: "Text Extraction", status: "pending" },
+  { title: "Content Chunking", status: "pending" },
   { title: "Vector Embedding", status: "pending" },
   { title: "Index Creation", status: "pending" },
 ];
@@ -18,11 +20,11 @@ const steps: Step[] = [
 const getStatusIcon = (status: Status) => {
   switch (status) {
     case "completed":
-      return <Check className="w-4 h-4 md:w-5 md:h-5 text-green-500" />;
+      return <Check className="w-5 h-5 text-green-500" />;
     case "processing":
-      return <Loader2 className="w-4 h-4 text-blue-400" />;
+      return <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />;
     default:
-      return <span className="text-gray-400 text-xs md:text-sm">Pending</span>;
+      return <span className="text-gray-400 text-xs">Pending</span>;
   }
 };
 
@@ -35,28 +37,75 @@ const ProcessingStep: React.FC<{ step: Step }> = ({ step }) => (
   </div>
 );
 
-const AIProcessing: React.FC = () => {
+interface AIProcessingProps {
+  isUploading: boolean;
+  onComplete?: () => void;
+}
+
+const AIProcessing: React.FC<AIProcessingProps> = ({
+  isUploading,
+  onComplete,
+}) => {
+  const [steps, setSteps] = useState<Step[]>(initialSteps);
+
+  useEffect(() => {
+    if (!isUploading) return;
+
+    // Reset to pending when starting again
+    setSteps(initialSteps.map((s) => ({ ...s, status: "pending" })));
+
+    let index = 0;
+    const interval = setInterval(() => {
+      setSteps((prev) => {
+        const updated = [...prev];
+
+        // Complete previous step
+        if (index > 0 && updated[index - 1]) {
+          updated[index - 1].status = "completed";
+        }
+
+        // Start processing current step if valid
+        if (updated[index]) {
+          updated[index].status = "processing";
+        }
+
+        return updated;
+      });
+
+      index++;
+
+      // Stop after all steps done
+      if (index > initialSteps.length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setSteps((prev) => prev.map((s) => ({ ...s, status: "completed" })));
+          onComplete?.();
+        }, 1000);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isUploading, onComplete]);
+
   return (
-    <div className="flex-1 bg-[#171717] rounded-2xl border border-gray-700 p-4 sm:p-6 md:p-8 mt-6 sm:mt-8 shadow-lg">
+    <div className="flex-1 bg-[#171717] rounded-2xl border border-gray-700 p-6 mt-6 shadow-lg">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex w-10 h-10 rounded-full bg-[#262626] justify-center items-center">
-            <Brain className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <div>
-            <h3 className="text-white text-base sm:text-lg md:text-xl font-semibold leading-tight">
-              AI Processing
-            </h3>
-            <span className="text-gray-400 text-xs sm:text-sm">
-              Analyzing content structure
-            </span>
-          </div>
+      <div className="flex items-center space-x-4">
+        <div className="flex w-10 h-10 rounded-full bg-[#262626] justify-center items-center">
+          <Brain className="h-6 w-6 text-blue-400" />
+        </div>
+        <div>
+          <h3 className="text-white text-lg font-semibold leading-tight">
+            AI Processing
+          </h3>
+          <span className="text-gray-400 text-sm">
+            Analyzing content structure
+          </span>
         </div>
       </div>
 
       {/* Steps */}
-      <div className="mt-6 sm:mt-8 space-y-3">
+      <div className="mt-6 space-y-3">
         {steps.map((step, i) => (
           <ProcessingStep key={i} step={step} />
         ))}

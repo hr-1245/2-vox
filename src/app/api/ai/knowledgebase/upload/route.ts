@@ -230,27 +230,21 @@ export async function POST(req: NextRequest): Promise<Response> {
         { userId: user.id }
       );
 
-      console.log(
-        "📡 [Training] FastAPI response status:",
-        trainingResponse.status
-      );
+      console.log("📡 [Training] FastAPI response status:", trainingResponse);
 
-      if (trainingResponse.ok) {
-        const trainingData = await trainingResponse.json();
-        console.log("✅ [Training] Completed successfully:", trainingData);
-
+      if (trainingResponse.success) {
         await supabase
           .from("knowledge_bases")
           .update({
             data: {
               ...data.data,
               processing_status: "completed",
-              documents_processed: trainingData.documentsProcessed || 1,
-              vectors_created: trainingData.vectorsCreated || 0,
+              documents_processed: trainingResponse.documentsProcessed || 1,
+              vectors_created: trainingResponse.vectorsCreated || 0,
               training_completed_at:
-                trainingData.timestamp || new Date().toISOString(),
-              extracted_text: trainingData.extractedText || "",
-              training_results: trainingData,
+                trainingResponse.timestamp || new Date().toISOString(),
+              extracted_text: trainingResponse.extractedText || "",
+              training_results: trainingResponse,
             },
           })
           .eq("id", data.id);
