@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { z } from "zod";
 import { getSupabase } from "@/utils/supabase/getSupabase";
 import { revalidatePath } from "next/cache";

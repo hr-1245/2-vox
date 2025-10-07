@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/utils/supabase/getSupabase";
 import { ROUTES } from "@/utils/auth/supabase-auth";

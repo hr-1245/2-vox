@@ -82,17 +82,16 @@ export default function ChooseYourContentSource({
   const [showFaqInput, setShowFaqInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-const showMessage = (type: "success" | "error", message: string) => {
-  if (type === "error") {
-    setError(message);
-    console.error(message);
-  } else {
-    console.log(message);
-  }
-};
-
+  const showMessage = (type: "success" | "error", message: string) => {
+    if (type === "error") {
+      setError(message);
+      console.error(message);
+    } else {
+      console.log(message);
+    }
+  };
 
   // validate uploaded files
   const validateFiles = (selectedFiles: FileList): File[] => {
@@ -148,9 +147,9 @@ const showMessage = (type: "success" | "error", message: string) => {
       });
 
       // Mark as uploading
-      setFiles((prev) =>
-        prev.map((f) => (f.id === tempId ? { ...f, status: "uploading" } : f))
-      );
+      // setFiles((prev) =>
+      //   prev.map((f) => (f.id === tempId ? { ...f, status: "uploading" } : f))
+      // );
 
       console.log("🔄 Reading file as base64...");
       const base64Content = await readFileAsBase64(file);
@@ -393,7 +392,6 @@ const showMessage = (type: "success" | "error", message: string) => {
         ))}
       </div>
 
-     
       {/* FAQ modal */}
       {showFaqInput && (
         <FAQGenerator
@@ -403,7 +401,6 @@ const showMessage = (type: "success" | "error", message: string) => {
           showMessage={showMessage}
         />
       )}
-
     </div>
   );
 }

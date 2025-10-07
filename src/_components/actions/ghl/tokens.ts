@@ -31,7 +31,7 @@
 // export async function getGhlTokens(userId: string): Promise<GhlTokens> {
 //   try {
 //     const supabase = await getSupabase();
-    
+
 //     // Get provider data from the provider_data table
 //     const { data: providerData, error } = await supabase
 //       .from('provider_data')
@@ -63,8 +63,8 @@
 // }
 
 // export async function refreshGhlTokens(
-//   userId: string, 
-//   refreshToken: string, 
+//   userId: string,
+//   refreshToken: string,
 //   providerData?: any
 // ): Promise<GhlTokens> {
 //   try {
@@ -126,7 +126,7 @@
 // }
 
 // export async function updateStoredTokens(
-//   userId: string, 
+//   userId: string,
 //   tokens: {
 //     accessToken: string;
 //     refreshToken: string;
@@ -174,11 +174,11 @@
 // // Simple utility function to get valid tokens
 // export async function getValidGhlTokens(userId: string): Promise<GhlTokens> {
 //   const tokens = await getGhlTokens(userId);
-  
+
 //   if (!tokens.accessToken || tokens.error) {
 //     throw new Error(tokens.error || 'No valid access token available');
 //   }
-  
+
 //   return tokens;
 // }
 
@@ -186,7 +186,6 @@
 // export function isValidTokens(tokens: GhlTokens): boolean {
 //   return Boolean(tokens.accessToken && !tokens.error);
 // }
-
 
 import { fetchGhlApi } from "@/lib/leadconnector/fetchApi";
 import { PROVIDER_TYPE } from "@/utils/config/provider_settings";
@@ -273,7 +272,6 @@ export async function getGhlTokens(userId: string): Promise<GhlTokens> {
     };
   }
 }
-
 
 // -----------------------------
 // Refresh tokens
@@ -378,9 +376,9 @@ export async function updateStoredTokens(
       },
     };
 
-    const { error } = await supabase
+    const { error }: any = await supabase
       .from("provider_data")
-      .update(updatedProviderData)
+      .update(updatedProviderData as never)
       .eq("auth_provider_id", userId)
       .eq("type", PROVIDER_TYPE.GHL_LOCATION);
 

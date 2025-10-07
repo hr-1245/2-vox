@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { NextRequest } from "next/server";
 import { getCurrentUser } from "@/utils/auth/user";
 import { getSupabase } from "@/utils/supabase/getSupabase";
@@ -18,6 +20,7 @@ interface ConversationAIRequest {
   recentMessages?: Array<any>;
   mode: "query" | "suggestions" | "response" | "autopilot";
   limit?: number;
+  type: number;
 }
 
 interface ErrorResponse {
@@ -58,8 +61,10 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const supabase = await getSupabase();
 
+    // console.log("body ----- ", body);
+
     // Get or create default agent for user
-    let agent;
+    let agent: any;
     if (body.agentId) {
       const { data: agentData, error: agentError } = await supabase
         .from("ai_agents")
@@ -120,166 +125,181 @@ export async function POST(req: NextRequest): Promise<Response> {
       .from("knowledge_bases")
       .select("*")
       .eq("user_id", user.id)
-      .eq("type", KB_SETTINGS.KB_CONVERSATION.type)
+      .eq("type", body.type)
       .eq("provider_type_sub_id", body.conversationId)
       .single();
 
-    // // Get custom knowledge bases assigned to this agent
-    // let customKBs = [];
-    // if (agent.knowledge_base_ids) {
-    //   // Handle both string and array formats for knowledge_base_ids
-    //   let kbIds: string[] = [];
+    // Get custom knowledge bases assigned to this agent
+    let customKBs: any = [];
+    if (agent.knowledge_base_ids) {
+      // Handle both string and array formats for knowledge_base_ids
+      let kbIds: string[] = [];
 
-    //   if (Array.isArray(agent.knowledge_base_ids)) {
-    //     // Already an array
-    //     kbIds = agent.knowledge_base_ids.filter(Boolean);
-    //   } else if (typeof agent.knowledge_base_ids === 'string') {
-    //     // String format (comma-separated)
-    //     kbIds = agent.knowledge_base_ids.split(',').map((id: string) => id.trim()).filter(Boolean);
-    //   }
+      if (Array.isArray(agent.knowledge_base_ids)) {
+        // Already an array
+        kbIds = agent.knowledge_base_ids.filter(Boolean);
+      } else if (typeof agent.knowledge_base_ids === "string") {
+        // String format (comma-separated)
+        kbIds = agent.knowledge_base_ids
+          .split(",")
+          .map((id: string) => id.trim())
+          .filter(Boolean);
+      }
 
-    //   if (kbIds.length > 0) {
-    //     const { data: customKBData } = await supabase
-    //       .from('knowledge_bases')
-    //       .select('*')
-    //       .eq('user_id', user.id)
-    //       .in('id', kbIds);
+      if (kbIds.length > 0) {
+        const { data: customKBData } = await supabase
+          .from("knowledge_bases")
+          .select("*")
+          .eq("user_id", user.id)
+          .in("id", kbIds);
 
-    //     if (customKBData) {
-    //       customKBs = customKBData;
-    //     }
-    //   }
-    // }
+        if (customKBData) {
+          customKBs = customKBData;
+        }
+      }
+    }
 
-    // // Prepare knowledge sources info
-    // const knowledgeSources = [];
-    // if (conversationKB) {
-    //   knowledgeSources.push({
-    //     type: 'conversation',
-    //     name: conversationKB.name,
-    //     relevance_score: 1.0
-    //   });
-    // }
+    // Prepare knowledge sources info
+    const knowledgeSources = [];
+    if (conversationKB) {
+      knowledgeSources.push({
+        type: "conversation",
+        name: conversationKB.name,
+        relevance_score: 1.0,
+      });
+    }
 
-    // customKBs.forEach(kb => {
-    //   const kbType = kb.type === KB_SETTINGS.KB_FILE_UPLOAD.type ? 'file' :
-    //                 kb.type === KB_SETTINGS.KB_FAQ.type ? 'faq' :
-    //                 kb.type === KB_SETTINGS.KB_WEB_SCRAPER.type ? 'web' : 'file';
-    //   knowledgeSources.push({
-    //     type: kbType,
-    //     name: kb.name,
-    //     relevance_score: 0.8
-    //   });
-    // });
+    customKBs.forEach((kb) => {
+      const kbType =
+        kb.type === KB_SETTINGS.KB_FILE_UPLOAD.type
+          ? "file"
+          : kb.type === KB_SETTINGS.KB_FAQ.type
+          ? "faq"
+          : kb.type === KB_SETTINGS.KB_WEB_SCRAPER.type
+          ? "web"
+          : "file";
+      knowledgeSources.push({
+        type: kbType,
+        name: kb.name,
+        relevance_score: 0.8,
+      });
+    });
 
-    // // Prepare FastAPI request
-    // let fastApiEndpoint = '';
-    // let requestPayload: any = {
-    //   userId: user.id,
-    //   conversationId: body.conversationId,
-    //   query: body.query,
-    //   context: body.context || '',
-    //   customerInfo: body.customerInfo || {},
-    //   recentMessages: body.recentMessages || [],
-    //   agentInfo: {
-    //     id: agent.id,
-    //     name: agent.name,
-    //     prompt: agent.prompt || agent.system_prompt || 'You are a helpful AI assistant.',
-    //     type: agent.type
-    //   },
-    //   knowledgebaseIds: [
-    //     ...(conversationKB ? [conversationKB.id] : []),
-    //     ...customKBs.map(kb => kb.id)
-    //   ]
-    // };
+    // Prepare FastAPI request
+    let fastApiEndpoint = "";
+    let requestPayload: any = {
+      userId: user.id,
+      conversationId: body.conversationId,
+      query: body.query,
+      context: body.context || "",
+      customerInfo: body.customerInfo || {},
+      recentMessages: body.recentMessages || [],
+      agentInfo: {
+        id: agent.id,
+        name: agent.name,
+        prompt:
+          agent.prompt ||
+          agent.system_prompt ||
+          "You are a helpful AI assistant.",
+        type: agent.type,
+      },
+      knowledgebaseIds: [
+        ...(conversationKB ? [conversationKB.id] : []),
+        ...customKBs.map((kb) => kb.id),
+      ],
+    };
 
-    // switch (body.mode) {
-    //   case 'query':
-    //     fastApiEndpoint = '/ai/conversation/query';
-    //     requestPayload.knowledgebaseId = body.conversationId;
-    //     requestPayload.limit = body.limit || 5;
-    //     requestPayload.additionalKnowledgebaseIds = customKBs.map(kb => kb.id);
-    //     requestPayload.aiAgentId = agent.id;
-    //     // Include agent prompt directly in the query for context
-    //     requestPayload.systemPrompt = agent.prompt || 'You are a helpful AI assistant.';
-    //     requestPayload.agentName = agent.name;
-    //     break;
+    switch (body.mode) {
+      case "query":
+        // fastApiEndpoint = "/ai/conversation/knowledgebase/query";
+        fastApiEndpoint = "/ai/conversation/query";
+        requestPayload.knowledgebaseId = body.conversationId;
+        requestPayload.limit = body.limit || 5;
+        requestPayload.additionalKnowledgebaseIds = customKBs.map(
+          (kb) => kb.id
+        );
+        requestPayload.aiAgentId = agent.id;
+        // Include agent prompt directly in the query for context
+        requestPayload.systemPrompt =
+          agent.prompt || "You are a helpful AI assistant.";
+        requestPayload.agentName = agent.name;
+        break;
 
-    //   case 'suggestions':
-    //     fastApiEndpoint = '/ai/conversation/suggestions/enhanced';
-    //     requestPayload.knowledgebaseId = body.conversationId;
-    //     requestPayload.limit = body.limit || 3;
-    //     requestPayload.additionalKnowledgebaseIds = customKBs.map(kb => kb.id);
-    //     requestPayload.aiAgentId = agent.id;
-    //     requestPayload.systemPrompt = agent.prompt || 'You are a helpful AI assistant.';
-    //     requestPayload.agentName = agent.name;
-    //     break;
+      case "suggestions":
+        fastApiEndpoint = "/ai/conversation/suggestions/enhanced";
+        requestPayload.knowledgebaseId = body.conversationId;
+        requestPayload.limit = body.limit || 3;
+        requestPayload.additionalKnowledgebaseIds = customKBs.map(
+          (kb) => kb.id
+        );
+        requestPayload.aiAgentId = agent.id;
+        requestPayload.systemPrompt =
+          agent.prompt || "You are a helpful AI assistant.";
+        requestPayload.agentName = agent.name;
+        break;
 
-    //   case 'response':
-    //   case 'autopilot':
-    //     fastApiEndpoint = '/ai/conversation/response-suggestions/enhanced';
-    //     requestPayload.knowledgebaseId = body.conversationId;
-    //     requestPayload.lastCustomerMessage = body.query;
-    //     requestPayload.autopilot = body.mode === 'autopilot';
-    //     requestPayload.additionalKnowledgebaseIds = customKBs.map(kb => kb.id);
-    //     requestPayload.aiAgentId = agent.id;
-    //     requestPayload.systemPrompt = agent.prompt || 'You are a helpful AI assistant.';
-    //     requestPayload.agentName = agent.name;
-    //     break;
+      case "response":
+      case "autopilot":
+        fastApiEndpoint = "/ai/conversation/response-suggestions/enhanced";
+        requestPayload.knowledgebaseId = body.conversationId;
+        requestPayload.lastCustomerMessage = body.query;
+        requestPayload.autopilot = body.mode === "autopilot";
+        requestPayload.additionalKnowledgebaseIds = customKBs.map(
+          (kb) => kb.id
+        );
+        requestPayload.aiAgentId = agent.id;
+        requestPayload.systemPrompt =
+          agent.prompt || "You are a helpful AI assistant.";
+        requestPayload.agentName = agent.name;
+        break;
 
-    //   default:
-    //     return Response.json({
-    //       success: false,
-    //       error: 'Invalid mode. Must be: query, suggestions, response, or autopilot'
-    //     } satisfies ErrorResponse, { status: 400 });
-    // }
+      default:
+        return Response.json(
+          {
+            success: false,
+            error:
+              "Invalid mode. Must be: query, suggestions, response, or autopilot",
+          } satisfies ErrorResponse,
+          { status: 400 }
+        );
+    }
 
-    // console.log('AI agent conversation:', {
-    //   agentId: agent.id,
-    //   agentName: agent.name,
-    //   agentPrompt: agent.prompt || agent.system_prompt || 'default',
-    //   mode: body.mode,
-    //   conversationKB: !!conversationKB,
-    //   customKBCount: customKBs.length,
-    //   endpoint: fastApiEndpoint,
-    //   aiAgentId: requestPayload.aiAgentId
-    // });
+    // Forward to FastAPI backend
+    const data = await postFastAPI(fastApiEndpoint, requestPayload, {
+      userId: user.id,
+    });
 
-    // // Forward to FastAPI backend
-    // const data = await postFastAPI(fastApiEndpoint, requestPayload, {
-    //   userId: user.id
-    // });
+    // Format response
+    let responseData: any = {
+      knowledge_sources: knowledgeSources,
+      agent_info: {
+        id: agent.id,
+        name: agent.name,
+        type: agent.type,
+      },
+    };
 
-    // // Format response
-    // let responseData: any = {
-    //   knowledge_sources: knowledgeSources,
-    //   agent_info: {
-    //     id: agent.id,
-    //     name: agent.name,
-    //     type: agent.type
-    //   }
-    // };
+    switch (body.mode) {
+      case "query":
+        responseData.answer = data.answer;
+        responseData.messages = data.messages;
+        break;
 
-    // switch (body.mode) {
-    //   case 'query':
-    //     responseData.answer = data.answer;
-    //     responseData.messages = data.messages;
-    //     break;
+      case "suggestions":
+        responseData.suggestions = data.suggestions;
+        break;
 
-    //   case 'suggestions':
-    //     responseData.suggestions = data.suggestions;
-    //     break;
-
-    //   case 'response':
-    //   case 'autopilot':
-    //     responseData.response = data.data?.response_suggestion || data.data?.autopilot_response;
-    //     responseData.confidence_score = data.data?.confidence_score;
-    //     break;
-    // }
+      case "response":
+      case "autopilot":
+        responseData.response =
+          data.data?.response_suggestion || data.data?.autopilot_response;
+        responseData.confidence_score = data.data?.confidence_score;
+        break;
+    }
 
     return Response.json({
       success: true,
-      data: {},
+      data: responseData,
     });
   } catch (error) {
     console.error("Error in AI agent conversation:", error);

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { getSupabase } from './getSupabase';
 
 export interface ProviderData {

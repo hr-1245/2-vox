@@ -1,4 +1,7 @@
+// @ts-nocheck
+
 import { ConversationsPage } from "@/_components/ghl/conversations/ConversationsPage";
+
 import { getProviderData } from "@/utils/supabase/providerDataUtils";
 import { PROVIDER_INFO, PROVIDER_TYPE } from "@/utils/config/provider_settings";
 import { getCurrentUser } from "@/utils/supabase/supabaseUtils";

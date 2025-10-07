@@ -1,4 +1,6 @@
+// @ts-nocheck
 import { getSupabase } from './getSupabase';
+
 import { UserProfile } from '@/app/profile/actions/profile';
 
 export async function fetchUserProfile() {

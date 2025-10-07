@@ -77,8 +77,8 @@ const sidebarItems: SidebarItemType[] = [
       //   badge: "Auto"
       // },
       {
-        title: "Knowledge Base",
-        href: "/dashboard/app/ai/knowledgebase",
+        title: "Add Knowledge Base",
+        href: "/dashboard/app/ai/knowledgebase/add-knowledge-base",
         icon: "BookOpen",
         protected: true,
       },

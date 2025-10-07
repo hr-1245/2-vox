@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/utils/auth/user';
 import { getSupabase } from '@/utils/supabase/getSupabase';

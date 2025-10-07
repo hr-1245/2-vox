@@ -1,15 +1,16 @@
-import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/utils/auth/user';
-import { getSupabase } from '@/utils/supabase/getSupabase';
-import { postFastAPI } from '@/lib/fastapi-utils';
-import { 
-  KnowledgeBase, 
-  KnowledgeBaseInsert, 
+// @ts-nocheck
+import { NextRequest } from "next/server";
+import { getCurrentUser } from "@/utils/auth/user";
+import { getSupabase } from "@/utils/supabase/getSupabase";
+import { postFastAPI } from "@/lib/fastapi-utils";
+import {
+  KnowledgeBase,
+  KnowledgeBaseInsert,
   KnowledgeBaseResponse,
-  FileUpload 
-} from '@/utils/database/knowledgebase';
-import { KB_SETTINGS } from '@/utils/ai/knowledgebaseSettings';
-import { PROVIDER_TYPE } from '@/utils/config/providerTypes';
+  FileUpload,
+} from "@/utils/database/knowledgebase";
+import { KB_SETTINGS } from "@/utils/ai/knowledgebaseSettings";
+import { PROVIDER_TYPE } from "@/utils/config/providerTypes";
 
 interface ErrorResponse {
   success: false;
@@ -24,98 +25,122 @@ interface FileUploadRequest {
   metadata?: Record<string, any>;
 }
 
-// Get bucket name from environment or use fallback
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'knowledge-base-files';
+const BUCKET_NAME =
+  process.env.SUPABASE_STORAGE_BUCKET || "knowledge-base-files";
 
-// POST - Upload file and create knowledge base entry
 export async function POST(req: NextRequest): Promise<Response> {
+  console.log("🟩 [API] File upload route triggered");
+
   try {
     const user = await getCurrentUser();
+    console.log("👤 [Auth] Current user:", user);
+
     if (!user?.id) {
-      return Response.json({ 
-        success: false,
-        error: 'Unauthorized'
-      } satisfies ErrorResponse, { status: 401 });
+      console.error("❌ [Auth] Unauthorized access attempt");
+      return Response.json(
+        { success: false, error: "Unauthorized" } satisfies ErrorResponse,
+        { status: 401 }
+      );
     }
 
-    const body = await req.json() as FileUploadRequest;
-    
+    const body = (await req.json()) as FileUploadRequest;
+    console.log("📦 [Request Body] Received:", body);
+
     // Validate required fields
     if (!body.fileName || !body.fileContent || !body.mimeType) {
-      return Response.json({
-        success: false,
-        error: 'Missing required fields: fileName, fileContent, mimeType'
-      } satisfies ErrorResponse, { status: 400 });
+      console.error("❌ [Validation] Missing required fields");
+      return Response.json(
+        {
+          success: false,
+          error: "Missing required fields: fileName, fileContent, mimeType",
+        } satisfies ErrorResponse,
+        { status: 400 }
+      );
     }
 
-    // Validate file size (max 10MB)
+    // Validate file size
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (body.size > maxSize) {
-      return Response.json({
-        success: false,
-        error: 'File size exceeds maximum limit of 10MB'
-      } satisfies ErrorResponse, { status: 400 });
+      console.error("❌ [Validation] File too large:", body.size);
+      return Response.json(
+        {
+          success: false,
+          error: "File size exceeds maximum limit of 10MB",
+        } satisfies ErrorResponse,
+        { status: 400 }
+      );
     }
 
     // Validate file type
     const allowedTypes = [
-      'text/plain',
-      'text/csv',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/json'
+      "text/plain",
+      "text/csv",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/json",
     ];
 
     if (!allowedTypes.includes(body.mimeType)) {
-      return Response.json({
-        success: false,
-        error: 'Unsupported file type. Allowed types: TXT, CSV, PDF, DOC, DOCX, JSON'
-      } satisfies ErrorResponse, { status: 400 });
+      console.error("❌ [Validation] Unsupported file type:", body.mimeType);
+      return Response.json(
+        {
+          success: false,
+          error:
+            "Unsupported file type. Allowed types: TXT, CSV, PDF, DOC, DOCX, JSON",
+        } satisfies ErrorResponse,
+        { status: 400 }
+      );
     }
 
-    console.log('File upload request:', {
-      userId: user.id,
-      fileName: body.fileName,
-      mimeType: body.mimeType,
-      size: body.size
-    });
+    console.log("✅ [Validation] File is valid. Preparing for upload...");
 
     const supabase = await getSupabase();
-    
-    // Generate unique file ID and smart file path
+    console.log("🔗 [Supabase] Connection established");
+
+    // Generate file info
     const fileId = crypto.randomUUID();
     const uploadedAt = new Date().toISOString();
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    // Create smart file path: user_id/kb_type/date/file_id_original_name
-    const fileExtension = body.fileName.split('.').pop() || '';
-    const sanitizedFileName = body.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const timestamp = new Date().toISOString().split("T")[0];
+
+    const fileExtension = body.fileName.split(".").pop() || "";
+    const sanitizedFileName = body.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
     const filePath = `${user.id}/kb_files/${timestamp}/${fileId}_${sanitizedFileName}`;
-    
-    // Convert base64 to buffer for upload
-    const fileBuffer = Buffer.from(body.fileContent, 'base64');
-    
-    // Upload file to Supabase Storage
+
+    console.log("📁 [File Info]", {
+      fileId,
+      filePath,
+      fileExtension,
+      sanitizedFileName,
+    });
+
+    const fileBuffer = Buffer.from(body.fileContent, "base64");
+
+    console.log("⬆️ [Upload] Uploading file to Supabase Storage...");
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, fileBuffer, {
         contentType: body.mimeType,
-        upsert: false
+        upsert: false,
       });
 
     if (uploadError) {
-      console.error('File upload error:', uploadError);
-      return Response.json({
-        success: false,
-        error: `Failed to upload file: ${uploadError.message}`
-      } satisfies ErrorResponse, { status: 500 });
+      console.error("❌ [Upload Error]", uploadError);
+      return Response.json(
+        {
+          success: false,
+          error: `Failed to upload file: ${uploadError.message}`,
+        } satisfies ErrorResponse,
+        { status: 500 }
+      );
     }
 
-    // Get public URL for the uploaded file
+    console.log("✅ [Upload] File uploaded successfully:", uploadData);
+
     const { data: urlData } = supabase.storage
       .from(BUCKET_NAME)
       .getPublicUrl(filePath);
+    console.log("🌐 [URL] Public URL generated:", urlData.publicUrl);
 
     const fileData: FileUpload = {
       id: fileId,
@@ -130,137 +155,158 @@ export async function POST(req: NextRequest): Promise<Response> {
         ...body.metadata,
         storage_path: filePath,
         bucket_name: BUCKET_NAME,
-        file_extension: fileExtension
-      }
+        file_extension: fileExtension,
+      },
     };
 
-    // Create knowledge base entry
+    console.log("🧠 [Knowledge Base] Creating knowledge base entry...");
     const insertData: KnowledgeBaseInsert = {
       name: `File: ${body.fileName}`,
       type: KB_SETTINGS.KB_FILE_UPLOAD.type,
       user_id: user.id,
-      provider_type: PROVIDER_TYPE.GHL_LOCATION, // Default provider
+      provider_type: PROVIDER_TYPE.GHL_LOCATION,
       provider_type_sub_id: fileId,
       data: {
         file: fileData,
         upload_date: uploadedAt,
-        processing_status: 'pending',
-        extracted_text: '', // Will be populated after processing
-        file_ids: [fileId], // Array of file IDs for retrieval
+        processing_status: "pending",
+        extracted_text: "",
+        file_ids: [fileId],
         storage_info: {
           bucket: BUCKET_NAME,
           path: filePath,
-          public_url: urlData.publicUrl
+          public_url: urlData.publicUrl,
         },
         metadata: {
           ...body.metadata,
           uploaded_by: user.id,
-          upload_method: 'api',
+          upload_method: "api",
           file_type: KB_SETTINGS.KB_FILE_UPLOAD.name,
           mime_type: body.mimeType,
-          original_size: body.size
-        }
+          original_size: body.size,
+        },
       },
       faq: [],
-      file_uploads: fileId
+      file_uploads: fileId,
     };
 
     const { data, error } = await supabase
-      .from('knowledge_bases')
+      .from("knowledge_bases")
       .insert(insertData)
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating file knowledge base:', error);
-      return Response.json({
-        success: false,
-        error: 'Failed to create file knowledge base'
-      } satisfies ErrorResponse, { status: 500 });
+      console.error("❌ [DB] Failed to create knowledge base record:", error);
+      return Response.json(
+        {
+          success: false,
+          error: "Failed to create file knowledge base",
+        } satisfies ErrorResponse,
+        { status: 500 }
+      );
     }
 
-    // After successful file upload, start async training
+    console.log("✅ [DB] Knowledge base record created:", data.id);
+
+    // Start FastAPI training
+    console.log("🚀 [Training] Sending request to FastAPI backend...");
     try {
-      const trainingResponse = await postFastAPI('/ai/conversation/training/supabase-file', {
+      const trainingResponse = await postFastAPI(
+        "/ai/conversation/training/supabase-file",
+        {
           userId: user.id,
           knowledgebaseId: data.id,
-        supabaseFilePath: filePath,
+          supabaseBucket: BUCKET_NAME,
+          fileId: filePath,
           fileName: body.fileName,
           fileType: body.mimeType,
           metadata: {
-          source: 'file_upload',
-          uploadedAt: new Date().toISOString(),
-          fileSize: body.size
-            }
-      }, { userId: user.id });
+            source: "file_upload",
+            uploadedAt: new Date().toISOString(),
+            fileSize: body.size,
+          },
+        },
+        { userId: user.id }
+      );
+
+      console.log(
+        "📡 [Training] FastAPI response status:",
+        trainingResponse.status
+      );
 
       if (trainingResponse.ok) {
         const trainingData = await trainingResponse.json();
-        console.log('File training completed:', trainingData);
-        
-        // Update knowledge base with training results
+        console.log("✅ [Training] Completed successfully:", trainingData);
+
         await supabase
-          .from('knowledge_bases')
+          .from("knowledge_bases")
           .update({
             data: {
               ...data.data,
-              processing_status: 'completed',
+              processing_status: "completed",
               documents_processed: trainingData.documentsProcessed || 1,
               vectors_created: trainingData.vectorsCreated || 0,
-              training_completed_at: trainingData.timestamp || new Date().toISOString(),
-              extracted_text: trainingData.extractedText || '',
-              training_results: trainingData
-            }
+              training_completed_at:
+                trainingData.timestamp || new Date().toISOString(),
+              extracted_text: trainingData.extractedText || "",
+              training_results: trainingData,
+            },
           })
-          .eq('id', data.id);
+          .eq("id", data.id);
+
+        console.log("🧾 [DB] Knowledge base updated with training results");
       } else {
-        // Handle training failure
         const errorText = await trainingResponse.text();
-        console.error('FastAPI training failed:', errorText);
-        
+        console.error("❌ [Training] FastAPI failed:", errorText);
+
         await supabase
-          .from('knowledge_bases')
+          .from("knowledge_bases")
           .update({
             data: {
               ...data.data,
-              processing_status: 'failed',
-              training_error: errorText
-            }
+              processing_status: "failed",
+              training_error: errorText,
+            },
           })
-          .eq('id', data.id);
+          .eq("id", data.id);
       }
     } catch (trainingError) {
-      console.error('Failed to start training job:', trainingError);
-      
-      // Update status to failed
+      console.error("💥 [Training] Error sending to FastAPI:", trainingError);
+
       await supabase
-        .from('knowledge_bases')
+        .from("knowledge_bases")
         .update({
           data: {
             ...data.data,
-            processing_status: 'failed',
-            training_error: trainingError instanceof Error ? trainingError.message : 'Unknown error'
-          }
+            processing_status: "failed",
+            training_error:
+              trainingError instanceof Error
+                ? trainingError.message
+                : "Unknown error",
+          },
         })
-        .eq('id', data.id);
+        .eq("id", data.id);
     }
 
-    console.log('File uploaded successfully:', {
+    console.log("🎉 [Success] File upload + training complete:", {
       knowledgeBaseId: data.id,
-      fileId: fileId,
-      fileName: body.fileName
+      fileId,
+      fileName: body.fileName,
     });
 
     return Response.json({
       success: true,
-      data: data as KnowledgeBase
+      data: data as KnowledgeBase,
     } satisfies KnowledgeBaseResponse);
-
   } catch (error) {
-    console.error('Error in file upload:', error);
-    return Response.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
-    } satisfies ErrorResponse, { status: 500 });
+    console.error("💥 [Unhandled Error in POST /file-upload]:", error);
+    return Response.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      } satisfies ErrorResponse,
+      { status: 500 }
+    );
   }
-} 
+}

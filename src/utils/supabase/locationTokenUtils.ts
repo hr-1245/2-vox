@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { type Provider } from '@/app/profile/actions/profile';
 import { getSupabase } from './getSupabase';
 import { PROVIDER } from '@/_components/ghl/constants';

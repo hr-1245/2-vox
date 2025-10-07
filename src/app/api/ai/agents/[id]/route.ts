@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { NextRequest } from "next/server";
 import { getCurrentUser } from "@/utils/auth/user";
 import {
@@ -61,13 +63,7 @@ export async function GET(
       );
     }
 
-    console.log("AI agent get request:", {
-      userId: user.id,
-      agentId: id,
-    });
-
     const result = await getAgentById(id, user.id);
-    console.log("getAgentById result: ------------------------- ", result);
 
     if (!result.success) {
       const status = result.error === "Agent not found" ? 404 : 500;

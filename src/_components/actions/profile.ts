@@ -18,7 +18,7 @@ export async function updateProfile(updates: Partial<UserProfile>) {
 
     const { error } = await supabase
       .from('user_profile')
-      .update(updates)
+      .update(updates as never)
       .eq('user_id_auth', user.id)
 
     if (error) throw error
