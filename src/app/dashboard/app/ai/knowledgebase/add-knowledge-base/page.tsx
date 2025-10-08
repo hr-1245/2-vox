@@ -12,30 +12,55 @@ import AdvancedProcessingSettings from "@/_components/knowledgebase/AdvancedProc
 import IntegrationAndImportOptions from "@/_components/knowledgebase/IntegrationAndImportOptions";
 import BottomButtons from "@/_components/knowledgebase/BottomButtons";
 import TrainingPreview from "@/_components/knowledgebase/TrainingPreview";
-import UploadComponent from "@/_components/knowledgebase/UploadComponent";
 
 const AddKnowledgeBasePage = () => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [knowledgeBaseName, setKnowledgeBaseName] = useState("");
 
-  const handleFilesUploaded = (fileIds: string[]) => {
-    // Automatically select the first uploaded file for training
-    if (fileIds.length > 0 && !selectedFileId) {
-      setSelectedFileId(fileIds[0]);
-    }
+  // ✅ This will be triggered when user selects or removes files
+  const handleFilesSelected = (files: File[]) => {
+    setSelectedFiles(files);
+  };
+
+  const handleCrawlerLink = (link: string) => {
+    console.log("🌐 Crawler Link:", link);
+    // 👉 You can store this link in state or send to backend
+    // setKnowledgeBaseLinks((prev) => [...prev, link]);
+  };
+
+  const handleAddKnowledgeBase = () => {
+    if (!knowledgeBaseName.trim() || selectedFiles.length === 0) return;
+
+    console.log("Add Knowledge Base clicked", {
+      selectedFiles,
+      knowledgeBaseName,
+    });
   };
 
   return (
     <div className="min-h-screen px-4 py-6 md:px-10 lg:px-16">
       {/* Header */}
-      {/* <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center">
+      <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center">
         Build Your AI Knowledge Base
       </h1>
       <p className="mt-3 text-sm md:text-base text-gray-300 text-center max-w-2xl mx-auto leading-relaxed">
         Transform your content into intelligent conversations. Upload files,
         import data, and train your AI agent with multiple content sources in
         just a few simple steps.
-      </p> */}
+      </p>
+      {/* ✅ Knowledge Base Name Input */}
+      <div className="my-6">
+        <p className="my-1 text-sm md:text-base text-gray-300 max-w-2xl">
+          KnowledgeBase Name
+        </p>
+        <input
+          type="text"
+          value={knowledgeBaseName}
+          onChange={(e) => setKnowledgeBaseName(e.target.value)}
+          placeholder="Enter Knowledge Base Name"
+          className="w-full max-w-md px-4 py-2 rounded-lg bg-[#1f1f1f] border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ef3e6d] transition"
+        />
+      </div>
 
       {/* CustomerSupportAgent Card */}
       {/* <CustomerSupportAgent /> */}
@@ -45,17 +70,18 @@ const AddKnowledgeBasePage = () => {
 
       {/* Chooose Your Content Source */}
       <ChooseYouContentSource
-        onFilesUploaded={handleFilesUploaded}
-        setIsUploading={setIsUploading}
+        onFilesSelected={handleFilesSelected}
+        onCrawlerLink={handleCrawlerLink}
+        onFaqsSubmit={(faqs) => console.log("FAQs from modal:", faqs)}
       />
 
       {/* <UploadComponent /> */}
 
       {/* AI Processing & Content Analysis */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        <AIProcessing isUploading={isUploading} />
-        {/* <ContentAnalysis /> */}
-      </div>
+      {/* <div className="flex flex-col lg:flex-row gap-6"> */}
+      {/* <AIProcessing isUploading={isUploading} /> */}
+      {/* <ContentAnalysis /> */}
+      {/* </div> */}
 
       {/* Content Preview */}
       {/* <ContentPreview /> */}
@@ -86,7 +112,7 @@ const AddKnowledgeBasePage = () => {
       )} */}
 
       {/* Bottom Buttons */}
-      {/* <BottomButtons /> */}
+      <BottomButtons handleAddKnowledgeBase={handleAddKnowledgeBase} />
     </div>
   );
 };
