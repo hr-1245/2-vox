@@ -223,7 +223,10 @@ export default function ChooseYouContentSource({
 
   // ✅ Add new FAQ row
   const handleAddFaq = () => {
-    setFaqs([...faqs, { question: "", answer: "" }]);
+    setFaqs((prev) => [
+      ...prev,
+      { id: Date.now(), question: "", answer: "", isEditing: true },
+    ]);
   };
 
   // ✅ Remove a FAQ row
