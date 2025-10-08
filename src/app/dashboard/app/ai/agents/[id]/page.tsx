@@ -42,9 +42,15 @@ import {
   MessageSquare,
   Settings,
   Trash2,
+  MessageCircle,
+  FileText,
+  Globe,
+  CheckCircle,
+  Database,
 } from "lucide-react";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
+import AllKnowledgeBases from "@/_components/knowledgebase/AllKnowledgeBases";
 
 interface Agent {
   id: string;
@@ -118,6 +124,9 @@ function AgentDetailClientPage({
   >([]);
   const [tag, setTag] = useState<string>(""); // instead of tags[]
   const [newTag, setNewTag] = useState("");
+  const [selectedKBIds, setSelectedKBIds] = useState<string[]>(
+    agent?.knowledgeBases?.map((kb) => kb.id) || []
+  );
 
   const handleAddTag = () => {
     if (newTag.trim() !== "") {
@@ -334,7 +343,6 @@ function AgentDetailClientPage({
     try {
       setSaving(true);
 
-      // Convert selected message types to object format for backend
       const channelsObject = convertArrayToChannelsObject(selectedMessageTypes);
 
       const response = await fetch(`/api/ai/agents/${agentId}`, {
@@ -343,56 +351,106 @@ function AgentDetailClientPage({
         body: JSON.stringify({
           name: editForm.name,
           description: editForm.description,
-          data: {
-            personality: editForm.personality,
-            intent: editForm.intent,
-            additionalInformation: editForm.additionalInformation,
-            tag,
-          },
+          personality: editForm.personality,
+          intent: editForm.intent,
+          additionalInformation: editForm.additionalInformation,
+          tag,
           is_active: editForm.isActive,
           channels: channelsObject,
+          knowledgeBaseIds: selectedKBIds, // ✅ NEW
         }),
       });
 
       const data = await response.json();
 
       if (data.success && data.data) {
-        // Transform the updated agent data
-        const agent = data.data;
-        const agentData = agent.data || {};
-
-        // Convert channels object back to array format for the frontend
-        const channelsArray = convertChannelsObjectToArray(agent.channels);
-
-        const transformedAgent = {
-          id: agent.id,
-          userId: agent.user_id,
-          name: agent.name,
-          description: agent.description || "",
-          agentType: getAgentTypeString(agent.type),
-          personality: agentData.personality || "",
-          intent: agentData.intent || "",
-          additionalInformation: agentData.additionalInformation || "",
-          systemPrompt: agent.system_prompt || "",
-          isActive: agent.is_active !== false,
-          createdAt: agent.created_at,
-          updatedAt: agent.updated_at || agent.created_at,
-          channels: channelsArray,
-        };
-        setAgent(transformedAgent);
-        setSelectedMessageTypes(channelsArray);
-        setEditing(false);
+        const updatedAgent = data.data;
         toast.success("Agent updated successfully");
+        setAgent(updatedAgent);
+        setEditing(false);
       } else {
         throw new Error(data.error || "Failed to update agent");
       }
     } catch (error) {
-      // console.error("Error updating agent:", error);
+      console.error("Error updating agent:", error);
       toast.error("Failed to update agent");
     } finally {
       setSaving(false);
     }
   };
+
+  // const saveAgent = async () => {
+  //   if (
+  //     !editForm.name.trim() ||
+  //     !editForm.personality.trim() ||
+  //     !editForm.intent.trim()
+  //   ) {
+  //     toast.error("Name, personality, and intent are required");
+  //     return;
+  //   }
+
+  //   try {
+  //     setSaving(true);
+
+  //     // Convert selected message types to object format for backend
+  //     const channelsObject = convertArrayToChannelsObject(selectedMessageTypes);
+
+  //     const response = await fetch(`/api/ai/agents/${agentId}`, {
+  //       method: "PUT",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         name: editForm.name,
+  //         description: editForm.description,
+  //         data: {
+  //           personality: editForm.personality,
+  //           intent: editForm.intent,
+  //           additionalInformation: editForm.additionalInformation,
+  //           tag,
+  //         },
+  //         is_active: editForm.isActive,
+  //         channels: channelsObject,
+  //       }),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (data.success && data.data) {
+  //       // Transform the updated agent data
+  //       const agent = data.data;
+  //       const agentData = agent.data || {};
+
+  //       // Convert channels object back to array format for the frontend
+  //       const channelsArray = convertChannelsObjectToArray(agent.channels);
+
+  //       const transformedAgent = {
+  //         id: agent.id,
+  //         userId: agent.user_id,
+  //         name: agent.name,
+  //         description: agent.description || "",
+  //         agentType: getAgentTypeString(agent.type),
+  //         personality: agentData.personality || "",
+  //         intent: agentData.intent || "",
+  //         additionalInformation: agentData.additionalInformation || "",
+  //         systemPrompt: agent.system_prompt || "",
+  //         isActive: agent.is_active !== false,
+  //         createdAt: agent.created_at,
+  //         updatedAt: agent.updated_at || agent.created_at,
+  //         channels: channelsArray,
+  //       };
+  //       setAgent(transformedAgent);
+  //       setSelectedMessageTypes(channelsArray);
+  //       setEditing(false);
+  //       toast.success("Agent updated successfully");
+  //     } else {
+  //       throw new Error(data.error || "Failed to update agent");
+  //     }
+  //   } catch (error) {
+  //     // console.error("Error updating agent:", error);
+  //     toast.error("Failed to update agent");
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
 
   const testAgent = async () => {
     if (!testInput.trim()) {
@@ -484,6 +542,7 @@ function AgentDetailClientPage({
     return AGENT_TYPES[type as keyof typeof AGENT_TYPES] || AGENT_TYPES.query;
   };
 
+  console.log("Agent data:", agent);
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -845,6 +904,46 @@ function AgentDetailClientPage({
                 {/* <span className="text-sm font-medium">{type.label}</span> */}
               </label>
             ))}
+          </Card>
+
+          {/* Knowledge bases */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Knowledge Bases
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                {agent?.knowledgeBases?.length > 0 ? (
+                  agent?.knowledgeBases?.map((kb, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-muted rounded-md flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="font-medium">{kb.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ID: {kb.provider_type_sub_id}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No knowledge bases connected.
+                  </p>
+                )}
+              </div>
+
+              {/* Show all knowledge bases in editing mode for update */}
+              {editing && (
+                <AllKnowledgeBases
+                  selectedKBIds={selectedKBIds}
+                  onSelectionChange={setSelectedKBIds}
+                />
+              )}
+            </CardContent>
           </Card>
 
           {/* Test Agent */}

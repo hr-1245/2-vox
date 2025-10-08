@@ -172,42 +172,6 @@ export async function getUserAgents(
 }
 
 /**
- * Get a single agent by ID
- */
-// export async function getAgentById(
-//   agentId: string,
-//   userId: string
-// ): Promise<AgentResponse<AIAgent>> {
-//   try {
-//     const supabase = await getSupabase();
-
-//     const { data, error } = await supabase
-//       .from("ai_agents")
-//       .select("*")
-//       .eq("id", agentId)
-//       .eq("user_id", userId)
-//       .single();
-
-//     if (error) {
-//       if (error.code === "PGRST116") {
-//         return { success: false, error: "Agent not found" };
-//       }
-//       console.error("Error fetching agent:", error);
-//       return { success: false, error: "Failed to fetch agent" };
-//     }
-
-//     return { success: true, data };
-//   } catch (error) {
-//     console.error("Error in getAgentById:", error);
-//     return {
-//       success: false,
-//       error:
-//         error instanceof Error ? error.message : "Unknown error fetching agent",
-//     };
-//   }
-// }
-
-/**
  * Get a single agent by ID along with its linked knowledge bases
  */
 export async function getAgentById(
@@ -216,8 +180,6 @@ export async function getAgentById(
 ): Promise<AgentResponse<AIAgent & { knowledge_bases?: any[] }>> {
   try {
     const supabase = await getSupabase();
-
-    console.log("🔹 Fetching agent with ID:", agentId);
 
     const { data: agentData, error: agentError }: any = await supabase
       .from("ai_agents")
@@ -240,8 +202,6 @@ export async function getAgentById(
       return { success: false, error: "Agent not found" };
     }
 
-    console.log("✅ Agent fetched successfully:", agentData);
-
     // Handle knowledge_base_ids (can be string or array)
     let kbIds: string[] = [];
 
@@ -254,13 +214,11 @@ export async function getAgentById(
         .filter(Boolean);
     }
 
-    console.log("🧠 Knowledge base IDs to fetch:", kbIds);
-
     let knowledgeBases: any[] = [];
     if (kbIds.length > 0) {
       const { data: kbData, error: kbError } = await supabase
         .from("knowledge_bases")
-        .select("provider_type_sub_id, type")
+        .select("*")
         .eq("user_id", userId)
         .in("id", kbIds);
 
@@ -272,19 +230,14 @@ export async function getAgentById(
         };
       }
 
-      console.log(`✅ Fetched ${kbData?.length || 0} knowledge bases`);
       knowledgeBases = kbData || [];
-    } else {
-      console.log("ℹ️ No knowledge base IDs associated with this agent");
     }
 
-    // ✅ Safely merge agent and knowledge bases
+    // Safely merge agent and knowledge bases
     const agentWithKBs: AIAgent & { knowledge_bases: any[] } = {
       ...(agentData as AIAgent),
       knowledge_bases: knowledgeBases,
     };
-
-    console.log("🔹 Returning agent with knowledge bases:", agentWithKBs);
 
     return { success: true, data: agentWithKBs };
   } catch (error) {

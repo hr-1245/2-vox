@@ -2,42 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { toast } from "sonner";
-import {
-  Bot,
-  Plus,
-  Edit,
-  Trash2,
-  MessageSquare,
-  Search,
-  Filter,
-  MoreVertical,
-  ChevronDown,
-  Mic,
-  Phone,
-} from "lucide-react";
+import { Plus, MessageSquare, Search, Phone } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -111,15 +83,6 @@ export default function AIAgentsPage() {
     loadAgents();
   }, [loadAgents]);
 
-  const getAgentTypeInfo = (type: number) => {
-    if (type === AGENT_TYPES.conversation.value) {
-      return AGENT_TYPES.conversation;
-    } else if (type === AGENT_TYPES.voice.value) {
-      return AGENT_TYPES.voice;
-    }
-    return AGENT_TYPES.conversation; // Default to conversation
-  };
-
   const toggleAgentStatus = async (agentId: string, currentStatus: boolean) => {
     try {
       // If activating an agent, first deactivate all other agents
@@ -179,125 +142,6 @@ export default function AIAgentsPage() {
         : agent.type === AGENT_TYPES.voice.value;
     return matchesSearch && matchesType && matchesTab;
   });
-
-  const AgentCard = ({ agent }: { agent: Agent }) => {
-    const typeInfo = getAgentTypeInfo(agent.type);
-    const TypeIcon = typeInfo.icon;
-    const isActive = agent.is_active !== false;
-
-    const handleDelete = async () => {
-      if (
-        !confirm(
-          "Are you sure you want to delete this agent? This action cannot be undone."
-        )
-      ) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/ai/agents/${agent.id}`, {
-          method: "DELETE",
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          toast.success("Agent deleted successfully!");
-          await loadAgents();
-        } else {
-          toast.error("Failed to delete agent: " + data.error);
-        }
-      } catch (error) {
-        console.error("Error deleting agent:", error);
-        toast.error("Failed to delete agent");
-      }
-    };
-
-    return (
-      <Card
-        className={`group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-2 ${
-          isActive ? "border-primary/20 bg-primary/5" : "border-border"
-        }`}
-      >
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4 mb-4">
-            <div
-              className={`p-3 rounded-xl ${typeInfo.color} border transition-all duration-200`}
-            >
-              <TypeIcon className="w-6 h-6" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold text-foreground truncate">
-                  {agent.name}
-                </h3>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() =>
-                        router.push(`/dashboard/app/ai/agents/${agent.id}`)
-                      }
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <p className="text-sm text-muted-foreground mt-1">
-                {agent.description || typeInfo.description}
-              </p>
-
-              <div className="flex items-center gap-2 mt-2">
-                <Badge
-                  variant="outline"
-                  className={`${typeInfo.color} text-xs border-current`}
-                >
-                  {typeInfo.label}
-                </Badge>
-                {isActive && (
-                  <Badge className={`${typeInfo.badge} text-white text-xs`}>
-                    Active
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Created {new Date(agent.created_at).toLocaleDateString()}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {isActive ? "Active" : "Inactive"}
-              </span>
-              <Switch
-                checked={isActive}
-                onCheckedChange={() => toggleAgentStatus(agent.id, isActive)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   if (loading) {
     return (

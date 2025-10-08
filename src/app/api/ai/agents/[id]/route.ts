@@ -143,6 +143,7 @@ export async function PUT(
     if (body.agentType || body.personality || body.intent) {
       // Convert from FastAPI format
       const converted = convertFastAPIAgentToDatabase(body, user.id);
+
       updateData = {
         name: converted.name,
         type: converted.type,

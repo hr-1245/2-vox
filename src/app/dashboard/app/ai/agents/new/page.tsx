@@ -22,7 +22,6 @@ import {
   Bot,
   Plus,
   Database,
-  CheckCircle,
   MessageSquare,
   ChevronLeft,
   ChevronRight,
@@ -31,7 +30,6 @@ import {
   FileText,
   Globe,
   MessageCircle,
-  Calendar,
   SortAsc,
   X,
   Settings,
@@ -48,6 +46,7 @@ import {
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 import { is } from "date-fns/locale";
+import AllKnowledgeBases from "@/_components/knowledgebase/AllKnowledgeBases";
 
 // Constants
 const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
@@ -139,6 +138,8 @@ export default function CreateAgentPage() {
   const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(
     []
   );
+  const [selectedKBIds, setSelectedKBIds] = useState<string[]>();
+
   const [formData, setFormData] = useState<CreateAgentForm>({
     name: "",
     description: "",
@@ -167,9 +168,8 @@ export default function CreateAgentPage() {
       try {
         setLoadingKB(true);
         const response = await fetch("/api/ai/knowledgebase");
-        console.log("response......", response);
+
         const data = await response.json();
-        console.log("data......", data);
 
         if (data.success) {
           const kbData = Array.isArray(data.data) ? data.data : [];
@@ -252,10 +252,7 @@ export default function CreateAgentPage() {
           Object.keys(formData.variables).length > 0
             ? formData.variables
             : null,
-        knowledgeBaseIds:
-          formData.knowledgeBaseIds.length > 0
-            ? formData.knowledgeBaseIds
-            : null,
+        knowledgeBaseIds: selectedKBIds,
         // AI Configuration (required by FastAPI)
         temperature: formData.temperature,
         model: formData.model,
@@ -882,108 +879,10 @@ export default function CreateAgentPage() {
             {/* Knowledge Base List */}
             {filteredKBs.length > 0 ? (
               <div className="space-y-3">
-                <div className="text-xs text-muted-foreground">
-                  Showing {filteredKBs.length} of {knowledgeBases.length}{" "}
-                  knowledge sources
-                </div>
-
-                <div className="grid gap-2 max-h-80 overflow-y-auto bg-gray-50/50 rounded-lg p-3 border">
-                  {filteredKBs.map((kb) => {
-                    const typeInfo = getKBTypeInfo(kb.type);
-                    const isSelected = formData.knowledgeBaseIds.includes(
-                      kb.id
-                    );
-
-                    return (
-                      <Card
-                        key={kb.id}
-                        className={`cursor-pointer transition-all duration-200 hover:shadow-sm ${
-                          isSelected
-                            ? "border-2 border-blue-500 bg-blue-50/80"
-                            : "hover:border-blue-300"
-                        }`}
-                        onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            knowledgeBaseIds: prev.knowledgeBaseIds.includes(
-                              kb.id
-                            )
-                              ? prev.knowledgeBaseIds.filter(
-                                  (id) => id !== kb.id
-                                )
-                              : [...prev.knowledgeBaseIds, kb.id],
-                          }));
-                        }}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-start space-x-2">
-                            <Checkbox
-                              id={`kb-${kb.id}`}
-                              checked={isSelected}
-                              className="mt-0.5 scale-90"
-                              onCheckedChange={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  knowledgeBaseIds:
-                                    prev.knowledgeBaseIds.includes(kb.id)
-                                      ? prev.knowledgeBaseIds.filter(
-                                          (id) => id !== kb.id
-                                        )
-                                      : [...prev.knowledgeBaseIds, kb.id],
-                                }));
-                              }}
-                            />
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm text-gray-400 truncate ">
-                                    {kb.name}
-                                  </h4>
-                                  {kb.summary && (
-                                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
-                                      {kb.summary}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[0.65rem] ${typeInfo.color} border-current px-1.5 py-0.5`}
-                                  >
-                                    <typeInfo.icon className="w-2.5 h-2.5 mr-0.5" />
-                                    {typeInfo.label}
-                                  </Badge>
-                                  {isSelected && (
-                                    <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 mt-1 text-[0.65rem] text-gray-500">
-                                <span className="flex items-center gap-0.5">
-                                  <Calendar className="w-2.5 h-2.5" />
-                                  {new Date(kb.created_at).toLocaleDateString()}
-                                </span>
-                                <span className="text-gray-400">•</span>
-                                <span>{typeInfo.description}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>
-                    💡 Selected knowledge sources will enhance your agent's
-                    responses.
-                  </span>
-                </div>
+                <AllKnowledgeBases
+                  selectedKBIds={selectedKBIds}
+                  onSelectionChange={setSelectedKBIds}
+                />
               </div>
             ) : (
               <Card className="border-dashed border-2 bg-gray-50">
