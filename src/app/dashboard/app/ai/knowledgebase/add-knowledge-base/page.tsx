@@ -3,7 +3,9 @@ import React, { useState } from "react";
 
 import CustomerSupportAgent from "@/_components/knowledgebase/CustomerSupportAgent";
 import SetupProgress from "@/_components/knowledgebase/SetupProgress";
-import ChooseYouContentSource from "@/_components/knowledgebase/ChooseYouContentSource";
+import ChooseYouContentSource, {
+  Faq,
+} from "@/_components/knowledgebase/ChooseYouContentSource";
 import AIProcessing from "@/_components/knowledgebase/AIProcessing";
 import ContentAnalysis from "@/_components/knowledgebase/ContentAnalysis";
 import ContentPreview from "@/_components/knowledgebase/ContentPreview";
@@ -12,29 +14,51 @@ import AdvancedProcessingSettings from "@/_components/knowledgebase/AdvancedProc
 import IntegrationAndImportOptions from "@/_components/knowledgebase/IntegrationAndImportOptions";
 import BottomButtons from "@/_components/knowledgebase/BottomButtons";
 import TrainingPreview from "@/_components/knowledgebase/TrainingPreview";
+import { fa } from "zod/v4/locales";
 
 const AddKnowledgeBasePage = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [knowledgeBaseName, setKnowledgeBaseName] = useState("");
+  const [websiteLinks, setWebsiteLinks] = useState<string[]>([]);
+  const [faqs, setFaqs] = useState<Faq[]>([]);
 
-  // ✅ This will be triggered when user selects or removes files
-  const handleFilesSelected = (files: File[]) => {
-    setSelectedFiles(files);
-  };
+  /* handlers that already exist */
+  const handleFilesSelected = (files: File[]) => setSelectedFiles(files);
 
   const handleCrawlerLink = (link: string) => {
-    console.log("🌐 Crawler Link:", link);
-    // 👉 You can store this link in state or send to backend
-    // setKnowledgeBaseLinks((prev) => [...prev, link]);
+    setWebsiteLinks((prev) => [...prev, link]); // add to array
   };
 
-  const handleAddKnowledgeBase = () => {
-    if (!knowledgeBaseName.trim() || selectedFiles.length === 0) return;
+  const handleFaqsChange = (updated: Faq[]) => setFaqs(updated); // live stream
 
-    console.log("Add Knowledge Base clicked", {
-      selectedFiles,
-      knowledgeBaseName,
-    });
+  const handleAddKnowledgeBase = async () => {
+    const hasSource =
+      selectedFiles.length > 0 || websiteLinks.length > 0 || faqs.length > 0;
+    if (!knowledgeBaseName.trim() || !hasSource) return;
+
+    /* ---------- build multipart body ---------- */
+    const fd = new FormData();
+    fd.append("name", knowledgeBaseName);
+
+    if (websiteLinks.length) fd.append("urls", JSON.stringify(websiteLinks));
+    if (faqs.length) fd.append("faqs", JSON.stringify(faqs));
+    selectedFiles.forEach((f) => fd.append("files", f)); // field name = files
+
+    try {
+      const res = await fetch("/api/ai/knowledgebase/add-kb", {
+        method: "POST",
+        body: fd,
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Unknown error");
+
+      console.log("KB created ✅", json.data); // { kbId, uploadUrls, sources }
+      /* store kbId globally if you need it later */
+      // setKbId(json.data.kbId);
+    } catch (err: any) {
+      console.error("KB creation failed ❌", err.message);
+    }
   };
 
   return (
@@ -72,7 +96,8 @@ const AddKnowledgeBasePage = () => {
       <ChooseYouContentSource
         onFilesSelected={handleFilesSelected}
         onCrawlerLink={handleCrawlerLink}
-        onFaqsSubmit={(faqs) => console.log("FAQs from modal:", faqs)}
+        onFaqsSubmit={(f) => setFaqs(f)} // batch callback (when modal saves)
+        onFaqsChange={handleFaqsChange} // live callback (on every edit)
       />
 
       {/* <UploadComponent /> */}
