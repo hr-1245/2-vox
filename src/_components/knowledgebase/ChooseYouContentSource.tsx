@@ -189,6 +189,13 @@ export default function ChooseYouContentSource({
 
   const addEmptyModalFaq = () =>
     setModalFaqs((p) => [...p, { id: Date.now(), question: "", answer: "" }]);
+  // ✅ Add new FAQ row
+  const handleAddFaq = () => {
+    setFaqs((prev) => [
+      ...prev,
+      { id: Date.now(), question: "", answer: "", isEditing: true },
+    ]);
+  };
 
   const removeModalFaq = (id: number) =>
     setModalFaqs((p) => p.filter((f) => f.id !== id));
