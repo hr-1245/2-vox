@@ -14,13 +14,18 @@ import AdvancedProcessingSettings from "@/_components/knowledgebase/AdvancedProc
 import IntegrationAndImportOptions from "@/_components/knowledgebase/IntegrationAndImportOptions";
 import BottomButtons from "@/_components/knowledgebase/BottomButtons";
 import TrainingPreview from "@/_components/knowledgebase/TrainingPreview";
-import { fa } from "zod/v4/locales";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const AddKnowledgeBasePage = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [knowledgeBaseName, setKnowledgeBaseName] = useState("");
   const [websiteLinks, setWebsiteLinks] = useState<string[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
+
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const router = useRouter();
 
   /* handlers that already exist */
   const handleFilesSelected = (files: File[]) => setSelectedFiles(files);
@@ -32,17 +37,27 @@ const AddKnowledgeBasePage = () => {
   const handleFaqsChange = (updated: Faq[]) => setFaqs(updated); // live stream
 
   const handleAddKnowledgeBase = async () => {
+    if (!knowledgeBaseName.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
     const hasSource =
       selectedFiles.length > 0 || websiteLinks.length > 0 || faqs.length > 0;
-    if (!knowledgeBaseName.trim() || !hasSource) return;
+
+    if (!hasSource) {
+      toast.error("At least one KB source is required");
+      return;
+    }
 
     /* ---------- build multipart body ---------- */
+    setLoading(true);
     const fd = new FormData();
     fd.append("name", knowledgeBaseName);
 
     if (websiteLinks.length) fd.append("urls", JSON.stringify(websiteLinks));
     if (faqs.length) fd.append("faqs", JSON.stringify(faqs));
-    selectedFiles.forEach((f) => fd.append("files", f)); // field name = files
+    selectedFiles.forEach((f) => fd.append("files", f));
 
     try {
       const res = await fetch("/api/ai/knowledgebase/add-kb", {
@@ -51,13 +66,20 @@ const AddKnowledgeBasePage = () => {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Unknown error");
 
-      console.log("KB created ✅", json.data); // { kbId, uploadUrls, sources }
-      /* store kbId globally if you need it later */
-      // setKbId(json.data.kbId);
+      if (!res.ok) {
+        toast.error(json.error || "Unknown error");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Knowledge base created ✅");
+      setLoading(false);
+
+      router.push("/dashboard/app/ai/knowledgebase");
     } catch (err: any) {
-      console.error("KB creation failed ❌", err.message);
+      toast.error(err.message || "KB creation failed");
+      setLoading(false);
     }
   };
 
@@ -137,7 +159,10 @@ const AddKnowledgeBasePage = () => {
       )} */}
 
       {/* Bottom Buttons */}
-      <BottomButtons handleAddKnowledgeBase={handleAddKnowledgeBase} />
+      <BottomButtons
+        handleAddKnowledgeBase={handleAddKnowledgeBase}
+        loading={loading}
+      />
     </div>
   );
 };

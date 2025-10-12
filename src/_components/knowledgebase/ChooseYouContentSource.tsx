@@ -11,6 +11,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
+import { useSocket } from "../../../context/SocketProvider";
 
 /* ---------- TYPES ---------- */
 export interface Faq {
@@ -40,6 +41,15 @@ interface CrawlerLink {
   status: "ready";
 }
 
+type FileState =
+  | "ready"
+  | "starting"
+  | "chunking"
+  | "embedding"
+  | "completed"
+  | "done"
+  | "error";
+
 /* ---------- COMPONENT ---------- */
 export default function ChooseYouContentSource({
   onFilesSelected,
@@ -55,6 +65,12 @@ export default function ChooseYouContentSource({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showFaqModal, setShowFaqModal] = useState(false);
+  const [fileStatus, setFileStatus] = useState<Record<string, FileState>>({});
+  const [fileChunks, setFileChunks] = useState<Record<string, number>>({});
+  const [crawlerStatus, setCrawlerStatus] = useState<Record<string, string>>(
+    {}
+  );
+  const [faqStatus, setFaqStatus] = useState<Record<string, string>>({});
 
   // MAIN list visible under files / links
   const [faqs, setFaqs] = useState<Faq[]>([]);
@@ -65,6 +81,8 @@ export default function ChooseYouContentSource({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileStoreRef = useRef<Map<string, File>>(new Map());
+
+  const { socket } = useSocket();
 
   /* ---- keep parent in sync ---- */
   useEffect(() => {
@@ -116,6 +134,17 @@ export default function ChooseYouContentSource({
     });
     const next = [...files, ...previews];
     setFiles(next);
+
+    // ➜  NEW: mark every new file as "ready"
+    const newStatus: Record<string, FileState> = {};
+    const newChunks: Record<string, number> = {};
+    valid.forEach((f) => {
+      newStatus[f.name] = "ready";
+      newChunks[f.name] = 0;
+    });
+    setFileStatus((prev) => ({ ...prev, ...newStatus }));
+    setFileChunks((prev) => ({ ...prev, ...newChunks }));
+
     onFilesSelected(Array.from(fileStoreRef.current.values()));
   };
 
@@ -189,13 +218,6 @@ export default function ChooseYouContentSource({
 
   const addEmptyModalFaq = () =>
     setModalFaqs((p) => [...p, { id: Date.now(), question: "", answer: "" }]);
-  // ✅ Add new FAQ row
-  const handleAddFaq = () => {
-    setFaqs((prev) => [
-      ...prev,
-      { id: Date.now(), question: "", answer: "", isEditing: true },
-    ]);
-  };
 
   const removeModalFaq = (id: number) =>
     setModalFaqs((p) => p.filter((f) => f.id !== id));
@@ -225,6 +247,68 @@ export default function ChooseYouContentSource({
 
   const removeFaq = (id: number) =>
     setFaqs((p) => p.filter((f) => f.id !== id));
+
+  function StatusBadge({
+    status,
+    chunks,
+  }: {
+    status: FileState;
+    chunks?: number;
+  }) {
+    const map: Record<FileState, string> = {
+      ready: "Ready to upload",
+      starting: "Starting…",
+      chunking: "Chunking…",
+      embedding: "Embedding…",
+      completed: "✅ Completed",
+      done: chunks ? `✅ Done (${chunks})` : "✅ Done",
+      error: "❌ Failed",
+    };
+    const color: Record<FileState, string> = {
+      ready: "text-yellow-400",
+      starting: "text-blue-400",
+      chunking: "text-purple-400",
+      embedding: "text-indigo-400",
+      completed: "text-green-400",
+      done: "text-green-400",
+      error: "text-red-400",
+    };
+
+    return (
+      <span
+        className={`bg-gray-700/50 text-xs font-medium px-2 py-1 rounded-full ${color[status]}`}
+      >
+        {map[status]}
+      </span>
+    );
+  }
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleFileStatus = (msg: any) => {
+      setFileStatus((prev) => ({ ...prev, [msg.fileName]: msg.status }));
+    };
+
+    const handleLinkStatus = (url: any) => {
+      setCrawlerStatus((prev) => ({ ...prev, [url.url]: url.status }));
+    };
+
+    const handleFAQStatus = (faq: any) => {
+      console.log("---- faq ----", faq);
+      setFaqStatus((prev) => ({ ...prev, [faq.fileName]: faq.status }));
+    };
+
+    socket.on("file_status", handleFileStatus);
+    socket.on("link_status", handleLinkStatus);
+    socket.on("faq_status", handleFAQStatus);
+
+    return () => {
+      socket.off("file_status", handleFileStatus);
+      socket.off("link_status", handleLinkStatus);
+      socket.off("faq_status", handleFAQStatus);
+    };
+  }, [socket]);
 
   /* ---------- UI ---------- */
   return (
@@ -352,9 +436,10 @@ export default function ChooseYouContentSource({
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="bg-yellow-600/20 text-yellow-400 text-xs font-medium px-3 py-1 rounded-full">
-                Ready to Upload
-              </span>
+              <StatusBadge
+                status={fileStatus[f.name]}
+                chunks={fileChunks[f.name]}
+              />
               <button
                 onClick={() => handleRemoveFile(f.id, f.name)}
                 className="text-gray-400 hover:text-red-500"
@@ -376,9 +461,10 @@ export default function ChooseYouContentSource({
               <p className="text-white text-sm font-medium">{l.url}</p>
             </div>
             <div className="flex items-center space-x-3">
-              <span className="bg-yellow-600/20 text-yellow-400 text-xs font-medium px-3 py-1 rounded-full">
-                Ready to Crawl
-              </span>
+              <StatusBadge
+                status={(crawlerStatus[l.url] as FileState) || "ready"}
+              />
+
               <button
                 onClick={() => handleRemoveLink(l.id)}
                 className="text-gray-400 hover:text-red-500"
@@ -393,6 +479,20 @@ export default function ChooseYouContentSource({
         {faqs.length > 0 && (
           <>
             <div className="pt-4" />
+            {/* Live status badge */}
+            {Object.entries(faqStatus).map(([name, status]) => (
+              <div
+                key={name}
+                className="flex items-center justify-between bg-[#262626] rounded-lg p-4 border border-gray-700 mb-3"
+              >
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-6 h-6 text-gray-300" />
+                  <p className="text-white text-sm font-medium">FAQs</p>
+                </div>
+                <StatusBadge status={status as FileState} />
+              </div>
+            ))}
+
             {faqs.map((faq) => (
               <div
                 key={faq.id}

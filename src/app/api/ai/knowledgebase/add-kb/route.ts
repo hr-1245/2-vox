@@ -26,6 +26,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const supabase = await getSupabase();
+
+    // --- 1.  name must be unique per user  ----------------------------------
+    const { data: existing } = await supabase
+      .from("kb")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("name", name)
+      .single(); // returns null if not found
+
+    console.log("--------- existing ---------", existing);
+
+    if (existing) {
+      return Response.json(
+        {
+          success: false,
+          error: "A knowledge base with this name already exists",
+        } satisfies ErrorResponse,
+        { status: 409 }
+      );
+    }
+
     const urls = formData.get("urls")
       ? JSON.parse(formData.get("urls")!.toString())
       : [];
@@ -33,8 +55,6 @@ export async function POST(req: NextRequest) {
       ? JSON.parse(formData.get("faqs")!.toString())
       : [];
     const files = formData.getAll("files") as File[];
-
-    const supabase = await getSupabase();
 
     const { data: kb, error }: any = await supabase
       .from("kb")
@@ -72,26 +92,6 @@ export async function POST(req: NextRequest) {
         },
       ] as any);
 
-      console.log(
-        `${process.env.NEXT_PUBLIC_VOX_API_URL}/ai/conversation/kb/add-files`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.id}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            knowledgebaseId: kb.id,
-            fileId: storagePath, // unique path in bucket
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            storagePath: storagePath,
-            supabaseBucket: "kb-uploads",
-          }),
-        }
-      );
       // >>>  CALL FASTAPI FOR THIS FILE  <<<
       const fastRes = await fetch(
         `${process.env.NEXT_PUBLIC_VOX_API_URL}/ai/conversation/kb/add-files`,
@@ -114,8 +114,6 @@ export async function POST(req: NextRequest) {
         }
       );
 
-      console.log(" ====> fastRes <==== ", fastRes);
-
       if (!fastRes.ok) {
         const msg = await fastRes.text();
         console.warn("FastAPI rejected file job:", msg);
@@ -130,18 +128,49 @@ export async function POST(req: NextRequest) {
         .insert([
           { kb_id: kb.id, type: "web", data: { url }, status: "pending" },
         ] as any);
+
+      // queue crawl job
+      const crawlRes = await fetch(
+        `${process.env.NEXT_PUBLIC_VOX_API_URL}/ai/conversation/kb/add-web`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.id}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            knowledgebaseId: kb.id,
+            url,
+          }),
+        }
+      );
+
+      if (!crawlRes.ok) {
+        const msg = await crawlRes.text();
+        console.warn("FastAPI rejected crawl job:", msg);
+      }
     }
 
-    // faq sources
-    for (const { question, answer } of faqs) {
-      await supabase.from("kb_source").insert([
+    // after inserting kb_source rows (optional), kick off embedding
+    if (faqs.length) {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_VOX_API_URL}/ai/conversation/kb/add-faqs`,
         {
-          kb_id: kb.id,
-          type: "faq",
-          data: { q: question, a: answer },
-          status: "pending",
-        },
-      ] as any);
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.id}`, // same token used for KB create
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            knowledgebaseId: kb.id,
+            faqs,
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("FAQ embedding failed");
     }
 
     return Response.json({

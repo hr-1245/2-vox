@@ -27,9 +27,10 @@ export const SocketProvider: FC<ISocketProvider> = ({ children, token }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const socketInstance = io(process.env.NEXT_PUBLIC_FASTAPI_URL, {
+    const socketInstance = io(process.env.NEXT_PUBLIC_VOX_API_URL, {
       path: "/sockets",
       transports: ["websocket"],
+      query: { userId: "501202fd-61d8-43f1-ad74-34af48f92e3c" },
     });
 
     setSocket(socketInstance);
