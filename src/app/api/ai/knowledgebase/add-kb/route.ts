@@ -36,8 +36,6 @@ export async function POST(req: NextRequest) {
       .eq("name", name)
       .single(); // returns null if not found
 
-    console.log("--------- existing ---------", existing);
-
     if (existing) {
       return Response.json(
         {
@@ -150,6 +148,17 @@ export async function POST(req: NextRequest) {
         const msg = await crawlRes.text();
         console.warn("FastAPI rejected crawl job:", msg);
       }
+    }
+
+    for (const { question, answer } of faqs) {
+      await supabase.from("kb_source").insert([
+        {
+          kb_id: kb.id,
+          type: "faq",
+          data: { q: question, a: answer },
+          status: "pending",
+        },
+      ] as any);
     }
 
     // after inserting kb_source rows (optional), kick off embedding

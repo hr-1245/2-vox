@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,22 +20,12 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   Bot,
-  Plus,
   Database,
-  MessageSquare,
   ChevronLeft,
   ChevronRight,
-  Search,
-  Filter,
-  FileText,
-  Globe,
-  MessageCircle,
-  SortAsc,
-  X,
   Settings,
 } from "lucide-react";
-import type { KnowledgeBase } from "@/utils/database/knowledgebase";
-import { KB_SETTINGS } from "@/utils/ai/knowledgebaseSettings";
+
 import {
   Select,
   SelectContent,
@@ -45,8 +35,7 @@ import {
 } from "@/components/ui/select";
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
-import { is } from "date-fns/locale";
-import AllKnowledgeBases from "@/_components/knowledgebase/AllKnowledgeBases";
+import { KBTable } from "@/_components/knowledgebase/KBTable";
 
 // Constants
 const USER_ID = "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21";
@@ -112,29 +101,13 @@ const SENDABLE_MESSAGE_TYPES = [
 ] as const;
 
 export default function CreateAgentPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
   const [creating, setCreating] = useState(false);
-  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
-  const [loadingKB, setLoadingKB] = useState(false);
-
-  // Detect agent type from URL params (1 = Conversation AI, 5 = Voice AI)
-  const agentType = searchParams.get("type") === "5" ? 5 : 1;
-  const isVoiceAgent = agentType === 5;
-  const agentTypeName = isVoiceAgent
-    ? "Voice AI Agent"
-    : "Conversation AI Agent";
-  const agentTypeDescription = isVoiceAgent
-    ? "Create an AI assistant for voice conversations and phone calls"
-    : "Create an intelligent AI assistant for text conversations";
 
   // Knowledge Base filtering state
-  const [showConversationKBs, setShowConversationKBs] = useState(false);
-  const [kbSearchTerm, setKbSearchTerm] = useState("");
-  const [kbTypeFilter, setKbTypeFilter] = useState<number | "all">("all");
-  const [kbSortBy, setKbSortBy] = useState<"name" | "created" | "type">("name");
+
   const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(
     []
   );
@@ -160,35 +133,17 @@ export default function CreateAgentPage() {
   const [tag, setTag] = useState<string>(""); // instead of tags[]
   const [newTag, setNewTag] = useState("");
 
+  // Detect agent type from URL params (1 = Conversation AI, 5 = Voice AI)
+  const agentType = searchParams.get("type") === "5" ? 5 : 1;
+  const isVoiceAgent = agentType === 5;
+  const agentTypeName = isVoiceAgent
+    ? "Voice AI Agent"
+    : "Conversation AI Agent";
+  const agentTypeDescription = isVoiceAgent
+    ? "Create an AI assistant for voice conversations and phone calls"
+    : "Create an intelligent AI assistant for text conversations";
+
   const progress = (currentStep / totalSteps) * 100;
-
-  // Load knowledge bases on component mount
-  useEffect(() => {
-    const loadKnowledgeBases = async () => {
-      try {
-        setLoadingKB(true);
-        const response = await fetch("/api/ai/knowledgebase");
-
-        const data = await response.json();
-
-        if (data.success) {
-          const kbData = Array.isArray(data.data) ? data.data : [];
-          console.log("Loaded all knowledge bases:", kbData);
-
-          setKnowledgeBases(kbData);
-        } else {
-          console.error("Failed to load knowledge bases:", data.error);
-        }
-      } catch (error) {
-        console.error("Error loading knowledge bases:", error);
-        setKnowledgeBases([]); // Set empty array on error
-      } finally {
-        setLoadingKB(false);
-      }
-    };
-
-    loadKnowledgeBases();
-  }, []);
 
   const convertArrayToChannelsObject = (selected: string[]) => {
     const channelMappings = {
@@ -269,7 +224,8 @@ export default function CreateAgentPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const err = await response.json(); // <-- read backend error
+        throw new Error(err.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -286,9 +242,9 @@ export default function CreateAgentPage() {
           "Failed to create agent: " + (data.error || "Unknown error")
         );
       }
-    } catch (error) {
-      console.error("Error creating agent:", error);
-      toast.error("Failed to create agent. Please try again.");
+    } catch (error: any) {
+      console.log("Error creating agent:", error);
+      toast.error(error.message); // backend message
     } finally {
       setCreating(false);
     }
@@ -710,9 +666,6 @@ export default function CreateAgentPage() {
         );
 
       case 3:
-        const filteredKBs = getFilteredKnowledgeBases();
-        const kbTypes = [...new Set(knowledgeBases.map((kb) => kb.type))];
-
         return (
           <div className="space-y-4">
             {/* Header */}
@@ -727,196 +680,12 @@ export default function CreateAgentPage() {
               </p>
             </div>
 
-            {/* Search and Filters */}
-            <Card className="border">
-              <CardHeader className="p-3">
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Search className="w-3.5 h-3.5" />
-                    Search & Filter Knowledge Sources
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7 px-2"
-                    onClick={() =>
-                      window.open(
-                        "/dashboard/app/ai/knowledgebase/add-knowledge-base",
-                        "_blank"
-                      )
-                    }
-                  >
-                    <Plus className="w-2.5 h-2.5 mr-1" />
-                    Create New
-                  </Button>
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Find and select knowledge sources, or create a new one
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 p-3">
-                {/* Simple Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
-                  <Input
-                    placeholder="Search knowledge sources..."
-                    value={kbSearchTerm}
-                    onChange={(e) => setKbSearchTerm(e.target.value)}
-                    className="pl-8 pr-8 h-8 text-sm"
-                  />
-                  {kbSearchTerm && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
-                      onClick={() => setKbSearchTerm("")}
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Simple Filters Row */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  {/* Type Filter */}
-                  <div className="flex-1">
-                    <Select
-                      value={kbTypeFilter.toString()}
-                      onValueChange={(value) =>
-                        setKbTypeFilter(
-                          value === "all" ? "all" : parseInt(value)
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <Filter className="w-3.5 h-3.5 mr-1.5" />
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {kbTypes.map((type) => {
-                          const typeInfo = getKBTypeInfo(type);
-                          return (
-                            <SelectItem key={type} value={type.toString()}>
-                              {typeInfo.label}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Sort Filter */}
-                  <div className="flex-1">
-                    <Select
-                      value={kbSortBy}
-                      onValueChange={(value: any) => setKbSortBy(value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SortAsc className="w-3.5 h-3.5 mr-1.5" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="name">Sort by Name</SelectItem>
-                        <SelectItem value="created">Sort by Created</SelectItem>
-                        <SelectItem value="type">Sort by Type</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Selection Summary */}
-                  <div className="flex items-center gap-1.5">
-                    <Badge variant="outline" className="text-xs">
-                      {formData.knowledgeBaseIds.length} Selected
-                    </Badge>
-                    {formData.knowledgeBaseIds.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            knowledgeBaseIds: [],
-                          }))
-                        }
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Active Filters */}
-                {(kbSearchTerm || kbTypeFilter !== "all") && (
-                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-gray-50 rounded border">
-                    <span className="text-[0.65rem] font-medium">
-                      Active Filters:
-                    </span>
-                    {kbSearchTerm && (
-                      <Badge variant="secondary" className="gap-1 text-xs">
-                        Search: "{kbSearchTerm}"
-                        <X
-                          className="w-2.5 h-2.5 cursor-pointer"
-                          onClick={() => setKbSearchTerm("")}
-                        />
-                      </Badge>
-                    )}
-                    {kbTypeFilter !== "all" && (
-                      <Badge variant="secondary" className="gap-1 text-xs">
-                        Type: {getKBTypeInfo(kbTypeFilter as number).label}
-                        <X
-                          className="w-2.5 h-2.5 cursor-pointer"
-                          onClick={() => setKbTypeFilter("all")}
-                        />
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Knowledge Base List */}
-            {filteredKBs.length > 0 ? (
-              <div className="space-y-3">
-                <AllKnowledgeBases
-                  selectedKBIds={selectedKBIds}
-                  onSelectionChange={setSelectedKBIds}
-                />
-              </div>
-            ) : (
-              <Card className="border-dashed border-2 bg-gray-50">
-                <CardContent className="p-4 text-center">
-                  <Database className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <h3 className="font-medium text-sm text-gray-900 mb-1">
-                    {kbSearchTerm || kbTypeFilter !== "all"
-                      ? "No matching knowledge sources found"
-                      : "No knowledge sources available"}
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    {kbSearchTerm || kbTypeFilter !== "all"
-                      ? "Try adjusting your search or filter criteria."
-                      : "Create knowledge sources to enhance your AI agent."}
-                  </p>
-
-                  <div className="flex gap-2 justify-center flex-wrap">
-                    {(kbSearchTerm || kbTypeFilter !== "all") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => {
-                          setKbSearchTerm("");
-                          setKbTypeFilter("all");
-                        }}
-                      >
-                        Clear Filters
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Self-fetching table with checkboxes, no actions */}
+            <KBTable
+              selectable
+              showActions={false}
+              onSelectionChange={(ids: string[]) => setSelectedKBIds(ids)}
+            />
           </div>
         );
       default:
@@ -954,83 +723,6 @@ export default function CreateAgentPage() {
       default:
         return false;
     }
-  };
-
-  const getKBTypeInfo = (type: number) => {
-    const types = {
-      1: {
-        label: "Conversation",
-        icon: MessageCircle,
-        color: "text-blue-600 bg-blue-100 border-blue-200",
-        description: "Auto-generated from conversations",
-      },
-      2: {
-        label: "File Upload",
-        icon: FileText,
-        color: "text-green-600 bg-green-100 border-green-200",
-        description: "Uploaded documents and files",
-      },
-      3: {
-        label: "FAQ",
-        icon: MessageSquare,
-        color: "text-purple-600 bg-purple-100 border-purple-200",
-        description: "Frequently asked questions",
-      },
-      4: {
-        label: "Web Scraper",
-        icon: Globe,
-        color: "text-orange-600 bg-orange-100 border-orange-200",
-        description: "Content from websites",
-      },
-    };
-    return (
-      types[type as keyof typeof types] || {
-        label: "Unknown",
-        icon: Database,
-        color: "text-gray-600 bg-gray-100 border-gray-200",
-        description: "Unknown type",
-      }
-    );
-  };
-
-  const getFilteredKnowledgeBases = () => {
-    let filtered = showConversationKBs
-      ? knowledgeBases
-      : knowledgeBases.filter(
-          (kb) => kb.type !== KB_SETTINGS.KB_CONVERSATION.type
-        );
-
-    // Apply search filter
-    if (kbSearchTerm) {
-      filtered = filtered.filter(
-        (kb) =>
-          kb.name.toLowerCase().includes(kbSearchTerm.toLowerCase()) ||
-          kb.summary?.toLowerCase().includes(kbSearchTerm.toLowerCase())
-      );
-    }
-
-    // Apply type filter
-    if (kbTypeFilter !== "all") {
-      filtered = filtered.filter((kb) => kb.type === kbTypeFilter);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (kbSortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "created":
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        case "type":
-          return a.type - b.type;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
   };
 
   return (
