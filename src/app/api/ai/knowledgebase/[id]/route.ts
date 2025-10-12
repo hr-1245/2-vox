@@ -239,7 +239,7 @@ export async function PUT(
 // DELETE
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const SOFT_DELETE = false; // << flip to false for hard delete
 
@@ -252,7 +252,7 @@ export async function DELETE(
       );
 
     const supabase = await getSupabase();
-    const kbId = params.id;
+    const { id: kbId } = params;
 
     // 1. verify ownership
     const { data: kb } = await supabase
@@ -289,60 +289,3 @@ export async function DELETE(
     return Response.json({ success: false, error: e.message }, { status: 500 });
   }
 }
-
-// DELETE - Delete knowledge base
-// export async function DELETE(
-//   req: NextRequest,
-//   { params }: { params: Promise<{ id: string }> }
-// ): Promise<Response> {
-//   try {
-//     const user = await getCurrentUser();
-//     if (!user?.id) {
-//       return Response.json({
-//         success: false,
-//         error: 'Unauthorized'
-//       } satisfies ErrorResponse, { status: 401 });
-//     }
-
-//     const { id } = await params;
-//     if (!id) {
-//       return Response.json({
-//         success: false,
-//         error: 'Knowledge base ID is required'
-//       } satisfies ErrorResponse, { status: 400 });
-//     }
-
-//     console.log('Knowledge base delete request:', {
-//       userId: user.id,
-//       knowledgeBaseId: id
-//     });
-
-//     const supabase = await getSupabase();
-
-//     const { error } = await supabase
-//       .from('knowledge_bases')
-//       .delete()
-//       .eq('id', id)
-//       .eq('user_id', user.id);
-
-//     if (error) {
-//       console.error('Error deleting knowledge base:', error);
-//       return Response.json({
-//         success: false,
-//         error: 'Failed to delete knowledge base'
-//       } satisfies ErrorResponse, { status: 500 });
-//     }
-
-//     return Response.json({
-//       success: true,
-//       data: null
-//     });
-
-//   } catch (error) {
-//     console.error('Error in knowledge base delete:', error);
-//     return Response.json({
-//       success: false,
-//       error: error instanceof Error ? error.message : 'Internal server error'
-//     } satisfies ErrorResponse, { status: 500 });
-//   }
-// }
