@@ -75,6 +75,13 @@ export async function POST(req: NextRequest) {
 
       if (uploadError) throw uploadError;
 
+      // Generate a public URL for the uploaded file
+      const { data: publicUrlData } = supabase.storage
+        .from("kb-uploads")
+        .getPublicUrl(storagePath);
+
+      const fileUrl = publicUrlData.publicUrl;
+
       // record source row with the path we just stored
       await supabase.from("kb_source").insert([
         {
@@ -108,6 +115,7 @@ export async function POST(req: NextRequest) {
             fileSize: file.size,
             storagePath: storagePath,
             supabaseBucket: "kb-uploads",
+            fileUrl,
           }),
         }
       );

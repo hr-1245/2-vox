@@ -379,76 +379,51 @@ function AgentDetailClientPage({
     }
   };
 
-  // const saveAgent = async () => {
-  //   if (
-  //     !editForm.name.trim() ||
-  //     !editForm.personality.trim() ||
-  //     !editForm.intent.trim()
-  //   ) {
-  //     toast.error("Name, personality, and intent are required");
+  // const testAgent = async () => {
+  //   if (!testInput.trim()) {
+  //     toast.error("Please enter test input");
   //     return;
   //   }
 
   //   try {
-  //     setSaving(true);
-
-  //     // Convert selected message types to object format for backend
-  //     const channelsObject = convertArrayToChannelsObject(selectedMessageTypes);
-
-  //     const response = await fetch(`/api/ai/agents/${agentId}`, {
-  //       method: "PUT",
+  //     setTesting(true);
+  //     const response = await fetch("/api/ai/agents/conversation", {
+  //       method: "POST",
   //       headers: { "Content-Type": "application/json" },
   //       body: JSON.stringify({
-  //         name: editForm.name,
-  //         description: editForm.description,
-  //         data: {
-  //           personality: editForm.personality,
-  //           intent: editForm.intent,
-  //           additionalInformation: editForm.additionalInformation,
-  //           tag,
-  //         },
-  //         is_active: editForm.isActive,
-  //         channels: channelsObject,
+  //         agentId: agentId,
+  //         conversationId:
+  //           agent?.knowledgeBases?.[0]?.provider_type_sub_id || null,
+  //         type: agent?.knowledgeBases?.[0]?.type || 2,
+  //         query: testInput,
+  //         mode: "query",
+  //         context: "Testing agent functionality",
   //       }),
   //     });
 
   //     const data = await response.json();
 
   //     if (data.success && data.data) {
-  //       // Transform the updated agent data
-  //       const agent = data.data;
-  //       const agentData = agent.data || {};
-
-  //       // Convert channels object back to array format for the frontend
-  //       const channelsArray = convertChannelsObjectToArray(agent.channels);
-
-  //       const transformedAgent = {
-  //         id: agent.id,
-  //         userId: agent.user_id,
-  //         name: agent.name,
-  //         description: agent.description || "",
-  //         agentType: getAgentTypeString(agent.type),
-  //         personality: agentData.personality || "",
-  //         intent: agentData.intent || "",
-  //         additionalInformation: agentData.additionalInformation || "",
-  //         systemPrompt: agent.system_prompt || "",
-  //         isActive: agent.is_active !== false,
-  //         createdAt: agent.created_at,
-  //         updatedAt: agent.updated_at || agent.created_at,
-  //         channels: channelsArray,
-  //       };
-  //       setAgent(transformedAgent);
-  //       setSelectedMessageTypes(channelsArray);
-  //       setEditing(false);
-  //       toast.success("Agent updated successfully");
+  //       setTestResult(
+  //         data.data.answer ||
+  //           data.data.response ||
+  //           "Agent responded successfully"
+  //       );
+  //       toast.success("Agent test completed");
   //     } else {
-  //       throw new Error(data.error || "Failed to update agent");
+  //       setTestResult(
+  //         `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
+  //       );
+  //       toast.warning("AI backend unavailable - showing demo response");
   //     }
   //   } catch (error) {
-  //     // console.error("Error updating agent:", error);
-  //     toast.error("Failed to update agent");
+  //     // console.error("Error testing agent:", error);
+  //     setTestResult(
+  //       `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
+  //     );
+  //     toast.warning("AI backend unavailable - showing demo response");
   //   } finally {
-  //     setSaving(false);
+  //     setTesting(false);
   //   }
   // };
 
@@ -460,28 +435,19 @@ function AgentDetailClientPage({
 
     try {
       setTesting(true);
-      const response = await fetch("/api/ai/agents/conversation", {
+      const response = await fetch("/api/ai/agents/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentId: agentId,
-          conversationId:
-            agent?.knowledgeBases?.[0]?.provider_type_sub_id || null,
-          type: agent?.knowledgeBases?.[0]?.type || 2,
+          agentId,
           query: testInput,
-          mode: "query",
-          context: "Testing agent functionality",
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.data) {
-        setTestResult(
-          data.data.answer ||
-            data.data.response ||
-            "Agent responded successfully"
-        );
+      if (data.success && data.data?.answer) {
+        setTestResult(data.data.answer);
         toast.success("Agent test completed");
       } else {
         setTestResult(
@@ -490,7 +456,6 @@ function AgentDetailClientPage({
         toast.warning("AI backend unavailable - showing demo response");
       }
     } catch (error) {
-      // console.error("Error testing agent:", error);
       setTestResult(
         `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
       );
@@ -907,44 +872,6 @@ function AgentDetailClientPage({
           </Card>
 
           {/* Knowledge bases */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Knowledge Bases
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                {agent?.knowledgeBases?.length > 0 ? (
-                  agent?.knowledgeBases?.map((kb, index) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-muted rounded-md flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-medium">{kb.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ID: {kb.provider_type_sub_id}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No knowledge bases connected.
-                  </p>
-                )}
-              </div>
-
-              {/* Show all knowledge bases in editing mode for update */}
-              {editing && (
-                <AllKnowledgeBases
-                  selectedKBIds={selectedKBIds}
-                  onSelectionChange={setSelectedKBIds}
-                />
-              )}
-            </CardContent>
-          </Card>
 
           {/* Test Agent */}
           <Card>
