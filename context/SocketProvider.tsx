@@ -26,11 +26,11 @@ const SocketContext = createContext<ISocketContext | null>(null);
 
 export const SocketProvider: FC<ISocketProvider> = ({ children, token }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-
   const userId = useUserId();
-  console.log("userId: ", userId);
 
   useEffect(() => {
+    if (!userId) return;
+
     const socketInstance = io(process.env.NEXT_PUBLIC_VOX_API_URL, {
       path: "/sockets",
       transports: ["websocket"],

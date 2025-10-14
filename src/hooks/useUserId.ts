@@ -6,6 +6,7 @@ export function useUserId() {
   useEffect(() => {
     // 1. try cache first
     const cached = localStorage.getItem("uid");
+
     if (cached) {
       setUserId(cached);
       return;
