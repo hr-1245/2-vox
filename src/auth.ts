@@ -29,7 +29,15 @@ export const authConfig = {
         return `${baseUrl}/dashboard/app/leadconnector`;
       }
     },
-    async jwt({ token, account, user }: { token: JWT; account?: Account | null; user?: User }) {
+    async jwt({
+      token,
+      account,
+      user,
+    }: {
+      token: JWT;
+      account?: Account | null;
+      user?: User;
+    }) {
       if (account) {
         (token as any).accessToken = account.access_token;
         (token as any).provider = account.provider;
@@ -39,12 +47,12 @@ export const authConfig = {
       }
       return token;
     },
-    async session({ session, token }: { session: Session; token: JWT }) {
-      (session as any).accessToken = (token as any).accessToken;
-      (session as any).provider = (token as any).provider;
-      (session as any).user = (token as any).user;
-      return session;
-    },
+    // async session({ session, token }: { session: Session; token: JWT }) {
+    //   (session as any).accessToken = (token as any).accessToken;
+    //   (session as any).provider = (token as any).provider;
+    //   (session as any).user = (token as any).user;
+    //   return session;
+    // },
   },
 };
 
