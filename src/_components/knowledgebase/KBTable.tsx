@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,7 +21,9 @@ interface KBTableProps {
   selectable?: boolean;
   showActions?: boolean;
   onSelectionChange?: (ids: string[]) => void;
-  onRemove?: (id: string) => void; // optional external handler
+  selectedKbs?: string[];
+  editMode?: boolean;
+  isEditing?: boolean;
 }
 
 export function KBTable({
@@ -28,30 +31,64 @@ export function KBTable({
   selectable = false,
   showActions = true,
   onSelectionChange,
-  onRemove,
+  selectedKbs = [],
+  editMode = false,
+  isEditing = false,
 }: KBTableProps) {
   const [rows, setRows] = useState<KnowledgeBaseRow[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set(selectedKbs));
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const prevSelectionRef = useRef<string>("");
 
-  // ---- fetch ----
+  /* 🧠 Load all KBs */
   useEffect(() => {
-    setLoading(true);
-    fetch("/api/ai/knowledgebase")
-      .then((r) => r.json())
-      .then((json) => {
+    const fetchKbs = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/ai/knowledgebase");
+        const json = await res.json();
         if (json.success) setRows(json.data ?? []);
         else toast.error("Failed to load KBs");
-      })
-      .catch(() => toast.error("Network error"))
-      .finally(() => setLoading(false));
+      } catch {
+        toast.error("Network error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchKbs();
   }, [refreshKey]);
 
-  // ---- search + pagination ----
+  /* 🔄 Sync internal selected state when props change (avoid loops) */
+  useEffect(() => {
+    if (!Array.isArray(selectedKbs)) return;
+
+    const currentIds = Array.from(selected);
+    const incomingIds = selectedKbs;
+
+    // Prevent re-render loops by comparing actual content
+    if (
+      JSON.stringify(currentIds.sort()) !== JSON.stringify(incomingIds.sort())
+    ) {
+      setSelected(new Set(incomingIds));
+    }
+  }, [selectedKbs]);
+
+  /* 🔔 Notify parent only when local selection truly changes */
+  useEffect(() => {
+    if (!onSelectionChange) return;
+    const ids = Array.from(selected);
+    const joined = ids.sort().join(",");
+    if (prevSelectionRef.current !== joined) {
+      prevSelectionRef.current = joined;
+      onSelectionChange(ids);
+    }
+  }, [selected]); // removed onSelectionChange from deps to avoid unnecessary re-triggers
+
+  /* 🔍 Search + Pagination */
   const filtered = useMemo(
     () =>
       rows.filter((kb) => kb.name.toLowerCase().includes(search.toLowerCase())),
@@ -61,62 +98,63 @@ export function KBTable({
   const startIdx = (page - 1) * LIMIT;
   const pageData = filtered.slice(startIdx, startIdx + LIMIT);
 
-  // ---- selection ----
-  useEffect(
-    () => onSelectionChange?.(Array.from(selected)),
-    [selected, onSelectionChange]
-  );
-
-  const toggleOne = (id: string) => {
+  /* ✅ Selection toggles */
+  const toggleOne = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const toggleAll = () => {
-    setSelected((prev) =>
-      prev.size === pageData.length
-        ? new Set()
-        : new Set(pageData.map((r) => r.id))
-    );
-  };
+  const toggleAll = useCallback(() => {
+    setSelected((prev) => {
+      const allIds = new Set(pageData.map((r) => r.id));
+      const isAllSelected = Array.from(allIds).every((id) => prev.has(id));
+      return isAllSelected ? new Set() : allIds;
+    });
+  }, [pageData]);
 
-  // ---- delete ----
-  const handleDelete = async (id: string) => {
-    if (!showActions) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/ai/knowledgebase/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Delete failed");
+  /* 🗑️ Delete logic */
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!showActions) return;
+      setDeleting(true);
+      try {
+        const res = await fetch(`/api/ai/knowledgebase/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Delete failed");
 
-      // re-fetch entire list → real-time removal
-      const fresh = await fetch("/api/ai/knowledgebase").then((r) => r.json());
-      if (fresh.success) setRows(fresh.data ?? []);
-      else throw new Error("Refresh failed");
+        const fresh = await fetch("/api/ai/knowledgebase").then((r) =>
+          r.json()
+        );
+        if (fresh.success) setRows(fresh.data ?? []);
+        else throw new Error("Refresh failed");
 
-      setSelected((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setOpenId(null);
-    } catch (e: any) {
-      toast.error(e.message || "Delete error");
-    } finally {
-      setDeleting(false);
-    }
-  };
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        setOpenId(null);
+      } catch (e: any) {
+        toast.error(e.message || "Delete error");
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [showActions]
+  );
+
+  /* ⚙️ Edit mode control — only allow selection if editing is ON */
+  const canSelect = editMode ? !!isEditing : true;
 
   if (loading) return <LoadingSpinner />;
 
   return (
     <>
-      {/* Search Bar */}
+      {/* 🔍 Search Bar */}
       <div className="flex items-center justify-between mb-4">
         <input
           value={search}
@@ -129,7 +167,7 @@ export function KBTable({
         </span>
       </div>
 
-      {/* Table */}
+      {/* 📋 Table */}
       <div className="bg-[#171717] border border-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm text-gray-300">
           <thead className="bg-[#1E1E1E] text-gray-200">
@@ -139,10 +177,12 @@ export function KBTable({
                   <input
                     type="checkbox"
                     checked={
-                      selected.size === pageData.length && pageData.length !== 0
+                      pageData.length > 0 &&
+                      pageData.every((r) => selected.has(r.id))
                     }
-                    onChange={toggleAll}
+                    onChange={() => canSelect && toggleAll()}
                     className="w-4 h-4 accent-[#ef3d6d]"
+                    disabled={!canSelect}
                   />
                 </th>
               )}
@@ -154,6 +194,7 @@ export function KBTable({
               {showActions && <th className="px-4 py-3">Actions</th>}
             </tr>
           </thead>
+
           <tbody>
             {pageData.map((kb) => (
               <tr
@@ -165,8 +206,9 @@ export function KBTable({
                     <input
                       type="checkbox"
                       checked={selected.has(kb.id)}
-                      onChange={() => toggleOne(kb.id)}
+                      onChange={() => canSelect && toggleOne(kb.id)}
                       className="w-4 h-4 accent-[#ef3d6d]"
+                      disabled={!canSelect}
                     />
                   </td>
                 )}
@@ -177,6 +219,7 @@ export function KBTable({
                 <td className="px-4 py-3">
                   {new Date(kb.created_at).toLocaleDateString()}
                 </td>
+
                 {showActions && (
                   <td className="px-4 py-3 text-center">
                     <DropdownMenu>
@@ -185,6 +228,7 @@ export function KBTable({
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </DropdownMenuTrigger>
+
                       <DropdownMenuContent
                         align="end"
                         className="bg-[#1E1E1E] border-gray-700"
@@ -211,7 +255,7 @@ export function KBTable({
         </table>
       </div>
 
-      {/* Pagination - always visible */}
+      {/* 🔢 Pagination */}
       <div className="flex items-center justify-between text-sm text-gray-300 mt-4">
         <Button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -221,16 +265,19 @@ export function KBTable({
           Prev
         </Button>
 
+        <span>
+          Page {page} of {totalPages || 1}
+        </span>
+
         <Button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
+          disabled={page === totalPages || totalPages === 0}
           className="bg-[#262626] border border-gray-700 text-gray-200 hover:bg-[#ef3d6d] disabled:opacity-50"
         >
           Next
         </Button>
       </div>
 
-      {/* Confirmation Modal (actions only) */}
       {showActions && (
         <ConfirmDialog
           open={!!openId}

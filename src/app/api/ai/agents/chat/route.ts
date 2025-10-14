@@ -49,8 +49,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("agent: ", agent);
-
     // embed user question
     const queryResp = await fetch(
       `${process.env.NEXT_PUBLIC_VOX_API_URL}/ai/conversation/kb/query`,

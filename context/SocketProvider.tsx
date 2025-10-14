@@ -1,5 +1,6 @@
 "use client";
 
+import { useUserId } from "@/hooks/useUserId";
 import React, {
   createContext,
   FC,
@@ -26,11 +27,14 @@ const SocketContext = createContext<ISocketContext | null>(null);
 export const SocketProvider: FC<ISocketProvider> = ({ children, token }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
+  const userId = useUserId();
+  console.log("userId: ", userId);
+
   useEffect(() => {
     const socketInstance = io(process.env.NEXT_PUBLIC_VOX_API_URL, {
       path: "/sockets",
       transports: ["websocket"],
-      query: { userId: "501202fd-61d8-43f1-ad74-34af48f92e3c" },
+      query: { userId },
     });
 
     setSocket(socketInstance);
@@ -47,11 +51,13 @@ export const SocketProvider: FC<ISocketProvider> = ({ children, token }) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [userId]);
 
   const sendMessage = useCallback(
     (messagePayload: any) => {
       if (!socket) return;
+
+      console.log("messagePayload: ", messagePayload);
       socket.emit("chat_message", messagePayload);
     },
     [socket]

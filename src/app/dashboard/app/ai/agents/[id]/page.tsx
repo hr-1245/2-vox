@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +51,7 @@ import {
 import { getClientGhlToken } from "@/utils/ghl/tokenUtils";
 import AddTagsModal from "@/components/ai-agent/AddTagsModal";
 import AllKnowledgeBases from "@/_components/knowledgebase/AllKnowledgeBases";
+import { KBTable } from "@/_components/knowledgebase/KBTable";
 
 interface Agent {
   id: string;
@@ -284,7 +285,9 @@ function AgentDetailClientPage({
           createdAt: agent.created_at,
           updatedAt: agent.updated_at || agent.created_at,
           channels: channelsArray,
-          knowledgeBases: data.data.knowledge_bases || [],
+          knowledgeBases: data.data.knowledge_bases
+            ? data.data.knowledge_bases.map((kb) => kb.id)
+            : [],
         };
         setAgent(transformedAgent);
         setSelectedMessageTypes(channelsArray);
@@ -366,7 +369,10 @@ function AgentDetailClientPage({
       if (data.success && data.data) {
         const updatedAgent = data.data;
         toast.success("Agent updated successfully");
-        setAgent(updatedAgent);
+        setAgent({
+          ...updatedAgent,
+          knowledgeBases: updatedAgent.knowledge_base_ids,
+        });
         setEditing(false);
       } else {
         throw new Error(data.error || "Failed to update agent");
@@ -378,54 +384,6 @@ function AgentDetailClientPage({
       setSaving(false);
     }
   };
-
-  // const testAgent = async () => {
-  //   if (!testInput.trim()) {
-  //     toast.error("Please enter test input");
-  //     return;
-  //   }
-
-  //   try {
-  //     setTesting(true);
-  //     const response = await fetch("/api/ai/agents/conversation", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         agentId: agentId,
-  //         conversationId:
-  //           agent?.knowledgeBases?.[0]?.provider_type_sub_id || null,
-  //         type: agent?.knowledgeBases?.[0]?.type || 2,
-  //         query: testInput,
-  //         mode: "query",
-  //         context: "Testing agent functionality",
-  //       }),
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (data.success && data.data) {
-  //       setTestResult(
-  //         data.data.answer ||
-  //           data.data.response ||
-  //           "Agent responded successfully"
-  //       );
-  //       toast.success("Agent test completed");
-  //     } else {
-  //       setTestResult(
-  //         `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
-  //       );
-  //       toast.warning("AI backend unavailable - showing demo response");
-  //     }
-  //   } catch (error) {
-  //     // console.error("Error testing agent:", error);
-  //     setTestResult(
-  //       `Demo response: I received your test message "${testInput}". This agent (${agent?.name}) would process this through the AI system when fully connected.`
-  //     );
-  //     toast.warning("AI backend unavailable - showing demo response");
-  //   } finally {
-  //     setTesting(false);
-  //   }
-  // };
 
   const testAgent = async () => {
     if (!testInput.trim()) {
@@ -507,7 +465,10 @@ function AgentDetailClientPage({
     return AGENT_TYPES[type as keyof typeof AGENT_TYPES] || AGENT_TYPES.query;
   };
 
-  console.log("Agent data:", agent);
+  const handleKBSelectionChange = useCallback((ids: string[]) => {
+    setSelectedKBIds(ids);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -872,6 +833,14 @@ function AgentDetailClientPage({
           </Card>
 
           {/* Knowledge bases */}
+          <KBTable
+            selectable
+            showActions={false}
+            selectedKbs={agent?.knowledgeBases}
+            onSelectionChange={handleKBSelectionChange}
+            editMode // ✅ means table is being used on edit screen
+            isEditing={editing}
+          />
 
           {/* Test Agent */}
           <Card>

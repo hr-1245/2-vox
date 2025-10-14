@@ -217,7 +217,7 @@ export async function getAgentById(
     let knowledgeBases: any[] = [];
     if (kbIds.length > 0) {
       const { data: kbData, error: kbError } = await supabase
-        .from("knowledge_bases")
+        .from("kb")
         .select("*")
         .eq("user_id", userId)
         .in("id", kbIds);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,7 +111,7 @@ export default function CreateAgentPage() {
   const [selectedMessageTypes, setSelectedMessageTypes] = useState<string[]>(
     []
   );
-  const [selectedKBIds, setSelectedKBIds] = useState<string[]>();
+  const [selectedKBIds, setSelectedKBIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState<CreateAgentForm>({
     name: "",
@@ -167,7 +167,6 @@ export default function CreateAgentPage() {
   const createAgent = async () => {
     // Prevent multiple submissions
     if (creating) {
-      console.log("Agent creation already in progress...");
       return;
     }
 
@@ -311,6 +310,10 @@ export default function CreateAgentPage() {
 
   useEffect(() => {
     fetchTags();
+  }, []);
+
+  const handleKBSelectionChange = useCallback((ids: string[]) => {
+    setSelectedKBIds(ids);
   }, []);
 
   const renderStepContent = () => {
@@ -684,7 +687,8 @@ export default function CreateAgentPage() {
             <KBTable
               selectable
               showActions={false}
-              onSelectionChange={(ids: string[]) => setSelectedKBIds(ids)}
+              selectedKbs={selectedKBIds}
+              onSelectionChange={handleKBSelectionChange}
             />
           </div>
         );

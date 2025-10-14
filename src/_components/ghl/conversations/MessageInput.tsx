@@ -156,7 +156,7 @@ interface ChatResponse
     confidence_score?: number;
     conversationId?: string;
     timestamp?: string;
-  }> { }
+  }> {}
 
 // AI Settings Configuration - Enhanced with centralized config
 interface AISettings {
@@ -394,10 +394,10 @@ export function MessageInput({
   conversationType,
   messagesList,
   newMessage,
-  // selectedMessageType,
-  // setSelectedMessageType,
-  // getAvailableMessageTypes
-}: MessageInputProps) {
+}: // selectedMessageType,
+// setSelectedMessageType,
+// getAvailableMessageTypes
+MessageInputProps) {
   const [message, setMessage] = useState("");
   const [loadingType, setLoadingType] = useState<
     "send" | "auto" | "suggest" | "apply" | null
@@ -432,7 +432,10 @@ export function MessageInput({
       // console.log("latestInbound.messageType",latestInbound)
 
       // Auto-set dropdown based on the latest inbound message type
-      if (latestInbound?.messageType && latestInbound.messageType !== selectedMessageType) {
+      if (
+        latestInbound?.messageType &&
+        latestInbound.messageType !== selectedMessageType
+      ) {
         // console.log("latestInbound.messageType",latestInbound.messageType)
         setSelectedMessageType(latestInbound.messageType);
       }
@@ -897,7 +900,8 @@ export function MessageInput({
           .slice(-aiSettings.contextDepth)
           .map(
             (msg) =>
-              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${msg.body
+              `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
+                msg.body
               }`
           )
           .join("\n"),
@@ -1186,8 +1190,8 @@ export function MessageInput({
           const customerInfo = getCustomerInfo(recentMessages);
           const lastCustomerMessage = aiSettings.prioritizeCustomerMessages
             ? [...validMessages]
-              .reverse()
-              .find((msg) => msg.direction === "inbound")?.body
+                .reverse()
+                .find((msg) => msg.direction === "inbound")?.body
             : null;
 
           const lastMessage = validMessages[validMessages.length - 1]?.body;
@@ -1213,8 +1217,8 @@ export function MessageInput({
           // For auto-pilot, try to get customer message first, then fall back to last message
           const lastCustomerMessage = aiSettings.prioritizeCustomerMessages
             ? [...validMessages]
-              .reverse()
-              .find((msg) => msg.direction === "inbound")?.body
+                .reverse()
+                .find((msg) => msg.direction === "inbound")?.body
             : null;
 
           const lastMessage = validMessages[validMessages.length - 1]?.body;
@@ -1465,12 +1469,13 @@ Focus on relationship building and moving the conversation forward constructivel
             );
             return contextMsgs.length > 0
               ? contextMsgs
-                .map(
-                  (msg) =>
-                    `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${msg.body
-                    }`
-                )
-                .join("\n")
+                  .map(
+                    (msg) =>
+                      `${msg.direction === "inbound" ? "Customer" : "Agent"}: ${
+                        msg.body
+                      }`
+                  )
+                  .join("\n")
               : "No message content available";
           })(),
         lastCustomerMessage: enhancedQuery,
@@ -1732,7 +1737,7 @@ Focus on relationship building and moving the conversation forward constructivel
       }
     };
   }, []);
-  console.log("selectedMessageType", selectedMessageType)
+
   return (
     <div className="flex flex-col gap-4">
       {/* Compact Suggestions Display */}
@@ -1983,7 +1988,7 @@ Focus on relationship building and moving the conversation forward constructivel
                     ))}
                   </SelectContent>
                 </Select> */}
-                
+
                 <Select
                   value={selectedMessageType}
                   onValueChange={setSelectedMessageType}
