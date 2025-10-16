@@ -13,6 +13,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const LIMIT = 10;
 
@@ -43,6 +44,8 @@ export function KBTable({
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const prevSelectionRef = useRef<string>("");
+
+  const router = useRouter();
 
   /* 🧠 Load all KBs */
   useEffect(() => {
@@ -234,7 +237,11 @@ export function KBTable({
                         className="bg-[#1E1E1E] border-gray-700"
                       >
                         <DropdownMenuItem
-                          onClick={() => console.log("edit", kb.id)}
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/app/ai/knowledgebase/02a752e2-ec08-475e-b548-7472c453911e`
+                            )
+                          }
                           className="text-gray-200 focus:bg-[#ef3e6d] focus:text-white"
                         >
                           Edit

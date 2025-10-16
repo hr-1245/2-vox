@@ -196,12 +196,12 @@ export default function CreateAgentPage() {
       const payload = {
         userId: USER_ID,
         name: formData.name,
-        description: formData.description,
+        description: formData.description || "",
         agentType: getAgentTypeString(agentType), // Use detected type from URL params
         type: agentType, // Pass the numeric type (1 or 5)
         personality: formData.personality,
         intent: formData.intent,
-        additionalInformation: formData.additionalInformation || "",
+        additionalInformation: formData.additionalInformation || " ",
         variables:
           Object.keys(formData.variables).length > 0
             ? formData.variables
@@ -215,6 +215,7 @@ export default function CreateAgentPage() {
         tag,
         isActive: formData.isActive,
       };
+      console.log("payload: ", payload);
 
       const response = await fetch("/api/ai/agents", {
         method: "POST",
@@ -432,9 +433,7 @@ export default function CreateAgentPage() {
 
                 {/* Additional Information */}
                 <div className="space-y-2">
-                  <Label htmlFor="additionalInfo">
-                    Additional Guidelines (Optional)
-                  </Label>
+                  <Label htmlFor="additionalInfo">Additional Guidelines</Label>
                   <Textarea
                     id="additionalInfo"
                     placeholder="Example: Keep responses between 20-50 words. Always ask follow-up questions. If you don't know something, direct customers to our support team."

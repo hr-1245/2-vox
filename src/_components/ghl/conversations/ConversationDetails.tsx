@@ -72,7 +72,7 @@ const messageTypeLabels: Record<string, string> = {
 interface ConversationDetailsProps {
   conversationId: string;
   locationId: string;
-  tags: string;
+  tag: string;
 }
 
 interface Contact {
@@ -618,7 +618,7 @@ const AGENT_TYPES = {
 
 export function ConversationDetails({
   conversationId,
-  tags,
+  tag,
   locationId,
 }: ConversationDetailsProps) {
   // URL params
@@ -638,7 +638,7 @@ export function ConversationDetails({
   const [showQueryInput, setShowQueryInput] = useState(false);
   const [activeAgent, setActiveAgent] = useState<any>(null);
 
-  const [newMessage, setNewMessage] = useState("");
+  const [newMessage, setNewMessage] = useState<any>("");
 
   // Pagination state
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -680,14 +680,14 @@ export function ConversationDetails({
   );
 
   // FastAPI Health Check State
-  const [fastApiStatus, setFastApiStatus] = useState<{
-    isOnline: boolean;
-    lastChecked: string | null;
-    error?: string;
-  }>({
-    isOnline: false,
-    lastChecked: null,
-  });
+  // const [fastApiStatus, setFastApiStatus] = useState<{
+  //   isOnline: boolean;
+  //   lastChecked: string | null;
+  //   error?: string;
+  // }>({
+  //   isOnline: false,
+  //   lastChecked: null,
+  // });
 
   //get all agents
   const loadAgents = useCallback(async () => {
@@ -714,61 +714,60 @@ export function ConversationDetails({
     loadAgents();
   }, [loadAgents]);
 
-  const filteredAgents = agents.filter((agent) => {
-    const matchesSearch =
-      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || agent.type === filterType;
-    const matchesTab =
-      activeTab === "conversation"
-        ? agent.type === AGENT_TYPES.conversation.value
-        : agent.type === AGENT_TYPES.voice.value;
-    return matchesSearch && matchesType && matchesTab;
-  });
-  const taginList = tags?.split(",");
+  // const filteredAgents = agents.filter((agent) => {
+  //   const matchesSearch =
+  //     agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     agent.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  //   const matchesType = filterType === "all" || agent.type === filterType;
+  //   const matchesTab =
+  //     activeTab === "conversation"
+  //       ? agent.type === AGENT_TYPES.conversation.value
+  //       : agent.type === AGENT_TYPES.voice.value;
+  //   return matchesSearch && matchesType && matchesTab;
+  // });
 
-  const agent = filteredAgents?.filter((a: any) =>
-    taginList?.includes(a.data?.tag)
-  );
+  // console.log("filteredAgents: ", filteredAgents);
+
+  const agent = agents?.filter((a: any) => a.data?.tag == tag);
 
   // 🆕 Check FastAPI Health - moved inside component
-  const checkFastAPIHealth = async () => {
-    try {
-      debug.log("ConversationDetails", "Checking FastAPI health...");
+  // const checkFastAPIHealth = async () => {
+  //   try {
+  //     debug.log("ConversationDetails", "Checking FastAPI health...");
 
-      const healthResponse = await fetch("/api/ai/health", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+  //     const healthResponse = await fetch("/api/ai/health", {
+  //       method: "GET",
+  //       headers: { "Content-Type": "application/json" },
+  //     });
 
-      const healthData = await healthResponse.json();
+  //     const healthData = await healthResponse.json();
 
-      if (healthResponse.ok && healthData.success) {
-        setFastApiStatus({
-          isOnline: true,
-          lastChecked: new Date().toISOString(),
-        });
-        debug.log("ConversationDetails", "FastAPI is online and healthy");
-      } else {
-        throw new Error(
-          healthData.error || `Health check failed: ${healthResponse.status}`
-        );
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      setFastApiStatus({
-        isOnline: false,
-        lastChecked: new Date().toISOString(),
-        error: errorMessage,
-      });
-      debug.error(
-        "ConversationDetails",
-        "FastAPI health check failed:",
-        errorMessage
-      );
-    }
-  };
+  //     if (healthResponse.ok && healthData.success) {
+  //       setFastApiStatus({
+  //         isOnline: true,
+  //         lastChecked: new Date().toISOString(),
+  //       });
+  //       debug.log("ConversationDetails", "FastAPI is online and healthy");
+  //     } else {
+  //       throw new Error(
+  //         healthData.error || `Health check failed: ${healthResponse.status}`
+  //       );
+  //     }
+  //   } catch (error) {
+  //     const errorMessage =
+  //       error instanceof Error ? error.message : "Unknown error";
+  //     setFastApiStatus({
+  //       isOnline: false,
+  //       lastChecked: new Date().toISOString(),
+  //       error: errorMessage,
+  //     });
+  //     debug.error(
+  //       "ConversationDetails",
+  //       "FastAPI health check failed:",
+  //       errorMessage
+  //     );
+  //   }
+  // };
 
   const extractMessagesFromResponse = (messagesData: any) => {
     let pageMessages = [];
@@ -905,326 +904,326 @@ export function ConversationDetails({
   };
 
   // Background function to handle auto-training
-  async function handleAutoTraining(messageCount: number) {
-    try {
-      if (messageCount < 5) {
-        debug.log(
-          "ConversationDetails",
-          "AUTO-TRAIN: Not enough messages for training",
-          { messageCount }
-        );
-        setTrainingStatus({
-          isTrained: false,
-          lastUpdated: new Date().toISOString(),
-          messageCount,
-          vectorCount: 0,
-        });
-        return;
-      }
+  // async function handleAutoTraining(messageCount: number) {
+  //   try {
+  //     if (messageCount < 5) {
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "AUTO-TRAIN: Not enough messages for training",
+  //         { messageCount }
+  //       );
+  //       setTrainingStatus({
+  //         isTrained: false,
+  //         lastUpdated: new Date().toISOString(),
+  //         messageCount,
+  //         vectorCount: 0,
+  //       });
+  //       return;
+  //     }
 
-      debug.log(
-        "ConversationDetails",
-        "AUTO-TRAIN: Checking training status..."
-      );
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "AUTO-TRAIN: Checking training status..."
+  //     );
 
-      // Check current training status
-      const aiConfig = getFeatureAIConfig("training");
-      const statusData = await fetchWithDebug(
-        `/api/ai/conversation/training-status`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            conversationId,
-            locationId,
-            temperature: aiConfig.temperature,
-            model: aiConfig.model,
-            humanlikeBehavior: aiConfig.humanlikeBehavior,
-          }),
-        }
-      );
+  //     // Check current training status
+  //     const aiConfig = getFeatureAIConfig("training");
+  //     const statusData = await fetchWithDebug(
+  //       `/api/ai/conversation/training-status`,
+  //       {
+  //         method: "POST",
+  //         body: JSON.stringify({
+  //           conversationId,
+  //           locationId,
+  //           temperature: aiConfig.temperature,
+  //           model: aiConfig.model,
+  //           humanlikeBehavior: aiConfig.humanlikeBehavior,
+  //         }),
+  //       }
+  //     );
 
-      const isCurrentlyTrained = statusData?.is_trained || false;
-      const lastUpdated = statusData?.last_updated;
+  //     const isCurrentlyTrained = statusData?.is_trained || false;
+  //     const lastUpdated = statusData?.last_updated;
 
-      setTrainingStatus({
-        isTrained: isCurrentlyTrained,
-        lastUpdated: lastUpdated || new Date().toISOString(),
-        messageCount: statusData?.message_count || messageCount,
-        vectorCount: statusData?.vector_count || 0,
-      });
+  //     setTrainingStatus({
+  //       isTrained: isCurrentlyTrained,
+  //       lastUpdated: lastUpdated || new Date().toISOString(),
+  //       messageCount: statusData?.message_count || messageCount,
+  //       vectorCount: statusData?.vector_count || 0,
+  //     });
 
-      // Auto-train if not trained or if training is outdated (7+ days old)
-      const shouldAutoTrain =
-        !isCurrentlyTrained ||
-        (lastUpdated &&
-          new Date(lastUpdated) <
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+  //     // Auto-train if not trained or if training is outdated (7+ days old)
+  //     const shouldAutoTrain =
+  //       !isCurrentlyTrained ||
+  //       (lastUpdated &&
+  //         new Date(lastUpdated) <
+  //           new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
-      if (shouldAutoTrain) {
-        debug.log(
-          "ConversationDetails",
-          "AUTO-TRAIN: Starting background training..."
-        );
+  //     if (shouldAutoTrain) {
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "AUTO-TRAIN: Starting background training..."
+  //       );
 
-        // Set training status to indicate training in progress
-        setTrainingStatus((prev) =>
-          prev
-            ? {
-                ...prev,
-                isTraining: true,
-              }
-            : {
-                isTrained: false,
-                isTraining: true,
-                lastUpdated: new Date().toISOString(),
-                messageCount,
-                vectorCount: 0,
-              }
-        );
+  //       // Set training status to indicate training in progress
+  //       setTrainingStatus((prev) =>
+  //         prev
+  //           ? {
+  //               ...prev,
+  //               isTraining: true,
+  //             }
+  //           : {
+  //               isTrained: false,
+  //               isTraining: true,
+  //               lastUpdated: new Date().toISOString(),
+  //               messageCount,
+  //               vectorCount: 0,
+  //             }
+  //       );
 
-        // Start training in background with retry logic
-        startBackgroundTrainingWithRetry(aiConfig);
-      } else {
-        debug.log(
-          "ConversationDetails",
-          "AUTO-TRAIN: Conversation already trained and up-to-date"
-        );
+  //       // Start training in background with retry logic
+  //       startBackgroundTrainingWithRetry(aiConfig);
+  //     } else {
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "AUTO-TRAIN: Conversation already trained and up-to-date"
+  //       );
 
-        // Load summary for already trained conversation
-        debug.log(
-          "ConversationDetails",
-          "AUTO-TRAIN: Loading summary for trained conversation..."
-        );
-        try {
-          await loadSummaryInBackground();
-          debug.log(
-            "ConversationDetails",
-            "AUTO-TRAIN: Summary loaded for trained conversation"
-          );
-        } catch (summaryError) {
-          debug.warn(
-            "ConversationDetails",
-            "Failed to load summary for trained conversation:",
-            summaryError
-          );
-        }
-      }
-    } catch (error) {
-      debug.warn("ConversationDetails", "Auto-training check failed:", error);
-      // Retry auto-training after a delay if it failed
-      setTimeout(() => {
-        debug.log(
-          "ConversationDetails",
-          "AUTO-TRAIN: Retrying after failure..."
-        );
-        handleAutoTraining(messageCount);
-      }, 10000); // Retry after 10 seconds
-    }
-  }
+  //       // Load summary for already trained conversation
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "AUTO-TRAIN: Loading summary for trained conversation..."
+  //       );
+  //       try {
+  //         await loadSummaryInBackground();
+  //         debug.log(
+  //           "ConversationDetails",
+  //           "AUTO-TRAIN: Summary loaded for trained conversation"
+  //         );
+  //       } catch (summaryError) {
+  //         debug.warn(
+  //           "ConversationDetails",
+  //           "Failed to load summary for trained conversation:",
+  //           summaryError
+  //         );
+  //       }
+  //     }
+  //   } catch (error) {
+  //     debug.warn("ConversationDetails", "Auto-training check failed:", error);
+  //     // Retry auto-training after a delay if it failed
+  //     setTimeout(() => {
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "AUTO-TRAIN: Retrying after failure..."
+  //       );
+  //       handleAutoTraining(messageCount);
+  //     }, 10000); // Retry after 10 seconds
+  //   }
+  // }
 
   // Enhanced background training function with deduplication
-  async function startBackgroundTrainingWithRetry(
-    aiConfig: any,
-    retryCount: number = 0
-  ) {
-    const maxRetries = 3;
+  // async function startBackgroundTrainingWithRetry(
+  //   aiConfig: any,
+  //   retryCount: number = 0
+  // ) {
+  //   const maxRetries = 3;
 
-    // 🆕 Prevent multiple simultaneous training calls
-    if (isTrainingInProgress) {
-      debug.log(
-        "ConversationDetails",
-        "🔄 AUTO-TRAIN: Training already in progress, skipping..."
-      );
-      return;
-    }
+  //   // 🆕 Prevent multiple simultaneous training calls
+  //   if (isTrainingInProgress) {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🔄 AUTO-TRAIN: Training already in progress, skipping..."
+  //     );
+  //     return;
+  //   }
 
-    // 🆕 Check if we recently attempted training (within 30 seconds)
-    const now = Date.now();
-    if (now - lastTrainingAttempt < 30000) {
-      debug.log(
-        "ConversationDetails",
-        "🔄 AUTO-TRAIN: Training attempted recently, skipping..."
-      );
-      return;
-    }
+  //   // 🆕 Check if we recently attempted training (within 30 seconds)
+  //   const now = Date.now();
+  //   if (now - lastTrainingAttempt < 30000) {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🔄 AUTO-TRAIN: Training attempted recently, skipping..."
+  //     );
+  //     return;
+  //   }
 
-    setIsTrainingInProgress(true);
-    setLastTrainingAttempt(now);
+  //   setIsTrainingInProgress(true);
+  //   setLastTrainingAttempt(now);
 
-    try {
-      // First, fetch messages for training
-      debug.log(
-        "ConversationDetails",
-        `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
-          retryCount + 1
-        }/${maxRetries + 1})...`
-      );
+  //   try {
+  //     // First, fetch messages for training
+  //     debug.log(
+  //       "ConversationDetails",
+  //       `📥 AUTO-TRAIN: Fetching messages for training (attempt ${
+  //         retryCount + 1
+  //       }/${maxRetries + 1})...`
+  //     );
 
-      const messagesResponse = await fetchWithDebug(
-        `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
-        { method: "GET" }
-      );
+  //     const messagesResponse = await fetchWithDebug(
+  //       `/api/leadconnector/conversations/${conversationId}/messages?limit=100`,
+  //       { method: "GET" }
+  //     );
 
-      if (!messagesResponse?.messages?.messages?.length) {
-        throw new Error("No messages found for training");
-      }
+  //     if (!messagesResponse?.messages?.messages?.length) {
+  //       throw new Error("No messages found for training");
+  //     }
 
-      const messages = messagesResponse.messages.messages;
-      debug.log(
-        "ConversationDetails",
-        `🔄 AUTO-TRAIN: Training with ${messages.length} messages`
-      );
+  //     const messages = messagesResponse.messages.messages;
+  //     debug.log(
+  //       "ConversationDetails",
+  //       `🔄 AUTO-TRAIN: Training with ${messages.length} messages`
+  //     );
 
-      const trainData = await fetchWithDebug(`/api/ai/conversation/train`, {
-        method: "POST",
-        body: JSON.stringify({
-          conversationId,
-          locationId,
-          messages,
-          temperature: aiConfig.temperature,
-          model: aiConfig.model,
-          humanlikeBehavior: aiConfig.humanlikeBehavior,
-          silent: true, // Background training flag
-        }),
-      });
+  //     const trainData = await fetchWithDebug(`/api/ai/conversation/train`, {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         conversationId,
+  //         locationId,
+  //         messages,
+  //         temperature: aiConfig.temperature,
+  //         model: aiConfig.model,
+  //         humanlikeBehavior: aiConfig.humanlikeBehavior,
+  //         silent: true, // Background training flag
+  //       }),
+  //     });
 
-      if (trainData?.success) {
-        debug.log(
-          "ConversationDetails",
-          "✅ AUTO-TRAIN: Background training completed successfully"
-        );
+  //     if (trainData?.success) {
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "✅ AUTO-TRAIN: Background training completed successfully"
+  //       );
 
-        const newTrainingStatus = {
-          isTrained: true,
-          isTraining: false,
-          lastUpdated: new Date().toISOString(),
-          messageCount: trainData.trained_message_count || messages.length,
-          vectorCount: trainData.vector_count || 0,
-        };
+  //       const newTrainingStatus = {
+  //         isTrained: true,
+  //         isTraining: false,
+  //         lastUpdated: new Date().toISOString(),
+  //         messageCount: trainData.trained_message_count || messages.length,
+  //         vectorCount: trainData.vector_count || 0,
+  //       };
 
-        setTrainingStatus(newTrainingStatus);
+  //       setTrainingStatus(newTrainingStatus);
 
-        // 🔄 SYNC: Update conversation metadata with training status
-        await syncTrainingStatusWithMetadata(
-          newTrainingStatus,
-          messages[0]?.id
-        );
+  //       // 🔄 SYNC: Update conversation metadata with training status
+  //       await syncTrainingStatusWithMetadata(
+  //         newTrainingStatus,
+  //         messages[0]?.id
+  //       );
 
-        // 🆕 Load summary after successful training
-        debug.log(
-          "ConversationDetails",
-          "📄 AUTO-TRAIN: Loading summary after training..."
-        );
-        try {
-          await loadSummaryInBackground();
-          debug.log(
-            "ConversationDetails",
-            "✅ AUTO-TRAIN: Summary loaded after training"
-          );
-        } catch (summaryError) {
-          debug.warn(
-            "ConversationDetails",
-            "Failed to load summary after training:",
-            summaryError
-          );
-        }
+  //       // 🆕 Load summary after successful training
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "📄 AUTO-TRAIN: Loading summary after training..."
+  //       );
+  //       try {
+  //         await loadSummaryInBackground();
+  //         debug.log(
+  //           "ConversationDetails",
+  //           "✅ AUTO-TRAIN: Summary loaded after training"
+  //         );
+  //       } catch (summaryError) {
+  //         debug.warn(
+  //           "ConversationDetails",
+  //           "Failed to load summary after training:",
+  //           summaryError
+  //         );
+  //       }
 
-        // Success! Reset retry count
-        retryCountRef.current = 0;
-      } else {
-        throw new Error(trainData?.error || "Training failed");
-      }
-    } catch (error) {
-      debug.error(
-        "ConversationDetails",
-        `Background training error (attempt ${retryCount + 1}):`,
-        error
-      );
+  //       // Success! Reset retry count
+  //       retryCountRef.current = 0;
+  //     } else {
+  //       throw new Error(trainData?.error || "Training failed");
+  //     }
+  //   } catch (error) {
+  //     debug.error(
+  //       "ConversationDetails",
+  //       `Background training error (attempt ${retryCount + 1}):`,
+  //       error
+  //     );
 
-      // Retry logic
-      if (retryCount < maxRetries) {
-        const retryDelay = (retryCount + 1) * 5000; // 5s, 10s, 15s delays
-        debug.log(
-          "ConversationDetails",
-          `🔄 AUTO-TRAIN: Retrying in ${retryDelay / 1000} seconds...`
-        );
+  //     // Retry logic
+  //     if (retryCount < maxRetries) {
+  //       const retryDelay = (retryCount + 1) * 5000; // 5s, 10s, 15s delays
+  //       debug.log(
+  //         "ConversationDetails",
+  //         `🔄 AUTO-TRAIN: Retrying in ${retryDelay / 1000} seconds...`
+  //       );
 
-        // 🆕 Clear any existing timeout
-        if (trainingTimeoutRef.current) {
-          clearTimeout(trainingTimeoutRef.current);
-        }
+  //       // 🆕 Clear any existing timeout
+  //       if (trainingTimeoutRef.current) {
+  //         clearTimeout(trainingTimeoutRef.current);
+  //       }
 
-        trainingTimeoutRef.current = setTimeout(() => {
-          startBackgroundTrainingWithRetry(aiConfig, retryCount + 1);
-        }, retryDelay);
-      } else {
-        // All retries failed
-        debug.error(
-          "ConversationDetails",
-          "💥 AUTO-TRAIN: All retry attempts failed"
-        );
-        setTrainingStatus((prev) =>
-          prev
-            ? { ...prev, isTraining: false }
-            : {
-                isTrained: false,
-                isTraining: false,
-                lastUpdated: new Date().toISOString(),
-                messageCount: 0,
-                vectorCount: 0,
-              }
-        );
+  //       trainingTimeoutRef.current = setTimeout(() => {
+  //         startBackgroundTrainingWithRetry(aiConfig, retryCount + 1);
+  //       }, retryDelay);
+  //     } else {
+  //       // All retries failed
+  //       debug.error(
+  //         "ConversationDetails",
+  //         "💥 AUTO-TRAIN: All retry attempts failed"
+  //       );
+  //       setTrainingStatus((prev) =>
+  //         prev
+  //           ? { ...prev, isTraining: false }
+  //           : {
+  //               isTrained: false,
+  //               isTraining: false,
+  //               lastUpdated: new Date().toISOString(),
+  //               messageCount: 0,
+  //               vectorCount: 0,
+  //             }
+  //       );
 
-        // Show a non-intrusive notification
-        console.warn(
-          "🤖 Auto-training failed after multiple attempts. Please check your connection and try again later."
-        );
-      }
-    } finally {
-      setIsTrainingInProgress(false);
-    }
-  }
+  //       // Show a non-intrusive notification
+  //       console.warn(
+  //         "🤖 Auto-training failed after multiple attempts. Please check your connection and try again later."
+  //       );
+  //     }
+  //   } finally {
+  //     setIsTrainingInProgress(false);
+  //   }
+  // }
 
   // 🔄 SYNC: Training status with conversation metadata
-  async function syncTrainingStatusWithMetadata(
-    trainingStatus: any,
-    lastMessageId?: string
-  ) {
-    try {
-      debug.log(
-        "ConversationDetails",
-        "🔄 SYNC: Updating conversation metadata with training status..."
-      );
+  // async function syncTrainingStatusWithMetadata(
+  //   trainingStatus: any,
+  //   lastMessageId?: string
+  // ) {
+  //   try {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🔄 SYNC: Updating conversation metadata with training status..."
+  //     );
 
-      const metadataUpdate = {
-        trainingStatus,
-        lastTrainingUpdate: new Date().toISOString(),
-        lastMessageId: lastMessageId || null,
-      };
+  //     const metadataUpdate = {
+  //       trainingStatus,
+  //       lastTrainingUpdate: new Date().toISOString(),
+  //       lastMessageId: lastMessageId || null,
+  //     };
 
-      await fetchWithDebug(`/api/conversation-meta`, {
-        method: "POST",
-        body: JSON.stringify({
-          conv_id: conversationId,
-          location_id: locationId,
-          data_type: 21, // AI_SETTINGS
-          data: metadataUpdate,
-          lastMessageId: lastMessageId,
-        }),
-      });
+  //     await fetchWithDebug(`/api/conversation-meta`, {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         conv_id: conversationId,
+  //         location_id: locationId,
+  //         data_type: 21, // AI_SETTINGS
+  //         data: metadataUpdate,
+  //         lastMessageId: lastMessageId,
+  //       }),
+  //     });
 
-      debug.log(
-        "ConversationDetails",
-        "✅ SYNC: Training status synced with metadata"
-      );
-    } catch (error) {
-      debug.warn(
-        "ConversationDetails",
-        "Failed to sync training status with metadata:",
-        error
-      );
-    }
-  }
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "✅ SYNC: Training status synced with metadata"
+  //     );
+  //   } catch (error) {
+  //     debug.warn(
+  //       "ConversationDetails",
+  //       "Failed to sync training status with metadata:",
+  //       error
+  //     );
+  //   }
+  // }
 
   // Background summary loading
   async function loadSummaryInBackground() {
@@ -1267,136 +1266,136 @@ export function ConversationDetails({
   }
 
   // Background autopilot status loading
-  async function loadAutopilotStatusInBackground() {
-    try {
-      debug.log(
-        "ConversationDetails",
-        "🤖 BACKGROUND: Loading autopilot status..."
-      );
+  // async function loadAutopilotStatusInBackground() {
+  //   try {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🤖 BACKGROUND: Loading autopilot status..."
+  //     );
 
-      const response = await fetch(
-        `/api/autopilot/config?conversationId=${conversationId}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        debug.log(
-          "ConversationDetails",
-          "✅ BACKGROUND: Autopilot status loaded"
-        );
-      }
-    } catch (error) {
-      debug.warn(
-        "ConversationDetails",
-        "Background autopilot load failed:",
-        error
-      );
-    }
-  }
+  //     const response = await fetch(
+  //       `/api/autopilot/config?conversationId=${conversationId}`
+  //     );
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "✅ BACKGROUND: Autopilot status loaded"
+  //       );
+  //     }
+  //   } catch (error) {
+  //     debug.warn(
+  //       "ConversationDetails",
+  //       "Background autopilot load failed:",
+  //       error
+  //     );
+  //   }
+  // }
 
   // Background active agent loading
-  async function loadActiveAgentInBackground() {
-    try {
-      debug.log(
-        "ConversationDetails",
-        "🎯 BACKGROUND: Loading active agent..."
-      );
+  // async function loadActiveAgentInBackground() {
+  //   try {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🎯 BACKGROUND: Loading active agent..."
+  //     );
 
-      // Get user from a simulated API call (you may need to adjust this)
-      const currentUser = { id: "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21" }; // Temp user ID
+  //     // Get user from a simulated API call (you may need to adjust this)
+  //     const currentUser = { id: "ca2f09c8-1dca-4281-9b9b-0f3ffefd9b21" }; // Temp user ID
 
-      // Load global settings
-      const globalResponse = await fetch("/api/ai/settings/global");
-      const globalSettings = globalResponse.ok
-        ? (await globalResponse.json()).data
-        : null;
+  //     // Load global settings
+  //     const globalResponse = await fetch("/api/ai/settings/global");
+  //     const globalSettings = globalResponse.ok
+  //       ? (await globalResponse.json()).data
+  //       : null;
 
-      // Load conversation settings
-      const convResponse = await fetch(
-        `/api/conversation-meta?conversationId=${conversationId}`
-      );
-      const convData = convResponse.ok ? await convResponse.json() : null;
-      const conversationSettings = convData?.success
-        ? convData.data?.data
-        : null;
+  //     // Load conversation settings
+  //     const convResponse = await fetch(
+  //       `/api/conversation-meta?conversationId=${conversationId}`
+  //     );
+  //     const convData = convResponse.ok ? await convResponse.json() : null;
+  //     const conversationSettings = convData?.success
+  //       ? convData.data?.data
+  //       : null;
 
-      // Load available agents
-      const agentsResponse = await fetch("/api/ai/agents");
-      const agentsData = agentsResponse.ok ? await agentsResponse.json() : null;
-      const availableAgents = agentsData?.success
-        ? agentsData.data?.map((a: any) => a.id)
-        : [];
+  //     // Load available agents
+  //     const agentsResponse = await fetch("/api/ai/agents");
+  //     const agentsData = agentsResponse.ok ? await agentsResponse.json() : null;
+  //     const availableAgents = agentsData?.success
+  //       ? agentsData.data?.map((a: any) => a.id)
+  //       : [];
 
-      // Select agent using our utility (default to query feature)
-      const selectedAgentId = selectAgentForFeature(
-        "query",
-        globalSettings,
-        conversationSettings,
-        availableAgents
-      );
+  //     // Select agent using our utility (default to query feature)
+  //     const selectedAgentId = selectAgentForFeature(
+  //       "query",
+  //       globalSettings,
+  //       conversationSettings,
+  //       availableAgents
+  //     );
 
-      if (selectedAgentId && agentsData?.success) {
-        const agentDetails = agentsData.data.find(
-          (a: any) => a.id === selectedAgentId
-        );
-        if (agentDetails) {
-          setActiveAgent({
-            id: selectedAgentId,
-            name: agentDetails.name,
-          });
-          debug.log(
-            "ConversationDetails",
-            `✅ BACKGROUND: Active agent loaded: ${agentDetails.name}`
-          );
-        }
-      }
-    } catch (error) {
-      debug.warn(
-        "ConversationDetails",
-        "Background active agent load failed:",
-        error
-      );
-    }
-  }
+  //     if (selectedAgentId && agentsData?.success) {
+  //       const agentDetails = agentsData.data.find(
+  //         (a: any) => a.id === selectedAgentId
+  //       );
+  //       if (agentDetails) {
+  //         setActiveAgent({
+  //           id: selectedAgentId,
+  //           name: agentDetails.name,
+  //         });
+  //         debug.log(
+  //           "ConversationDetails",
+  //           `✅ BACKGROUND: Active agent loaded: ${agentDetails.name}`
+  //         );
+  //       }
+  //     }
+  //   } catch (error) {
+  //     debug.warn(
+  //       "ConversationDetails",
+  //       "Background active agent load failed:",
+  //       error
+  //     );
+  //   }
+  // }
 
   // 🤖 VOX-AI: Check if conversation has vox-ai tag and auto-enable autopilot
-  async function checkVoxAiAndAutoEnableAutopilot() {
-    try {
-      debug.log(
-        "ConversationDetails",
-        "🤖 BACKGROUND: Checking for vox-ai tag..."
-      );
+  // async function checkVoxAiAndAutoEnableAutopilot() {
+  //   try {
+  //     debug.log(
+  //       "ConversationDetails",
+  //       "🤖 BACKGROUND: Checking for vox-ai tag..."
+  //     );
 
-      // We need to get conversation details including tags
-      // This might require calling the conversations search API or a conversation details endpoint
-      const response = await fetch(
-        `/api/leadconnector/conversations/search?conversationId=${conversationId}&limit=1`
-      );
-      if (!response.ok) {
-        debug.warn(
-          "ConversationDetails",
-          "Could not fetch conversation details for vox-ai check"
-        );
-        return;
-      }
+  //     // We need to get conversation details including tags
+  //     // This might require calling the conversations search API or a conversation details endpoint
+  //     const response = await fetch(
+  //       `/api/leadconnector/conversations/search?conversationId=${conversationId}&limit=1`
+  //     );
+  //     if (!response.ok) {
+  //       debug.warn(
+  //         "ConversationDetails",
+  //         "Could not fetch conversation details for vox-ai check"
+  //       );
+  //       return;
+  //     }
 
-      const data = await response.json();
-      const conversation = data.data?.conversations?.[0];
+  //     const data = await response.json();
+  //     const conversation = data.data?.conversations?.[0];
 
-      if (conversation && locationId) {
-        await autoEnableForSingleConversation(conversation, locationId);
-        debug.log(
-          "ConversationDetails",
-          "✅ BACKGROUND: Vox-AI check completed"
-        );
-      }
-    } catch (error) {
-      debug.warn(
-        "ConversationDetails",
-        "Background vox-ai check failed (non-critical):",
-        error
-      );
-    }
-  }
+  //     if (conversation && locationId) {
+  //       await autoEnableForSingleConversation(conversation, locationId);
+  //       debug.log(
+  //         "ConversationDetails",
+  //         "✅ BACKGROUND: Vox-AI check completed"
+  //       );
+  //     }
+  //   } catch (error) {
+  //     debug.warn(
+  //       "ConversationDetails",
+  //       "Background vox-ai check failed (non-critical):",
+  //       error
+  //     );
+  //   }
+  // }
 
   // Load more messages function
   const loadMoreMessages = async () => {
@@ -1871,7 +1870,7 @@ export function ConversationDetails({
         setIsLoading(false);
 
         // BACKGROUND: Start AI features loading without blocking UI
-        loadAIFeaturesInBackground(pageMessages.length);
+        // loadAIFeaturesInBackground(pageMessages.length);
       } catch (messagesError) {
         debug.error(
           "ConversationDetails",
@@ -1884,36 +1883,36 @@ export function ConversationDetails({
     }
 
     // Background AI features loading
-    async function loadAIFeaturesInBackground(messageCount: number) {
-      debug.log("ConversationDetails", "BACKGROUND: Starting AI features load");
+    // async function loadAIFeaturesInBackground(messageCount: number) {
+    //   debug.log("ConversationDetails", "BACKGROUND: Starting AI features load");
 
-      // 🆕 Check FastAPI health FIRST - this is critical for AI functionality
-      await checkFastAPIHealth();
+    //   // 🆕 Check FastAPI health FIRST - this is critical for AI functionality
+    //   // await checkFastAPIHealth();
 
-      // Load conversation settings first (for agent info)
-      loadConversationSettings();
+    //   // Load conversation settings first (for agent info)
+    //   loadConversationSettings();
 
-      // Auto-training logic: Check if conversation needs training
-      await handleAutoTraining(messageCount);
+    //   // Auto-training logic: Check if conversation needs training
+    //   // await handleAutoTraining(messageCount);
 
-      // Load other AI features in parallel (non-blocking)
-      // Note: Summary loading is now handled after training completes
-      Promise.allSettled([
-        loadAutopilotStatusInBackground(),
-        loadActiveAgentInBackground(),
-        checkVoxAiAndAutoEnableAutopilot(), // Critical vox-ai feature
-        // Only load summary if not currently training (to avoid race condition)
-        ...(trainingStatus?.isTraining ? [] : [loadSummaryInBackground()]),
-      ]).then((results) => {
-        debug.log("ConversationDetails", "BACKGROUND: AI features loaded", {
-          autopilot: results[0].status,
-          activeAgent: results[1].status,
-          voxAiCheck: results[2].status,
-          summary: results[3]?.status || "skipped (training in progress)",
-          fastApiStatus: fastApiStatus.isOnline ? "online" : "offline",
-        });
-      });
-    }
+    //   // Load other AI features in parallel (non-blocking)
+    //   // Note: Summary loading is now handled after training completes
+    //   Promise.allSettled([
+    //     loadAutopilotStatusInBackground(),
+    //     loadActiveAgentInBackground(),
+    //     checkVoxAiAndAutoEnableAutopilot(), // Critical vox-ai feature
+    //     // Only load summary if not currently training (to avoid race condition)
+    //     ...(trainingStatus?.isTraining ? [] : [loadSummaryInBackground()]),
+    //   ]).then((results) => {
+    //     debug.log("ConversationDetails", "BACKGROUND: AI features loaded", {
+    //       autopilot: results[0].status,
+    //       activeAgent: results[1].status,
+    //       voxAiCheck: results[2].status,
+    //       summary: results[3]?.status || "skipped (training in progress)",
+    //       fastApiStatus: fastApiStatus.isOnline ? "online" : "offline",
+    //     });
+    //   });
+    // }
 
     // Start the loading process
     loadConversationMessages();
@@ -1991,98 +1990,135 @@ export function ConversationDetails({
 
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
-  // ✅ Debounced reply (runs once even if spammed)
-  const debouncedSendReply = useRef(
-    debounce(async (message: string, messageId: string, model: string) => {
-      try {
-        console.log("🤖 Sending reply for message: -- just before api call", {
-          message,
-          messageId,
-          model,
-        });
-        const replyResponse = await fetch("/api/autopilot/reply-ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            messageId,
-            model,
-            // messageType
-          }),
-        });
-
-        const data = await replyResponse.json();
-        if (!data?.skipped && data?.reply) {
-          setNewMessage(data.reply);
-        }
-      } catch (error) {
-        console.error("❌ Error in sendReply:", error);
-      }
-    }, 1000)
-  ).current;
-
   useEffect(() => {
     if (!socket) {
       console.log("⚠️ No socket found, skipping listener setup");
       return;
     }
 
-    const handleNewMessage = (response: any) => {
-      console.log("new message:----------> ", response);
+    console.log("🧠 Socket listener setup initializing...");
 
-      const messageId =
-        response?.id ||
-        response?.altId ||
-        response?.dateAdded ||
-        Date.now().toString();
+    const handleNewMessage = async (response: any) => {
+      console.log("📩 Incoming socket message:", response);
 
-      // ✅ Process only inbound once
-      if (
-        response?.type === 19 &&
-        !processedMessagesRef.current.has(messageId)
-      ) {
-        processedMessagesRef.current.add(messageId);
-        debugger;
-        debouncedSendReply(
-          response?.message || response?.body || "",
-          messageId, //  lastInboundType,
-          agent?.[0]?.model || "gpt-3.5-turbo"
-        );
+      // --- Outbound Message Handling ---
+      if (response?.message?.direction === "outbound") {
+        console.log("➡️ Outbound message detected (manual send)");
+
+        const msg = response.message;
+        console.log("🧾 Outbound message payload:", msg);
+
+        const newMessageObj = {
+          id: msg.id,
+          body: msg.body || "",
+          type: msg.type || "text",
+          direction: "outbound",
+          status: msg.status || "sent",
+          conversationId: msg.conversationId || "temp",
+          contactId: msg.contactId || "unknown",
+          dateAdded: msg.dateAdded || new Date().toISOString(),
+          dateUpdated: msg.dateUpdated || new Date().toISOString(),
+          source: msg.source || "app",
+          messageType: msg.messageType || "TYPE_WHATSAPP",
+          contentType: msg.contentType || "text/plain",
+          attachments: msg.attachments || [],
+          locationId: msg.locationId || "",
+        };
+
+        console.log("✅ New outbound message object:", newMessageObj);
+
+        setMessages((prev) => {
+          console.log("📚 Previous messages count:", prev.length);
+          return [...prev, newMessageObj];
+        });
+
+        console.log("💾 Outbound message added to state");
+        return; // Stop here (don’t call agent)
       }
 
-      // Always add to UI
-      const direction = response?.type === 19 ? "inbound" : "outbound";
-      const status = direction === "outbound" ? "sent" : "delivered";
+      // --- Inbound Message Handling ---
+      if (response?.message && response?.contactId) {
+        console.log("⬅️ Inbound message detected");
 
-      const newMessageObj = {
-        id: messageId,
-        body: response?.body || response?.message || "",
-        type: response?.type || "text",
-        direction,
-        conversationId: response?.conversationId || "temp",
-        contactId: response?.contactId || "unknown",
-        dateAdded: response?.dateAdded || new Date().toISOString(),
-        dateUpdated: response?.dateUpdated || new Date().toISOString(),
-        source: response?.source || "app",
-        altId: response?.altId || Math.random().toString(36).substring(2),
-        messageType: response?.messageType || "TYPE_WHATSAPP",
-        status,
-        contentType: response?.contentType || "text/plain",
-        attachments: response?.attachments || [],
-        locationId: response?.locationId || "",
-      };
+        const inboundMsg = {
+          id: Date.now().toString(),
+          body: response.message || "",
+          type: response.type || "text",
+          direction: "inbound",
+          status: "delivered",
+          conversationId: response.conversationId || "temp",
+          contactId: response.contactId || "unknown",
+          dateAdded: new Date().toISOString(),
+          source: "user",
+          messageType: "TYPE_WHATSAPP",
+          contentType: "text/plain",
+        };
 
-      setMessages((prev) => [...prev, newMessageObj]);
+        console.log("🧾 Inbound message object:", inboundMsg);
+
+        setMessages((prev) => {
+          console.log("📚 Previous messages count:", prev.length);
+          return [...prev, inboundMsg];
+        });
+
+        console.log("💾 Inbound message added to state");
+
+        // --- AI Agent Call ---
+        if (agent && agent.length > 0) {
+          console.log(`🤖 Agent detected: ${agent[0].id} - Sending query...`);
+
+          try {
+            const agentResponse = await fetch("/api/ai/agents/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agentId: agent[0].id,
+                query: response.message,
+              }),
+            });
+
+            console.log("📨 AI response status:", agentResponse.status);
+            const data = await agentResponse.json();
+            console.log("🧠 AI response data:", data);
+
+            const aiMessage = {
+              id: Date.now().toString(),
+              body: data?.data?.answer || "No response",
+              type: "text",
+              direction: "outbound",
+              status: "sent",
+              conversationId: response.conversationId || "temp",
+              contactId: response.contactId || "unknown",
+              dateAdded: new Date().toISOString(),
+              source: "ai",
+              messageType: "TYPE_WHATSAPP",
+              contentType: "text/plain",
+            };
+
+            console.log("✅ AI message created:", aiMessage);
+
+            setNewMessage(aiMessage.body);
+            console.log("💬 AI reply set in state");
+          } catch (err) {
+            console.error("❌ Error calling AI agent:", err);
+          }
+        } else {
+          console.log("⚠️ No agent found, skipping AI response");
+        }
+      } else {
+        console.log("⚠️ Unknown message format received:", response);
+      }
     };
 
     socket.on("new_message", handleNewMessage);
+    console.log("✅ Socket listener for 'new_message' attached");
 
     return () => {
       socket.off("new_message", handleNewMessage);
       processedMessagesRef.current.clear();
-      debouncedSendReply.cancel();
+      console.log("🧹 Socket listener cleanup complete");
     };
-  }, [socket, debouncedSendReply, agent]);
+  }, [socket, agent]);
 
   // Loading state
   if (isLoading) {
@@ -2133,7 +2169,7 @@ export function ConversationDetails({
                 onClick={() => {
                   handleManualTrain();
                 }}
-                disabled={trainingStatus?.isTraining || !fastApiStatus.isOnline}
+                // disabled={trainingStatus?.isTraining || !fastApiStatus.isOnline}
                 className={cn(
                   "h-8 px-3",
                   trainingStatus?.isTrained &&

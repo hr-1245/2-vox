@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useSocket } from "../../../context/SocketProvider";
+import { toast } from "sonner";
 
 /* ---------- TYPES ---------- */
 export interface Faq {
@@ -61,9 +62,8 @@ export default function ChooseYouContentSource({
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [crawlerLinks, setCrawlerLinks] = useState<CrawlerLink[]>([]);
   const [crawlerLink, setCrawlerLink] = useState("");
-  const [showCrawlerInput, setShowCrawlerInput] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  // converted: showCrawlerModal (was inline input). Keeps behaviour but as modal.
+  const [showCrawlerModal, setShowCrawlerModal] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [fileStatus, setFileStatus] = useState<Record<string, FileState>>({});
   const [fileChunks, setFileChunks] = useState<Record<string, number>>({});
@@ -100,15 +100,15 @@ export default function ChooseYouContentSource({
     for (let i = 0; i < list.length; i++) {
       const f = list[i];
       if (fileStoreRef.current.has(f.name)) {
-        setError(`⚠️ File already added: ${f.name}`);
+        toast.error(`⚠️ File already added: ${f.name}`);
         continue;
       }
       if (!supported.includes(f.type)) {
-        setError(`❌ Unsupported file type: ${f.name}`);
+        toast.error(`❌ Unsupported file type: ${f.name}`);
         continue;
       }
       if (f.size > 50 * 1024 * 1024) {
-        setError(`❌ File too large (max 50MB): ${f.name}`);
+        toast.error(`❌ File too large (max 50MB): ${f.name}`);
         continue;
       }
       valid.push(f);
@@ -118,7 +118,7 @@ export default function ChooseYouContentSource({
 
   const addFilePreviews = (valid: File[]) => {
     if (files.length + valid.length > 3) {
-      setError("⚠️ You can upload a maximum of 3 files only.");
+      toast.error("⚠️ You can upload a maximum of 3 files only.");
       return;
     }
     const previews = valid.map((f, idx) => {
@@ -165,17 +165,17 @@ export default function ChooseYouContentSource({
     onFilesSelected(Array.from(fileStoreRef.current.values()));
   };
 
-  /* ---------- CRAWLER ---------- */
+  /* ---------- CRAWLER (moved to modal) ---------- */
   const handleCrawlerSubmit = () => {
     const url = crawlerLink.trim();
     if (!url) {
-      setError("Please enter a website link.");
+      toast.error("Please enter a website link.");
       return;
     }
     const pattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/[\w-./?%&=]*)?$/i;
     if (!pattern.test(url)) {
-      setError(
-        "Please enter a valid website URL (e.g., https://example.com )."
+      toast.error(
+        "Please enter a valid website URL (e.g., https://example.com)."
       );
       return;
     }
@@ -187,10 +187,8 @@ export default function ChooseYouContentSource({
     setCrawlerLinks((p) => [...p, newLink]);
     onCrawlerLink(newLink.url);
     setCrawlerLink(""); // ← clear box
-    // KEEP INPUT OPEN – no setShowCrawlerInput(false) here
-    setError(null);
-    setSuccess("Website link added! Add another or close.");
-    setTimeout(() => setSuccess(null), 3000);
+    setShowCrawlerModal(false);
+    toast.success("Website link added!");
   };
 
   const handleRemoveLink = (id: number) => {
@@ -225,7 +223,7 @@ export default function ChooseYouContentSource({
   const saveFaqModal = () => {
     const valid = modalFaqs.filter((f) => f.question.trim() && f.answer.trim());
     if (valid.length === 0) {
-      setError("Please fill at least one question and answer.");
+      toast.error("Please fill at least one question and answer.");
       return;
     }
     // ---- APPEND instead of REPLACE ----
@@ -237,8 +235,7 @@ export default function ChooseYouContentSource({
     setFaqs(merged);
     onFaqsSubmit(merged); // parent gets full merged array
     closeFaqModal();
-    setSuccess("FAQs added successfully!");
-    setTimeout(() => setSuccess(null), 3000);
+    toast.success("FAQs added successfully!");
   };
 
   /* ---------- MAIN FAQ – INLINE EDIT ---------- */
@@ -295,7 +292,6 @@ export default function ChooseYouContentSource({
     };
 
     const handleFAQStatus = (faq: any) => {
-      console.log("---- faq ----", faq);
       setFaqStatus((prev) => ({ ...prev, [faq.fileName]: faq.status }));
     };
 
@@ -362,7 +358,7 @@ export default function ChooseYouContentSource({
               s.id === 1
                 ? fileInputRef.current?.click()
                 : s.id === 2
-                ? setShowCrawlerInput(true)
+                ? setShowCrawlerModal(true)
                 : openFaqModal()
             }
             onDragOver={(e) => s.id === 1 && e.preventDefault()}
@@ -383,39 +379,46 @@ export default function ChooseYouContentSource({
         ))}
       </div>
 
-      {/* crawler input */}
-      {showCrawlerInput && (
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto bg-[#1e1e1e] p-4 rounded-xl border border-gray-700 shadow-lg">
-          <input
-            type="url"
-            placeholder="Enter website link (e.g. https://example.com )"
-            value={crawlerLink}
-            onChange={(e) => setCrawlerLink(e.target.value)}
-            className="flex-1 bg-[#2a2a2a] text-white text-sm rounded-lg px-4 py-2 focus:outline-none border border-gray-600 focus:border-[#ef3e6d] transition"
-          />
-          <div className="flex gap-2">
+      {/* crawler modal */}
+      {showCrawlerModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
+          <div className="bg-[#1e1e1e] border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-xl relative">
             <button
-              onClick={handleCrawlerSubmit}
-              className="bg-[#ef3e6d] text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-[#d6345f] transition"
+              onClick={() => setShowCrawlerModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-red-500"
             >
-              Add
+              <X className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => setShowCrawlerInput(false)}
-              className="bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"
-            >
-              Done
-            </button>
+            <h3 className="text-white text-xl font-semibold mb-4">
+              Add Website to Crawl
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              <input
+                type="url"
+                placeholder="Enter website link (e.g. https://example.com )"
+                value={crawlerLink}
+                onChange={(e) => setCrawlerLink(e.target.value)}
+                className="flex-1 bg-[#2a2a2a] text-white text-sm rounded-lg px-4 py-2 focus:outline-none border border-gray-600 focus:border-[#ef3e6d] transition"
+              />
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={handleCrawlerSubmit}
+                  className="bg-[#ef3e6d] text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-[#d6345f] transition"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => setShowCrawlerModal(false)}
+                  className="bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      )}
-
-      {/* feedback */}
-      {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-      {success && (
-        <p className="text-green-400 text-sm mt-3 flex items-center justify-center gap-1">
-          <CheckCircle className="w-4 h-4" /> {success}
-        </p>
       )}
 
       {/* ---------- LISTS ---------- */}
@@ -450,7 +453,7 @@ export default function ChooseYouContentSource({
           </div>
         ))}
 
-        {/* crawler links */}
+        {/* crawler links (main list) */}
         {crawlerLinks.map((l) => (
           <div
             key={l.id}

@@ -9,7 +9,7 @@ interface ConversationPageProps {
     contact?: string;
     email?: string;
     phone?: string;
-    tags?: string[];
+    tag?: string;
   }>;
 }
 
@@ -18,7 +18,7 @@ export default async function ConversationPage({
   searchParams,
 }: ConversationPageProps) {
   const { id } = await params;
-  const { contact, email, phone, tags } = await searchParams;
+  const { contact, email, phone, tag } = await searchParams;
 
   // Get provider data to get location ID
   const providerData = await getCurrentUserProviderData(
@@ -28,14 +28,12 @@ export default async function ConversationPage({
     notFound();
   }
 
-  const tag = (Array.isArray(tags) && tags.length > 0) ? tags[0] : "";
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden">
         <ConversationDetails
           conversationId={id}
-          tags={tag}
+          tag={tag || ""}
           locationId={providerData.data.location_id}
         />
       </div>

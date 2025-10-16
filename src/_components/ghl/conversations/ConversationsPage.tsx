@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,13 @@ import { ConversationsList } from "./ConversationsList";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, RefreshCw, Search, ChevronDown, MessageSquare } from "lucide-react";
+import {
+  AlertCircle,
+  RefreshCw,
+  Search,
+  ChevronDown,
+  MessageSquare,
+} from "lucide-react";
 import { useConversations, type Conversation } from "./hooks/useConversations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +24,8 @@ interface ConversationsPageProps {
 
 export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters] = useState({ limit: 20 }); // Reduced initial limit for better UX
 
   const {
@@ -30,17 +37,16 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     total,
     fetchConversations,
     loadMore,
-    refresh
+    refresh,
   } = useConversations({
     initialFilters: filters,
-    locationId: locationId
+    locationId: locationId,
   });
 
   // Auto-load conversations on mount
-  console.log("conversations,,,,,,,,,,", conversations)
+
   useEffect(() => {
     if (!isLoading && conversations.length === 0 && !error) {
-      console.log('Auto-loading conversations...');
       fetchConversations(filters);
     }
   }, []);
@@ -49,7 +55,7 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     if (searchQuery.trim()) {
       fetchConversations({
         ...filters,
-        query: searchQuery.trim()
+        query: searchQuery.trim(),
       });
     } else {
       // If search is empty, just refresh
@@ -58,34 +64,25 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
   };
 
   const handleRefresh = () => {
-    setSearchQuery(''); // Clear search on refresh
+    setSearchQuery(""); // Clear search on refresh
     refresh();
   };
 
-  // const handleConversationClick = (conversation: Conversation) => {
-  //   const params = new URLSearchParams({
-  //     contact: conversation.contactName || conversation.fullName || '',
-  //     ...(conversation.email && { email: conversation.email }),
-  //     ...(conversation.phone && { phone: conversation.phone })
-  //   });
-
-  //   // Open conversation in a new tab
-  //   const url = `/dashboard/app/leadconnector/conversations/${conversation.id}?${params.toString()}`;
-  //   window.open(url, '_blank', 'noopener,noreferrer');
-  // };
   const handleConversationClick = (conversation: Conversation) => {
     const params = new URLSearchParams({
-      contact: conversation.contactName || conversation.fullName || '',
+      contact: conversation.contactName || conversation.fullName || "",
       ...(conversation.email && { email: conversation.email }),
       ...(conversation.phone && { phone: conversation.phone }),
       ...(conversation.tags?.length
-        ? { tags: conversation.tags.join(",") } // serialize tags as comma-separated string
-        : {})
+        ? { tag: conversation.tags?.[0] } // serialize tags as comma-separated string
+        : {}),
     });
-console.log("params......:",params)
+
     // Open conversation n a new tab
-    const url = `/dashboard/app/leadconnector/conversations/${conversation.id}?${params.toString()}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const url = `/dashboard/app/leadconnector/conversations/${
+      conversation.id
+    }?${params.toString()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleLoadMore = () => {
@@ -105,7 +102,8 @@ console.log("params......:",params)
               </h1>
               {total > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  {conversations.length} of {total.toLocaleString()} conversations
+                  {conversations.length} of {total.toLocaleString()}{" "}
+                  conversations
                 </p>
               )}
             </div>
@@ -126,7 +124,9 @@ console.log("params......:",params)
             disabled={isLoading}
             className="h-8 w-8 p-0"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </Button>
         </div>
       </div>
@@ -139,11 +139,11 @@ console.log("params......:",params)
             <div className="space-y-2">
               <p className="font-semibold">Failed to load conversations</p>
               <p className="text-sm">{error}</p>
-              {error.includes('connect') && (
+              {error.includes("connect") && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push('/dashboard/app/leadconnector')}
+                  onClick={() => router.push("/dashboard/app/leadconnector")}
                 >
                   Go to Lead Connector Settings
                 </Button>
@@ -161,11 +161,15 @@ console.log("params......:",params)
             placeholder="Search conversations by contact name, email, or message content..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
             className="pl-10"
           />
         </div>
-        <Button onClick={handleSearch} disabled={isLoading} className="w-full sm:w-auto">
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="w-full sm:w-auto"
+        >
           <Search className="w-4 h-4 mr-2 sm:mr-1" />
           <span className="sm:hidden">Search Conversations</span>
           <span className="hidden sm:inline">Search</span>
@@ -174,7 +178,7 @@ console.log("params......:",params)
           <Button
             variant="outline"
             onClick={() => {
-              setSearchQuery('');
+              setSearchQuery("");
               refresh();
             }}
             disabled={isLoading}
@@ -189,7 +193,9 @@ console.log("params......:",params)
         <div className="flex flex-col items-center justify-center py-12">
           <LoadingSpinner className="mb-4" />
           <p className="text-muted-foreground">Loading conversations...</p>
-          <p className="text-sm text-muted-foreground mt-2">This may take a few seconds</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            This may take a few seconds
+          </p>
         </div>
       )}
 
@@ -198,12 +204,13 @@ console.log("params......:",params)
         <Card className="text-center py-12">
           <CardContent>
             <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No conversations found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              No conversations found
+            </h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery ?
-                'Try adjusting your search terms or clear the search to see all conversations.' :
-                'No conversations available at the moment.'
-              }
+              {searchQuery
+                ? "Try adjusting your search terms or clear the search to see all conversations."
+                : "No conversations available at the moment."}
             </p>
             <Button
               variant="outline"
@@ -231,12 +238,18 @@ console.log("params......:",params)
             <div className="flex flex-col items-center py-6 space-y-4">
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Showing {conversations.length} of {total.toLocaleString()} conversations
+                  Showing {conversations.length} of {total.toLocaleString()}{" "}
+                  conversations
                 </p>
                 <div className="w-full max-w-md bg-muted rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min((conversations.length / total) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min(
+                        (conversations.length / total) * 100,
+                        100
+                      )}%`,
+                    }}
                   />
                 </div>
               </div>

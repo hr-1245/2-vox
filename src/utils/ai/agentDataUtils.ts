@@ -217,9 +217,9 @@ export function validateAgentData(
     }
   }
 
-  if (data.additionalInformation && data.additionalInformation.length > AGENT_VALIDATION_RULES.additionalInformation.maxLength) {
-    errors.push(`Additional information must be less than ${AGENT_VALIDATION_RULES.additionalInformation.maxLength} characters`);
-  }
+  // if (data.additionalInformation && data.additionalInformation.length > AGENT_VALIDATION_RULES.additionalInformation.maxLength) {
+  //   errors.push(`Additional information must be less than ${AGENT_VALIDATION_RULES.additionalInformation.maxLength} characters`);
+  // }
 
   // Validate behavior settings
   if (data.behavior?.creativity !== undefined) {

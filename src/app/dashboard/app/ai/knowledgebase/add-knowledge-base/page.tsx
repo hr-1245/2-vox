@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 const AddKnowledgeBasePage = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [knowledgeBaseName, setKnowledgeBaseName] = useState("");
+  const [knowledgeBaseDescription, setKnowledgeBaseDescription] = useState("");
   const [websiteLinks, setWebsiteLinks] = useState<string[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
 
@@ -42,18 +43,19 @@ const AddKnowledgeBasePage = () => {
       return;
     }
 
-    const hasSource =
-      selectedFiles.length > 0 || websiteLinks.length > 0 || faqs.length > 0;
+    // const hasSource =
+    //   selectedFiles.length > 0 || websiteLinks.length > 0 || faqs.length > 0;
 
-    if (!hasSource) {
-      toast.error("At least one KB source is required");
-      return;
-    }
+    // if (!hasSource) {
+    //   toast.error("At least one KB source is required");
+    //   return;
+    // }
 
     /* ---------- build multipart body ---------- */
     setLoading(true);
     const fd = new FormData();
     fd.append("name", knowledgeBaseName);
+    fd.append("description", knowledgeBaseDescription);
 
     if (websiteLinks.length) fd.append("urls", JSON.stringify(websiteLinks));
     if (faqs.length) fd.append("faqs", JSON.stringify(faqs));
@@ -94,7 +96,7 @@ const AddKnowledgeBasePage = () => {
         import data, and train your AI agent with multiple content sources in
         just a few simple steps.
       </p>
-      {/* ✅ Knowledge Base Name Input */}
+      {/* Knowledge Base Name Input */}
       <div className="my-6">
         <p className="my-1 text-sm md:text-base text-gray-300 max-w-2xl">
           KnowledgeBase Name
@@ -105,6 +107,20 @@ const AddKnowledgeBasePage = () => {
           onChange={(e) => setKnowledgeBaseName(e.target.value)}
           placeholder="Enter Knowledge Base Name"
           className="w-full max-w-md px-4 py-2 rounded-lg bg-[#1f1f1f] border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ef3e6d] transition"
+        />
+      </div>
+
+      {/* Knowledge Base Description Input */}
+      <div className="my-6">
+        <p className="my-1 text-sm md:text-base text-gray-300 max-w-2xl">
+          Description(optional)
+        </p>
+        <textarea
+          value={knowledgeBaseDescription}
+          onChange={(e) => setKnowledgeBaseDescription(e.target.value)}
+          placeholder="Enter detailed description for your Knowledge Base..."
+          rows={5}
+          className="w-full px-4 py-3 rounded-xl bg-[#1f1f1f] border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#ef3e6d] transition resize-none shadow-sm"
         />
       </div>
 

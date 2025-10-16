@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const name = formData.get("name")?.toString().trim();
+    const description = formData.get("description")?.toString().trim();
     if (!name) {
       return Response.json(
         { success: false, error: "name is required" } satisfies ErrorResponse,
@@ -56,8 +57,10 @@ export async function POST(req: NextRequest) {
 
     const { data: kb, error }: any = await supabase
       .from("kb")
-      .insert([{ name, user_id: user.id, status: "pending" }] as any)
-      .select("id,name,status")
+      .insert([
+        { name, description, user_id: user.id, status: "pending" },
+      ] as any)
+      .select("id,name,status,description")
       .single();
 
     if (error) throw error;

@@ -1236,8 +1236,6 @@ MessageInputProps) {
         message.trim() ||
         (newMessage && newMessage.trim())
       ) {
-        console.log("trying to send new message via prop:", newMessage);
-
         // Get customer info including contactId
         const customerInfo = getCustomerInfo(recentMessages);
 
