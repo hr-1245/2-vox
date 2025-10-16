@@ -301,8 +301,8 @@ export async function createAgent(
       // Use full default structure
       fullData = createDefaultAgentData(agentData.type);
       // Set basic fields if provided in legacy format
-      // if (agentData.description)
-      //   fullData.additionalInformation = agentData.description;
+      if (agentData.description)
+        fullData.additionalInformation = agentData.description;
     }
 
     // Validate the data
@@ -326,7 +326,7 @@ export async function createAgent(
       system_prompt: systemPrompt,
       knowledge_base_ids:
         agentData.knowledge_base_ids || fullData.knowledgeBase.preferredSources,
-      // description: agentData.description || fullData.additionalInformation,
+      description: agentData.description || fullData.additionalInformation,
       data: fullData,
       is_active: agentData.is_active,
       configuration: agentData.configuration || {},
@@ -590,7 +590,7 @@ export function convertFastAPIAgentToDatabase(
   // Map FastAPI data to new schema
   agentData.personality = fastApiAgent.personality || "";
   agentData.intent = fastApiAgent.intent || "";
-  // agentData.additionalInformation = fastApiAgent.additionalInformation || "";
+  agentData.additionalInformation = fastApiAgent.additionalInformation || "";
   agentData.variables = fastApiAgent.variables || {};
   agentData.tag = fastApiAgent.tag || "";
   agentData.model = fastApiAgent.model || "gpt-4o-mini";
@@ -678,7 +678,7 @@ export function convertFastAPIAgentToDatabase(
     user_id: userId,
     system_prompt: systemPrompt,
     knowledge_base_ids: fastApiAgent.knowledgeBaseIds,
-    // description: fastApiAgent.description || agentData.additionalInformation,
+    description: fastApiAgent.description || agentData.additionalInformation,
     data: agentData,
     channels: channels, // Add channels support
     configuration: fastApiAgent.configuration || fastApiAgent.modelConfig || {},
@@ -712,7 +712,7 @@ export function convertDatabaseAgentToFastAPI(dbAgent: AIAgent): any {
     agentType: agentType,
     personality: data.personality || "",
     intent: data.intent || "",
-    // additionalInformation: data.additionalInformation || "",
+    additionalInformation: data.additionalInformation || "",
     variables: data.variables || {},
     customPrompt: dbAgent.system_prompt || "",
     isActive: dbAgent.is_active !== undefined ? dbAgent.is_active : true,

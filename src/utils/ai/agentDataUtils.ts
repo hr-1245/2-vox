@@ -21,7 +21,7 @@ export function createDefaultAgentData(type: AgentType): AgentDataSchema {
     intent: "",
     model: "",
     tag: "", 
-    // additionalInformation: '',
+    additionalInformation: '',
 
     // Behavior Configuration
     behavior: {
@@ -217,9 +217,9 @@ export function validateAgentData(
     }
   }
 
-  // if (data.additionalInformation && data.additionalInformation.length > AGENT_VALIDATION_RULES.additionalInformation.maxLength) {
-  //   errors.push(`Additional information must be less than ${AGENT_VALIDATION_RULES.additionalInformation.maxLength} characters`);
-  // }
+  if (data.additionalInformation && data.additionalInformation.length > AGENT_VALIDATION_RULES.additionalInformation.maxLength) {
+    errors.push(`Additional information must be less than ${AGENT_VALIDATION_RULES.additionalInformation.maxLength} characters`);
+  }
 
   // Validate behavior settings
   if (data.behavior?.creativity !== undefined) {
@@ -294,7 +294,7 @@ export function formDataToAgentData(
     // Core fields from form
     personality: formData.personality,
     intent: formData.intent,
-    // additionalInformation: formData.additionalInformation,
+    additionalInformation: formData.additionalInformation,
 
     // Merge advanced settings
     behavior: {
@@ -372,7 +372,7 @@ export function agentDataToFormData(agent: AIAgent): AgentFormData {
     type: agent.type,
     personality: agentData.personality || "",
     intent: agentData.intent || "",
-    // additionalInformation: agentData.additionalInformation || '',
+    additionalInformation: agentData.additionalInformation || '',
     behavior: agentData.behavior,
     capabilities: agentData.capabilities,
     responseConfig: agentData.responseConfig,
@@ -392,8 +392,8 @@ export function generateSystemPrompt(
   data: AgentDataSchema,
   agentName: string
 ): string {
-  const { personality, intent, behavior, contextVariables } = data;
-  // const { personality, intent, additionalInformation, behavior, contextVariables } = data;
+  // const { personality, intent, behavior, contextVariables } = data;
+  const { personality, intent, additionalInformation, behavior, contextVariables } = data;
 
   let prompt = `You are ${agentName}, an AI assistant with the following characteristics:\n\n`;
 
@@ -431,9 +431,9 @@ export function generateSystemPrompt(
   }
 
   // Add additional information
-  // if (additionalInformation) {
-  //   prompt += `ADDITIONAL INSTRUCTIONS:\n${additionalInformation}\n\n`;
-  // }
+  if (additionalInformation) {
+    prompt += `ADDITIONAL INSTRUCTIONS:\n${additionalInformation}\n\n`;
+  }
 
   // Add custom instructions from prompts
   if (data.prompts?.customInstructions) {
@@ -548,7 +548,7 @@ export function extractApiPayload(data: AgentDataSchema) {
   return {
     personality: data.personality,
     intent: data.intent,
-    // additionalInformation: data.additionalInformation,
+    additionalInformation: data.additionalInformation,
     variables: data.variables,
     knowledgeBaseIds: data.knowledgeBase.preferredSources,
     modelConfig: {

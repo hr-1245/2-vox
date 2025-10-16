@@ -9,7 +9,7 @@ export interface AgentDataSchema {
   intent: string;
   tag: string;
   model: string;
-  // additionalInformation: string;
+  additionalInformation: string;
 
   // Agent Behavior Configuration
   behavior: {
@@ -179,7 +179,7 @@ export interface GenericAgentConfig {
   // Core Identity - Same for ALL agents
   personality: string; // "You are a helpful AI assistant for {business_name}..."
   intent: string; // "Your goal is to help customers with their questions..."
-  // additionalInformation: string; // Optional guidelines and context
+  additionalInformation: string; // Optional guidelines and context
 
   // Usage Configuration - How this agent behaves in different contexts
   usageConfig: {
@@ -240,8 +240,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       frequencyPenalty: 0.0,
       presencePenalty: 0.0,
     },
-    requiredFields: ["personality", "intent"],
-    // requiredFields: ["personality", "intent", "additionalInformation"],
+    // requiredFields: ["personality", "intent"],
+    requiredFields: ["personality", "intent", "additionalInformation"],
     optionalFields: ["variables", "contextVariables", "knowledgeBase"],
   },
 
@@ -270,8 +270,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       frequencyPenalty: 0.0,
       presencePenalty: 0.0,
     },
-    requiredFields: ["personality", "intent"],
-    // requiredFields: ["personality", "intent", "additionalInformation"],
+    // requiredFields: ["personality", "intent"],
+    requiredFields: ["personality", "intent", "additionalInformation"],
     optionalFields: ["variables", "contextVariables", "knowledgeBase"],
   },
 
@@ -300,8 +300,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       frequencyPenalty: 0.1,
       presencePenalty: 0.1,
     },
-    requiredFields: ["personality", "intent"],
-    // requiredFields: ["personality", "intent", "additionalInformation"],
+    // requiredFields: ["personality", "intent"],
+    requiredFields: ["personality", "intent", "additionalInformation"],
     optionalFields: ["conversationFlow", "variables"],
   },
 
@@ -330,8 +330,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       frequencyPenalty: 0.1,
       presencePenalty: 0.1,
     },
-    requiredFields: ["personality", "intent"],
-    // requiredFields: ["personality", "intent", "additionalInformation"],
+    // requiredFields: ["personality", "intent"],
+    requiredFields: ["personality", "intent", "additionalInformation"],
     optionalFields: ["conversationFlow", "variables", "contextVariables"],
   },
 
@@ -361,7 +361,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     },
     requiredFields: ["personality", "intent"],
     optionalFields: [
-      // "additionalInformation",
+      "additionalInformation",
       "variables",
       "contextVariables",
       "knowledgeBase",
@@ -435,7 +435,7 @@ export interface AgentFormData {
   // Core Configuration
   personality: string;
   intent: string;
-  // additionalInformation: string;
+  additionalInformation: string;
 
   // Advanced Settings
   behavior?: Partial<AgentDataSchema["behavior"]>;
@@ -495,10 +495,10 @@ export interface AgentValidationRules {
     maxLength: number;
     required: boolean;
   };
-  // additionalInformation: {
-  //   maxLength: number;
-  //   required: boolean;
-  // };
+  additionalInformation: {
+    maxLength: number;
+    required: boolean;
+  };
   systemPrompt: {
     minLength: number;
     maxLength: number;
@@ -510,6 +510,6 @@ export const AGENT_VALIDATION_RULES: AgentValidationRules = {
   name: { minLength: 3, maxLength: 100, required: true },
   personality: { minLength: 10, maxLength: 10000, required: true },
   intent: { minLength: 10, maxLength: 10000, required: true },
-  // additionalInformation: { maxLength: 10000, required: false },
+  additionalInformation: { maxLength: 10000, required: false },
   systemPrompt: { minLength: 20, maxLength: 10000, required: true },
 };

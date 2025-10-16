@@ -369,9 +369,13 @@ function AgentDetailClientPage({
       if (data.success && data.data) {
         const updatedAgent = data.data;
         toast.success("Agent updated successfully");
+
         setAgent({
           ...updatedAgent,
+          additionalInformation: updatedAgent.data.additionalInformation,
           knowledgeBases: updatedAgent.knowledge_base_ids,
+          personality: updatedAgent.data.personality,
+          intent: updatedAgent.data.intent,
         });
         setEditing(false);
       } else {
@@ -563,7 +567,25 @@ function AgentDetailClientPage({
         <div className="flex items-center gap-2">
           {!editing ? (
             <>
-              <Button variant="outline" onClick={() => setEditing(true)}>
+              {/* <Button variant="outline" onClick={() => setEditing(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button> */}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (agent) {
+                    setEditForm({
+                      name: agent.name || "",
+                      description: agent.description || "",
+                      personality: agent.personality || "",
+                      intent: agent.intent || "",
+                      additionalInformation: agent.additionalInformation || "",
+                    });
+                  }
+                  setEditing(true);
+                }}
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
@@ -742,7 +764,7 @@ function AgentDetailClientPage({
                   </div>
 
                   {/* Additional Information Field */}
-                  {/* <div className="grid gap-2">
+                  <div className="grid gap-2">
                     <Label htmlFor="additionalInformation">
                       Additional Guidelines
                     </Label>
@@ -767,10 +789,10 @@ function AgentDetailClientPage({
                         </p>
                       </div>
                     )}
-                  </div> */}
+                  </div>
 
                   {/* System Prompt Preview (Read-only) */}
-                  {!editing && (
+                  {/* {!editing && (
                     <div className="grid gap-2">
                       <Label>Generated System Prompt</Label>
                       <div className="p-3 bg-muted rounded-md">
@@ -779,10 +801,10 @@ function AgentDetailClientPage({
                         </pre>
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
 
-                {editing && (
+                {/* {editing && (
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -798,7 +820,7 @@ function AgentDetailClientPage({
                     />
                     <Label htmlFor="isActive">Agent is active</Label>
                   </div>
-                )}
+                )} */}
               </div>
             </CardContent>
           </Card>

@@ -201,7 +201,7 @@ export default function CreateAgentPage() {
         type: agentType, // Pass the numeric type (1 or 5)
         personality: formData.personality,
         intent: formData.intent,
-        // additionalInformation: formData.additionalInformation || "",
+        additionalInformation: formData.additionalInformation || "",
         variables:
           Object.keys(formData.variables).length > 0
             ? formData.variables
@@ -431,7 +431,7 @@ export default function CreateAgentPage() {
                 </div>
 
                 {/* Additional Information */}
-                {/* <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="additionalInfo">
                     Additional Guidelines (Optional)
                   </Label>
@@ -451,7 +451,7 @@ export default function CreateAgentPage() {
                   <p className="text-xs text-muted-foreground">
                     Optional rules, tone guidelines, or specific instructions
                   </p>
-                </div> */}
+                </div>
 
                 {/* Variables */}
                 {/* <div className="space-y-2">
