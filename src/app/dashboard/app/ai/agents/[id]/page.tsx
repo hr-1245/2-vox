@@ -855,14 +855,17 @@ function AgentDetailClientPage({
           </Card>
 
           {/* Knowledge bases */}
-          <KBTable
-            selectable
-            showActions={false}
-            selectedKbs={agent?.knowledgeBases}
-            onSelectionChange={handleKBSelectionChange}
-            editMode // ✅ means table is being used on edit screen
-            isEditing={editing}
-          />
+          <Card className="px-7">
+            <h1 className="font-bold">Knowledge Bases</h1>
+            <KBTable
+              selectable
+              showActions={false}
+              selectedKbs={agent?.knowledgeBases}
+              onSelectionChange={handleKBSelectionChange}
+              editMode // ✅ means table is being used on edit screen
+              isEditing={editing}
+            />
+          </Card>
 
           {/* Test Agent */}
           <Card>

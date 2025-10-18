@@ -1273,6 +1273,7 @@ MessageInputProps) {
                 type: "WhatsApp",
                 message: message.trim() || newMessage?.trim() || "",
                 contactId: customerInfo.contactId,
+                phone: customerInfo.phone,
               };
 
             case "FACEBOOK":

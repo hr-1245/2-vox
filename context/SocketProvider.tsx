@@ -57,6 +57,7 @@ export const SocketProvider: FC<ISocketProvider> = ({ children, token }) => {
     (messagePayload: any) => {
       if (!socket) return;
 
+      console.log("messagePayload", messagePayload);
       socket.emit("chat_message", messagePayload);
     },
     [socket]

@@ -138,6 +138,7 @@ const SENDABLE_MESSAGE_TYPES = [
     description: "Google My Business message",
   },
 ] as const;
+
 interface MessageTypeOption {
   value: string;
   internal: string;
@@ -597,25 +598,6 @@ interface Agent {
   model?: string;
 }
 
-const AGENT_TYPES = {
-  conversation: {
-    value: 1,
-    label: "Conversation AI",
-    description: "AI assistant for text conversations and customer support",
-    icon: MessageSquare,
-    color: "bg-primary/10 text-primary border-primary/20",
-    badge: "bg-primary",
-  },
-  voice: {
-    value: 5,
-    label: "Voice AI",
-    description: "AI assistant for voice calls and phone interactions",
-    icon: Phone,
-    color: "bg-purple-100 text-purple-600 border-purple-200",
-    badge: "bg-purple-600",
-  },
-};
-
 export function ConversationDetails({
   conversationId,
   tag,
@@ -623,6 +605,7 @@ export function ConversationDetails({
 }: ConversationDetailsProps) {
   // URL params
   const searchParams = useSearchParams();
+
   const urlContactInfo = {
     name: searchParams.get("contact") || undefined,
     email: searchParams.get("email") || undefined,
@@ -636,7 +619,6 @@ export function ConversationDetails({
     null
   );
   const [showQueryInput, setShowQueryInput] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<any>(null);
 
   const [newMessage, setNewMessage] = useState<any>("");
 
@@ -652,8 +634,6 @@ export function ConversationDetails({
 
   // 🆕 Add request deduplication
   const [isTrainingInProgress, setIsTrainingInProgress] = useState(false);
-  const [lastTrainingAttempt, setLastTrainingAttempt] = useState<number>(0);
-  const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -666,30 +646,12 @@ export function ConversationDetails({
 
   // Conversation settings state
   const [conversationSettings, setConversationSettings] = useState<any>(null);
-  const [loadingSettings, setLoadingSettings] = useState(false);
-  const [availableMessageTypes, setAvailableMessageTypes] = useState<
-    MessageTypeOption[]
-  >([]);
 
   //agents
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<number | "all">("all");
-  const [activeTab, setActiveTab] = useState<"conversation" | "voice">(
-    "conversation"
-  );
+  const agentRef = useRef<any[]>([]);
 
-  // FastAPI Health Check State
-  // const [fastApiStatus, setFastApiStatus] = useState<{
-  //   isOnline: boolean;
-  //   lastChecked: string | null;
-  //   error?: string;
-  // }>({
-  //   isOnline: false,
-  //   lastChecked: null,
-  // });
-
-  //get all agents
+  // --- Load agents ---
   const loadAgents = useCallback(async () => {
     try {
       const response = await fetch("/api/ai/agents");
@@ -705,8 +667,6 @@ export function ConversationDetails({
       console.error("Error loading agents:", error);
       toast.error("Failed to load agents");
       setAgents([]);
-    } finally {
-      // setLoading(false);
     }
   }, []);
 
@@ -714,21 +674,15 @@ export function ConversationDetails({
     loadAgents();
   }, [loadAgents]);
 
-  // const filteredAgents = agents.filter((agent) => {
-  //   const matchesSearch =
-  //     agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     agent.description?.toLowerCase().includes(searchTerm.toLowerCase());
-  //   const matchesType = filterType === "all" || agent.type === filterType;
-  //   const matchesTab =
-  //     activeTab === "conversation"
-  //       ? agent.type === AGENT_TYPES.conversation.value
-  //       : agent.type === AGENT_TYPES.voice.value;
-  //   return matchesSearch && matchesType && matchesTab;
-  // });
+  // Update the ref whenever agents change
+  useEffect(() => {
+    agentRef.current = agents;
+  }, [agents]);
 
-  // console.log("filteredAgents: ", filteredAgents);
-
-  const agent = agents?.filter((a: any) => a.data?.tag == tag);
+  // useEffect(() => {
+  //   const agent = agents?.filter((a: any) => a.data?.tag == tag);
+  //   setReplyAgent(agent);
+  // }, [replyAgent]);
 
   // 🆕 Check FastAPI Health - moved inside component
   // const checkFastAPIHealth = async () => {
@@ -825,7 +779,6 @@ export function ConversationDetails({
   // Load conversation settings
   const loadConversationSettings = async () => {
     try {
-      setLoadingSettings(true);
       const response = await fetch(
         `/api/conversation-meta?conversationId=${conversationId}`
       );
@@ -899,7 +852,6 @@ export function ConversationDetails({
       console.error("❌ Error loading conversation settings:", error);
       setConversationSettings(null);
     } finally {
-      setLoadingSettings(false);
     }
   };
 
@@ -1829,34 +1781,18 @@ export function ConversationDetails({
   // Load initial data - FAST LOADING: Messages first, AI features in background
   useEffect(() => {
     async function loadConversationMessages() {
-      debug.log(
-        "ConversationDetails",
-        "FAST LOAD: Starting conversation messages load",
-        { conversationId, locationId }
-      );
-
       try {
         setIsLoading(true);
         setError(null);
 
         // PRIORITY 1: Load messages IMMEDIATELY for fast UX
         const url = `/api/leadconnector/conversations/${conversationId}/messages?limit=100`;
-        debug.log(
-          "ConversationDetails",
-          "Fetching messages (priority load):",
-          url
-        );
 
         const messagesData = await fetchWithDebug(url);
         const pageMessages = extractMessagesFromResponse(messagesData);
 
-        debug.log(
-          "ConversationDetails",
-          `FAST LOAD: Messages loaded (${pageMessages.length} messages)`
-        );
-
         setMessages(pageMessages);
-        // console.log("pageMessages iiiiiiiiiiiiiii", pageMessages);
+
         // Set pagination state
         if (pageMessages.length > 0) {
           const oldestMessage = pageMessages[pageMessages.length - 1];
@@ -1872,11 +1808,6 @@ export function ConversationDetails({
         // BACKGROUND: Start AI features loading without blocking UI
         // loadAIFeaturesInBackground(pageMessages.length);
       } catch (messagesError) {
-        debug.error(
-          "ConversationDetails",
-          "Failed to load messages:",
-          messagesError
-        );
         setError("Failed to load conversation messages");
         setIsLoading(false);
       }
@@ -1991,23 +1922,22 @@ export function ConversationDetails({
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!socket) {
-      console.log("⚠️ No socket found, skipping listener setup");
-      return;
-    }
-
-    console.log("🧠 Socket listener setup initializing...");
+    if (!socket || messages?.length == 0) return;
 
     const handleNewMessage = async (response: any) => {
-      console.log("📩 Incoming socket message:", response);
+      if (!response) return;
 
-      // --- Outbound Message Handling ---
+      if (
+        messages?.[0]?.contactId !== response?.contactId &&
+        messages?.[0]?.contactId !== response?.message?.contactId
+      ) {
+        console.log("🚫 Ignored: phone mismatch");
+        return;
+      }
+
+      // --- Outbound ---
       if (response?.message?.direction === "outbound") {
-        console.log("➡️ Outbound message detected (manual send)");
-
         const msg = response.message;
-        console.log("🧾 Outbound message payload:", msg);
-
         const newMessageObj = {
           id: msg.id,
           body: msg.body || "",
@@ -2015,7 +1945,7 @@ export function ConversationDetails({
           direction: "outbound",
           status: msg.status || "sent",
           conversationId: msg.conversationId || "temp",
-          contactId: msg.contactId || "unknown",
+          contactId: msg.contactId,
           dateAdded: msg.dateAdded || new Date().toISOString(),
           dateUpdated: msg.dateUpdated || new Date().toISOString(),
           source: msg.source || "app",
@@ -2023,23 +1953,15 @@ export function ConversationDetails({
           contentType: msg.contentType || "text/plain",
           attachments: msg.attachments || [],
           locationId: msg.locationId || "",
+          phone: urlContactInfo.phone,
         };
 
-        console.log("✅ New outbound message object:", newMessageObj);
-
-        setMessages((prev) => {
-          console.log("📚 Previous messages count:", prev.length);
-          return [...prev, newMessageObj];
-        });
-
-        console.log("💾 Outbound message added to state");
-        return; // Stop here (don’t call agent)
+        setMessages((prev) => [...prev, newMessageObj]);
+        return;
       }
 
-      // --- Inbound Message Handling ---
-      if (response?.message && response?.contactId) {
-        console.log("⬅️ Inbound message detected");
-
+      // --- Inbound ---
+      if (response?.message && response?.phone) {
         const inboundMsg = {
           id: Date.now().toString(),
           body: response.message || "",
@@ -2047,39 +1969,33 @@ export function ConversationDetails({
           direction: "inbound",
           status: "delivered",
           conversationId: response.conversationId || "temp",
-          contactId: response.contactId || "unknown",
+          contactId: response.phone,
           dateAdded: new Date().toISOString(),
           source: "user",
           messageType: "TYPE_WHATSAPP",
           contentType: "text/plain",
+          phone: urlContactInfo.phone,
         };
 
-        console.log("🧾 Inbound message object:", inboundMsg);
+        setMessages((prev) => [...prev, inboundMsg]);
 
-        setMessages((prev) => {
-          console.log("📚 Previous messages count:", prev.length);
-          return [...prev, inboundMsg];
-        });
+        // 🔥 Use latest agentRef
+        const latestAgent = agentRef.current?.filter(
+          (a: any) => a.data?.tag === tag
+        );
 
-        console.log("💾 Inbound message added to state");
-
-        // --- AI Agent Call ---
-        if (agent && agent.length > 0) {
-          console.log(`🤖 Agent detected: ${agent[0].id} - Sending query...`);
-
+        if (latestAgent && latestAgent.length > 0) {
           try {
             const agentResponse = await fetch("/api/ai/agents/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                agentId: agent[0].id,
+                agentId: latestAgent[0].id,
                 query: response.message,
               }),
             });
 
-            console.log("📨 AI response status:", agentResponse.status);
             const data = await agentResponse.json();
-            console.log("🧠 AI response data:", data);
 
             const aiMessage = {
               id: Date.now().toString(),
@@ -2088,37 +2004,33 @@ export function ConversationDetails({
               direction: "outbound",
               status: "sent",
               conversationId: response.conversationId || "temp",
-              contactId: response.contactId || "unknown",
+              contactId: response.phone,
               dateAdded: new Date().toISOString(),
               source: "ai",
               messageType: "TYPE_WHATSAPP",
               contentType: "text/plain",
+              phone: urlContactInfo.phone,
             };
 
-            console.log("✅ AI message created:", aiMessage);
-
             setNewMessage(aiMessage.body);
-            console.log("💬 AI reply set in state");
           } catch (err) {
             console.error("❌ Error calling AI agent:", err);
           }
         } else {
-          console.log("⚠️ No agent found, skipping AI response");
+          console.log("⚠️ No agent found (yet) — skipping AI reply");
         }
       } else {
-        console.log("⚠️ Unknown message format received:", response);
+        console.log("⚠️ Unknown message format:", response);
       }
     };
 
     socket.on("new_message", handleNewMessage);
-    console.log("✅ Socket listener for 'new_message' attached");
 
     return () => {
       socket.off("new_message", handleNewMessage);
       processedMessagesRef.current.clear();
-      console.log("🧹 Socket listener cleanup complete");
     };
-  }, [socket, agent]);
+  }, [socket, messages]);
 
   // Loading state
   if (isLoading) {
@@ -2203,7 +2115,7 @@ export function ConversationDetails({
           </Tooltip>
 
           {/* Active AI Agent Indicator */}
-          {activeAgent && (
+          {/* {activeAgent && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge
@@ -2228,7 +2140,7 @@ export function ConversationDetails({
                 </div>
               </TooltipContent>
             </Tooltip>
-          )}
+          )} */}
 
           {/* AI Training Status Dot */}
           <Tooltip>
