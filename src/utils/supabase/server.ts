@@ -44,16 +44,16 @@ export async function createClient() {
           console.warn("Cookie set operation failed:", error);
         }
       },
-      // async remove(name: string) {
-      //   try {
-      //     if (typeof window !== 'undefined') return // Only remove cookies on server
-      //     const cookieStore = await cookies()
-      //     cookieStore.delete(name)
-      //   } catch (error) {
-      //     // Log but don't throw - middleware may be handling cookies
-      //     console.warn('Cookie remove operation failed:', error)
-      //   }
-      // }
+      async remove(name: string) {
+        try {
+          if (typeof window !== "undefined") return; // Only remove cookies on server
+          const cookieStore = await cookies();
+          cookieStore.delete(name);
+        } catch (error) {
+          // Log but don't throw - middleware may be handling cookies
+          console.warn("Cookie remove operation failed:", error);
+        }
+      },
     },
   });
 }
