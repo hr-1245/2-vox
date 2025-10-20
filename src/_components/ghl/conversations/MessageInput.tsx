@@ -127,7 +127,7 @@ interface MessageInputProps {
   conversationType?: string; // e.g., 'TYPE_SMS', 'TYPE_EMAIL', etc.
   messagesList: MessageList;
   isTrainingInProgresss: boolean;
-  newMessage: string;
+  // newMessage: string;
   //   selectedMessageType:string;
   //   setSelectedMessageType:any;
   //  getAvailableMessageTypes: (messagesList: any[]) => MessageTypeOption[];
@@ -393,8 +393,8 @@ export function MessageInput({
   contactInfo: urlContactInfo,
   conversationType,
   messagesList,
-  newMessage,
-}: // selectedMessageType,
+}: // newMessage,
+// selectedMessageType,
 // setSelectedMessageType,
 // getAvailableMessageTypes
 MessageInputProps) {
@@ -1140,12 +1140,6 @@ MessageInputProps) {
       setLoadingType(null);
     }
   };
-
-  useEffect(() => {
-    if (newMessage && newMessage.trim()) {
-      handleChatMessage(false, newMessage);
-    }
-  }, [newMessage]);
 
   const handleChatMessage = async (
     isAutonomous: boolean = false,

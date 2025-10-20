@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
@@ -9,7 +9,6 @@ import { QueryInput } from "./QueryInput";
 import { Message } from "@/lib/leadconnector/types/messageTypes";
 import { TrainingStatus } from "./types";
 import { toast } from "sonner";
-import { selectAgentForFeature } from "@/utils/ai/agentSelection";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,13 +18,10 @@ import { Card } from "@/components/ui/card";
 import {
   MessageCircle,
   ChevronUp,
-  Bot,
   X,
   Search,
   CheckCircle,
   Train,
-  MessageSquare,
-  Phone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,11 +31,10 @@ import {
 } from "@/components/ui/tooltip";
 import { AutopilotFloatingButton } from "./components/AutopilotFloatingButton";
 import { getFeatureAIConfig } from "@/utils/ai/config/aiSettings";
-import { autoEnableForSingleConversation } from "@/utils/autopilot/voxAiAutoEnable";
+
 import { loadEmailContent } from "@/utils/ghl/emailClient";
 
 import { useSocket } from "../../../../context/SocketProvider";
-import debounce from "lodash.debounce";
 
 interface ConversationHeaderProps {
   contact: Contact;
@@ -646,43 +641,6 @@ export function ConversationDetails({
 
   // Conversation settings state
   const [conversationSettings, setConversationSettings] = useState<any>(null);
-
-  //agents
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const agentRef = useRef<any[]>([]);
-
-  // --- Load agents ---
-  const loadAgents = useCallback(async () => {
-    try {
-      const response = await fetch("/api/ai/agents");
-      const data = await response.json();
-
-      if (data.success) {
-        const agentsData = data.data?.agents || data.agents || [];
-        setAgents(Array.isArray(agentsData) ? agentsData : []);
-      } else {
-        throw new Error(data.error || "Failed to load agents");
-      }
-    } catch (error) {
-      console.error("Error loading agents:", error);
-      toast.error("Failed to load agents");
-      setAgents([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadAgents();
-  }, [loadAgents]);
-
-  // Update the ref whenever agents change
-  useEffect(() => {
-    agentRef.current = agents;
-  }, [agents]);
-
-  // useEffect(() => {
-  //   const agent = agents?.filter((a: any) => a.data?.tag == tag);
-  //   setReplyAgent(agent);
-  // }, [replyAgent]);
 
   // 🆕 Check FastAPI Health - moved inside component
   // const checkFastAPIHealth = async () => {
@@ -1922,23 +1880,65 @@ export function ConversationDetails({
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!socket || messages?.length == 0) return;
+    if (!socket || messages?.length === 0) return;
 
-    const handleNewMessage = async (response: any) => {
+    const handleNewMessage = (response: any) => {
       if (!response) return;
 
-      if (
-        messages?.[0]?.contactId !== response?.contactId &&
-        messages?.[0]?.contactId !== response?.message?.contactId
-      ) {
-        console.log("🚫 Ignored: phone mismatch");
+      console.log("response: ", response);
+      const contactMatch =
+        messages?.[0]?.contactId === response?.contactId ||
+        messages?.[0]?.contactId === response?.message?.contactId;
+
+      if (!contactMatch) {
+        console.log("🚫 Ignored: contact id mismatch");
         return;
       }
 
-      // --- Outbound ---
-      if (response?.message?.direction === "outbound") {
+      // --- Case 1: Inbound from user (no nested message object) ---
+      if (response?.message && response.type === 19) {
+        const inboundMsg = {
+          id: Date.now().toString(),
+          body: response.message,
+          type: "text",
+          direction: "inbound",
+          status: "delivered",
+          conversationId: response.conversationId || "temp",
+          contactId: response.contactId,
+          dateAdded: new Date().toISOString(),
+          source: "user",
+          messageType: "TYPE_WHATSAPP",
+          contentType: "text/plain",
+          phone: response.phone,
+        };
+        setMessages((prev) => [...prev, inboundMsg]);
+        return;
+      }
+
+      // --- Case 2: Outbound from AI (type = "WhatsApp") ---
+      if (response?.type === "WhatsApp") {
+        const aiMessage = {
+          id: Date.now().toString(),
+          body: response.message,
+          type: "text",
+          direction: "outbound",
+          status: "sent",
+          conversationId: response.conversationId || "temp",
+          contactId: response.contactId,
+          dateAdded: new Date().toISOString(),
+          source: "ai",
+          messageType: "TYPE_WHATSAPP",
+          contentType: "text/plain",
+          phone: response.phone,
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+        return;
+      }
+
+      // --- Case 3: Outbound from backend (contains message object) ---
+      if (response?.message && typeof response.message === "object") {
         const msg = response.message;
-        const newMessageObj = {
+        const outboundMsg = {
           id: msg.id,
           body: msg.body || "",
           type: msg.type || "text",
@@ -1947,81 +1947,18 @@ export function ConversationDetails({
           conversationId: msg.conversationId || "temp",
           contactId: msg.contactId,
           dateAdded: msg.dateAdded || new Date().toISOString(),
-          dateUpdated: msg.dateUpdated || new Date().toISOString(),
           source: msg.source || "app",
           messageType: msg.messageType || "TYPE_WHATSAPP",
           contentType: msg.contentType || "text/plain",
           attachments: msg.attachments || [],
           locationId: msg.locationId || "",
-          phone: urlContactInfo.phone,
+          phone: response.phone,
         };
-
-        setMessages((prev) => [...prev, newMessageObj]);
+        setMessages((prev) => [...prev, outboundMsg]);
         return;
       }
 
-      // --- Inbound ---
-      if (response?.message && response?.phone) {
-        const inboundMsg = {
-          id: Date.now().toString(),
-          body: response.message || "",
-          type: response.type || "text",
-          direction: "inbound",
-          status: "delivered",
-          conversationId: response.conversationId || "temp",
-          contactId: response.phone,
-          dateAdded: new Date().toISOString(),
-          source: "user",
-          messageType: "TYPE_WHATSAPP",
-          contentType: "text/plain",
-          phone: urlContactInfo.phone,
-        };
-
-        setMessages((prev) => [...prev, inboundMsg]);
-
-        // 🔥 Use latest agentRef
-        const latestAgent = agentRef.current?.filter(
-          (a: any) => a.data?.tag === tag
-        );
-
-        if (latestAgent && latestAgent.length > 0) {
-          try {
-            const agentResponse = await fetch("/api/ai/agents/chat", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                agentId: latestAgent[0].id,
-                query: response.message,
-              }),
-            });
-
-            const data = await agentResponse.json();
-
-            const aiMessage = {
-              id: Date.now().toString(),
-              body: data?.data?.answer || "No response",
-              type: "text",
-              direction: "outbound",
-              status: "sent",
-              conversationId: response.conversationId || "temp",
-              contactId: response.phone,
-              dateAdded: new Date().toISOString(),
-              source: "ai",
-              messageType: "TYPE_WHATSAPP",
-              contentType: "text/plain",
-              phone: urlContactInfo.phone,
-            };
-
-            setNewMessage(aiMessage.body);
-          } catch (err) {
-            console.error("❌ Error calling AI agent:", err);
-          }
-        } else {
-          console.log("⚠️ No agent found (yet) — skipping AI reply");
-        }
-      } else {
-        console.log("⚠️ Unknown message format:", response);
-      }
+      console.log("⚠️ Unknown message format:", response);
     };
 
     socket.on("new_message", handleNewMessage);
@@ -2299,7 +2236,7 @@ export function ConversationDetails({
       {/* Message Input - Fixed bottom with responsive sizing */}
       <div className="border-t border-border/30 bg-background flex-shrink-0">
         <MessageInput
-          newMessage={newMessage}
+          // newMessage={newMessage}
           conversationId={conversationId}
           recentMessages={messages}
           onToggleQuery={setShowQueryInput}
