@@ -32,6 +32,7 @@ export async function GET(
     }
 
     const { id } = await params;
+
     if (!id) {
       return Response.json(
         {
@@ -42,15 +43,10 @@ export async function GET(
       );
     }
 
-    console.log("Knowledge base get request:", {
-      userId: user.id,
-      knowledgeBaseId: id,
-    });
-
     const supabase = await getSupabase();
 
     const { data, error } = await supabase
-      .from("knowledge_bases")
+      .from("kb")
       .select("*")
       .eq("id", id)
       .eq("user_id", user.id)
@@ -77,63 +73,49 @@ export async function GET(
       );
     }
 
-    // Check training job status if available
-    if (data.data?.training_job_id) {
-      try {
-        const FASTAPI_URL =
-          process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000";
-        const statusResponse = await fetch(
-          `${FASTAPI_URL}/ai/conversation/training/job/${data.data.training_job_id}/status`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${user.id}`,
-            },
-          }
-        );
+    // --- Fetch related sources ---
+    const { data: sources, error: sourceError } = await supabase
+      .from("kb_source")
+      .select("*")
+      .eq("kb_id", data.id);
 
-        if (statusResponse.ok) {
-          const jobStatus = await statusResponse.json();
-
-          // Update knowledge base with latest training status
-          if (jobStatus.status !== data.data.training_status) {
-            await supabase
-              .from("knowledge_bases")
-              .update({
-                data: {
-                  ...data.data,
-                  training_status: jobStatus.status,
-                  training_progress: jobStatus.progress,
-                  documents_processed: jobStatus.documentsProcessed,
-                  vectors_created: jobStatus.vectorsCreated,
-                  training_completed_at: jobStatus.completedAt,
-                  training_error: jobStatus.error,
-                },
-              })
-              .eq("id", id);
-
-            // Refresh data with updated status
-            const { data: updatedData } = await supabase
-              .from("knowledge_bases")
-              .select("*")
-              .eq("id", id)
-              .eq("user_id", user.id)
-              .single();
-
-            if (updatedData) {
-              // Update the response data
-              Object.assign(data, updatedData);
-            }
-          }
-        }
-      } catch (statusError) {
-        console.error("Failed to check training job status:", statusError);
-      }
+    if (sourceError) {
+      console.error("Error fetching kb sources:", sourceError);
+      return Response.json(
+        {
+          success: false,
+          error: "Failed to fetch KB sources",
+        } satisfies ErrorResponse,
+        { status: 500 }
+      );
     }
+
+    // --- Group sources by type ---
+    const files = sources?.filter((s) => s.type === "file") ?? [];
+    const webUrls = sources?.filter((s) => s.type === "web") ?? [];
+    const faqs = sources?.filter((s) => s.type === "faq") ?? [];
+
+    const result = {
+      ...data,
+      sources: {
+        files: {
+          count: files.length,
+          data: files,
+        },
+        webUrls: {
+          count: webUrls.length,
+          data: webUrls,
+        },
+        faqs: {
+          count: faqs.length,
+          data: faqs,
+        },
+      },
+    };
 
     return Response.json({
       success: true,
-      data: data as KnowledgeBase,
+      data: result as KnowledgeBase,
     } satisfies KnowledgeBaseResponse);
   } catch (error) {
     console.error("Error in knowledge base get:", error);

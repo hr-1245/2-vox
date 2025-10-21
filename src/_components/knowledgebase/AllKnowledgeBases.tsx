@@ -103,7 +103,7 @@ const AllKnowledgeBases: React.FC<AllKnowledgeBasesProps> = ({
 
           <div className="grid gap-2 max-h-80 overflow-y-auto rounded-lg px-1">
             {knowledgeBases.map((kb) => {
-              const typeInfo = getKBTypeInfo(kb.type);
+              // const typeInfo = getKBTypeInfo(kb.type);
               const isSelected = selectedKBIds.includes(kb.id);
 
               return (
@@ -127,20 +127,20 @@ const AllKnowledgeBases: React.FC<AllKnowledgeBasesProps> = ({
                           <h4 className="font-medium text-sm text-gray-800 truncate">
                             {kb.name}
                           </h4>
-                          {kb.summary && (
+                          {/* {kb.summary && (
                             <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
                               {kb.summary}
                             </p>
-                          )}
+                          )} */}
                         </div>
 
-                        <Badge
+                        {/* <Badge
                           variant="outline"
                           className={`text-[0.65rem] ${typeInfo.color} border-current px-1.5 py-0.5`}
                         >
                           <typeInfo.icon className="w-2.5 h-2.5 mr-0.5" />
                           {typeInfo.label}
-                        </Badge>
+                        </Badge> */}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 text-[0.65rem] text-gray-500">

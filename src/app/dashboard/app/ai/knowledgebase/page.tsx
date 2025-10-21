@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export default function KnowledgeBasePage() {
   const [open, setOpen] = useState(false);
@@ -26,8 +25,6 @@ export default function KnowledgeBasePage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [tableKey, setTableKey] = useState(0);
-
-  const router = useRouter();
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -76,16 +73,7 @@ export default function KnowledgeBasePage() {
           </p>
         </div>
 
-        <Button
-          onClick={() =>
-            router.push("/dashboard/app/ai/knowledgebase/add-knowledge-base")
-          }
-          className="bg-[#ef3d6d] hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Add Knowledge Base
-        </Button>
-
-        {/* <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-[#ef3d6d] hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
               <Plus className="h-4 w-4 mr-2" /> Add Knowledge Base
@@ -150,7 +138,7 @@ export default function KnowledgeBasePage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog> */}
+        </Dialog>
       </div>
 
       <KBTable key={tableKey} showActions />

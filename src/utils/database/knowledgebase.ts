@@ -1,22 +1,26 @@
 // Agent Types
-import type { AgentType } from '@/types/aiAgent';
+import type { AgentType } from "@/types/aiAgent";
 
 // Knowledge Base Types
+export interface KnowledgeBaseSourceGroup {
+  count: number;
+  data: Record<string, any>[]; // array of kb_source rows
+}
+
+export interface KnowledgeBaseSources {
+  files: KnowledgeBaseSourceGroup;
+  webUrls: KnowledgeBaseSourceGroup;
+  faqs: KnowledgeBaseSourceGroup;
+}
+
 export interface KnowledgeBase {
   id: string;
-  created_at: string;
-  updated_at: string;
   name: string;
-  type: number;
   user_id: string;
-  provider_type: number;
-  provider_type_sub_id: string;
-  data: Record<string, any>;
-  agents_id?: string;
-  summary?: string;
-  faq: Record<string, any>;
-  file_uploads?: string;
-  related_kb_ids?: string;
+  status: string;
+  created_at: string;
+  description: string;
+  sources: KnowledgeBaseSources;
 }
 
 export interface KnowledgeBaseInsert {
@@ -54,12 +58,12 @@ export interface AIAgent {
   created_at?: string;
   updated_at?: string;
   name: string;
-  type: AgentType;  // Changed to AgentType to match types interface
+  type: AgentType; // Changed to AgentType to match types interface
   user_id: string;
   description?: string;
-  system_prompt: string;  // Fixed: matches DB schema exactly [[memory:1067321682563687240]]
+  system_prompt: string; // Fixed: matches DB schema exactly [[memory:1067321682563687240]]
   configuration?: Record<string, any>;
-  knowledge_base_ids?: string[];  // Fixed: array type to match database schema [[memory:1067321682563687240]]
+  knowledge_base_ids?: string[]; // Fixed: array type to match database schema [[memory:1067321682563687240]]
   is_active?: boolean;
   metadata?: Record<string, any>;
   data?: Record<string, any>;
@@ -68,12 +72,12 @@ export interface AIAgent {
 export interface AIAgentInsert {
   id?: string;
   name: string;
-  type: AgentType;  // Changed to AgentType to match types interface
+  type: AgentType; // Changed to AgentType to match types interface
   user_id: string;
   description?: string;
-  system_prompt?: string;  // Made optional to match types interface
+  system_prompt?: string; // Made optional to match types interface
   configuration?: Record<string, any>;
-  knowledge_base_ids?: string[];  // Fixed: array type to match database schema [[memory:1067321682563687240]]
+  knowledge_base_ids?: string[]; // Fixed: array type to match database schema [[memory:1067321682563687240]]
   is_active?: boolean;
   metadata?: Record<string, any>;
   data?: Record<string, any>;
@@ -81,11 +85,11 @@ export interface AIAgentInsert {
 
 export interface AIAgentUpdate {
   name?: string;
-  type?: AgentType;  // Changed to AgentType to match types interface
+  type?: AgentType; // Changed to AgentType to match types interface
   description?: string;
   system_prompt?: string;
   configuration?: Record<string, any>;
-  knowledge_base_ids?: string[];  // Fixed: array type to match database schema [[memory:1067321682563687240]]
+  knowledge_base_ids?: string[]; // Fixed: array type to match database schema [[memory:1067321682563687240]]
   is_active?: boolean;
   metadata?: Record<string, any>;
   data?: Record<string, any>;
@@ -98,41 +102,41 @@ export const KB_SETTINGS = {
   // Primary conversation knowledge base (one per conversation)
   KB_CONVERSATION: {
     type: 1,
-    name: 'Conversation',
-    description: 'Primary conversation context and history',
-    icon: 'MessageSquare',
+    name: "Conversation",
+    description: "Primary conversation context and history",
+    icon: "MessageSquare",
     isPrimary: true,
-    autoCreated: true
+    autoCreated: true,
   },
-  
+
   // Custom knowledge bases (user created)
   KB_FILE_UPLOAD: {
     type: 2,
-    name: 'File Upload',
-    description: 'Documents, PDFs, text files',
-    icon: 'FileText',
+    name: "File Upload",
+    description: "Documents, PDFs, text files",
+    icon: "FileText",
     isPrimary: false,
     autoCreated: false,
-    supportedFormats: ['pdf', 'doc', 'docx', 'txt']
+    supportedFormats: ["pdf", "doc", "docx", "txt"],
   },
-  
+
   KB_FAQ: {
     type: 3,
-    name: 'FAQ',
-    description: 'Frequently asked questions and answers',
-    icon: 'HelpCircle',
+    name: "FAQ",
+    description: "Frequently asked questions and answers",
+    icon: "HelpCircle",
     isPrimary: false,
-    autoCreated: false
+    autoCreated: false,
   },
-  
+
   KB_WEB_SCRAPER: {
     type: 4,
-    name: 'Web Scraper',
-    description: 'Content scraped from websites',
-    icon: 'Globe',
+    name: "Web Scraper",
+    description: "Content scraped from websites",
+    icon: "Globe",
     isPrimary: false,
-    autoCreated: false
-  }
+    autoCreated: false,
+  },
 } as const;
 
 // Agent type constants aligned with FastAPI - Updated for generic agent system
@@ -141,7 +145,7 @@ export const AGENT_TYPES = {
   QUERY: 2,
   SUGGESTIONS: 3,
   AUTOPILOT: 4,
-  CUSTOM: 99
+  CUSTOM: 99,
 } as const;
 
 // Default agent configurations that mirror FastAPI defaults
@@ -164,27 +168,34 @@ export const DEFAULT_AGENT_TEMPLATES: DefaultAgentTemplate[] = [
     type: AGENT_TYPES.QUERY,
     description: "Default agent for answering customer queries",
     agentType: "query",
-    personality: "You are a helpful AI assistant responding directly to customers.",
-    intent: "Your goal is to provide helpful, accurate responses based on the conversation context.",
-    additionalInformation: "Be conversational, empathetic, and specific to their situation.",
-    system_prompt: "You are a helpful AI assistant responding directly to customers. \n\nCONVERSATION CONTEXT:\n{context}\n\nCUSTOMER'S QUESTION:\n\"{query}\"\n\nProvide a helpful, accurate response based on the conversation context. Be conversational, empathetic, and specific to their situation.",
+    personality:
+      "You are a helpful AI assistant responding directly to customers.",
+    intent:
+      "Your goal is to provide helpful, accurate responses based on the conversation context.",
+    additionalInformation:
+      "Be conversational, empathetic, and specific to their situation.",
+    system_prompt:
+      'You are a helpful AI assistant responding directly to customers. \n\nCONVERSATION CONTEXT:\n{context}\n\nCUSTOMER\'S QUESTION:\n"{query}"\n\nProvide a helpful, accurate response based on the conversation context. Be conversational, empathetic, and specific to their situation.',
     configuration: {
       max_tokens: 500,
-      temperature: 0.7
+      temperature: 0.7,
     },
     metadata: {
       is_default: true,
-      created_from: "system_template"
-    }
+      created_from: "system_template",
+    },
   },
   {
-    name: "Default Suggestions Agent", 
+    name: "Default Suggestions Agent",
     type: AGENT_TYPES.SUGGESTIONS,
     description: "Default agent for generating follow-up suggestions",
     agentType: "suggestions",
-    personality: "You're a customer service expert helping generate follow-up messages.",
-    intent: "Your goal is to generate exactly 3 follow-up suggestions to continue conversations helpfully.",
-    additionalInformation: "Each suggestion should be specific to the conversation, show you've been listening, offer genuine help, and sound natural and caring.",
+    personality:
+      "You're a customer service expert helping generate follow-up messages.",
+    intent:
+      "Your goal is to generate exactly 3 follow-up suggestions to continue conversations helpfully.",
+    additionalInformation:
+      "Each suggestion should be specific to the conversation, show you've been listening, offer genuine help, and sound natural and caring.",
     system_prompt: `You are the Default Suggestions Agent, a customer service expert helping generate follow-up messages.
 
 INSTRUCTIONS:
@@ -209,31 +220,35 @@ Return exactly 3 numbered suggestions:
 3. [Third suggestion]`,
     configuration: {
       max_suggestions: 3,
-      temperature: 0.8
+      temperature: 0.8,
     },
     metadata: {
       is_default: true,
-      created_from: "system_template"
-    }
+      created_from: "system_template",
+    },
   },
   {
     name: "Default Response Agent",
     type: AGENT_TYPES.AUTOPILOT,
-    description: "Default agent for generating responses to customer messages", 
+    description: "Default agent for generating responses to customer messages",
     agentType: "response",
-    personality: "You're a customer service representative responding to a customer.",
-    intent: "Your goal is to write helpful, professional responses that address customer concerns.",
-    additionalInformation: "Show empathy and understanding, address their specific concern, offer practical help, and sound natural and caring.",
-    system_prompt: "You're a customer service representative responding to a customer.\n\nCONVERSATION CONTEXT:\n{context}\n\nCUSTOMER'S MESSAGE:\n\"{last_customer_message}\"\n\nWrite a helpful, professional response that:\n- Shows empathy and understanding\n- Addresses their specific concern\n- Offers practical help\n- Sounds natural and caring\n\nWrite one direct response to send to this customer:",
+    personality:
+      "You're a customer service representative responding to a customer.",
+    intent:
+      "Your goal is to write helpful, professional responses that address customer concerns.",
+    additionalInformation:
+      "Show empathy and understanding, address their specific concern, offer practical help, and sound natural and caring.",
+    system_prompt:
+      "You're a customer service representative responding to a customer.\n\nCONVERSATION CONTEXT:\n{context}\n\nCUSTOMER'S MESSAGE:\n\"{last_customer_message}\"\n\nWrite a helpful, professional response that:\n- Shows empathy and understanding\n- Addresses their specific concern\n- Offers practical help\n- Sounds natural and caring\n\nWrite one direct response to send to this customer:",
     configuration: {
       max_tokens: 300,
-      temperature: 0.7
+      temperature: 0.7,
     },
     metadata: {
       is_default: true,
-      created_from: "system_template"
-    }
-  }
+      created_from: "system_template",
+    },
+  },
 ];
 
 // Query History for Conversations (stored in conversation data)
@@ -313,7 +328,7 @@ export interface TrainingStatus {
   last_updated?: string;
   message_count?: number;
   vector_count?: number;
-  status: 'pending' | 'training' | 'completed' | 'failed';
+  status: "pending" | "training" | "completed" | "failed";
 }
 
 // File Upload Types
@@ -368,7 +383,7 @@ export interface ConversationSummary {
   conversation_id: string;
   summary: string;
   key_points: string[];
-  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment: "positive" | "negative" | "neutral";
   topics: string[];
   action_items?: string[];
   created_at: string;

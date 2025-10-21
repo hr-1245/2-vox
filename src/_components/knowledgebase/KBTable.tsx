@@ -94,7 +94,9 @@ export function KBTable({
   /* 🔍 Search + Pagination */
   const filtered = useMemo(
     () =>
-      rows.filter((kb) => kb.name.toLowerCase().includes(search.toLowerCase())),
+      rows.filter((kb) =>
+        kb?.name.toLowerCase().includes(search.toLowerCase())
+      ),
     [rows, search]
   );
   const totalPages = Math.ceil(filtered.length / LIMIT);
@@ -193,7 +195,7 @@ export function KBTable({
               <th className="px-4 py-3 text-center">FAQs</th>
               <th className="px-4 py-3 text-center">Files</th>
               <th className="px-4 py-3 text-center">Websites</th>
-              <th className="px-4 py-3 text-left">Created</th>
+              <th className="px-4 py-3 text-left">Created at</th>
               {showActions && <th className="px-4 py-3">Actions</th>}
             </tr>
           </thead>
@@ -201,26 +203,26 @@ export function KBTable({
           <tbody>
             {pageData.map((kb) => (
               <tr
-                key={kb.id}
+                key={kb?.id}
                 className="border-t border-gray-800 hover:bg-[#1E1E1E]"
               >
                 {selectable && (
                   <td className="px-4 py-3 text-center">
                     <input
                       type="checkbox"
-                      checked={selected.has(kb.id)}
-                      onChange={() => canSelect && toggleOne(kb.id)}
+                      checked={selected.has(kb?.id)}
+                      onChange={() => canSelect && toggleOne(kb?.id)}
                       className="w-4 h-4 accent-[#ef3d6d]"
                       disabled={!canSelect}
                     />
                   </td>
                 )}
-                <td className="px-4 py-3 font-medium text-white">{kb.name}</td>
-                <td className="px-4 py-3 text-center">{kb.faq_count}</td>
-                <td className="px-4 py-3 text-center">{kb.file_count}</td>
-                <td className="px-4 py-3 text-center">{kb.web_count}</td>
+                <td className="px-4 py-3 font-medium text-white">{kb?.name}</td>
+                <td className="px-4 py-3 text-center">{kb?.faq_count}</td>
+                <td className="px-4 py-3 text-center">{kb?.file_count}</td>
+                <td className="px-4 py-3 text-center">{kb?.web_count}</td>
                 <td className="px-4 py-3">
-                  {new Date(kb.created_at).toLocaleDateString()}
+                  {new Date(kb?.created_at).toLocaleDateString()}
                 </td>
 
                 {showActions && (
@@ -239,7 +241,7 @@ export function KBTable({
                         <DropdownMenuItem
                           onClick={() =>
                             router.push(
-                              `/dashboard/app/ai/knowledgebase/02a752e2-ec08-475e-b548-7472c453911e`
+                              `/dashboard/app/ai/knowledgebase/${kb?.id}`
                             )
                           }
                           className="text-gray-200 focus:bg-[#ef3e6d] focus:text-white"
@@ -247,7 +249,7 @@ export function KBTable({
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setOpenId(kb.id)}
+                          onClick={() => setOpenId(kb?.id)}
                           className="text-gray-200 focus:bg-red-600 focus:text-white"
                         >
                           Delete

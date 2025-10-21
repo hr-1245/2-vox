@@ -309,14 +309,6 @@ export default function ChooseYouContentSource({
   /* ---------- UI ---------- */
   return (
     <div className="w-full py-10 text-center">
-      <h2 className="text-white text-2xl md:text-3xl font-semibold">
-        Choose Your Content Source
-      </h2>
-      <p className="mt-2 text-gray-400 text-sm md:text-base max-w-2xl mx-auto">
-        Select how you'd like to add knowledge to your AI agent. You can use
-        multiple sources.
-      </p>
-
       {/* hidden file input */}
       <input
         ref={fileInputRef}
