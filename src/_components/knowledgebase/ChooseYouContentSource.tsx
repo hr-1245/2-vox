@@ -200,6 +200,7 @@ export default function ChooseYouContentSource({
     setModalFaqs([{ id: Date.now(), question: "", answer: "" }]);
     setShowFaqModal(true);
   };
+
   const closeFaqModal = () => {
     setShowFaqModal(false);
     setModalFaqs([]);

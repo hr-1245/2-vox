@@ -366,7 +366,7 @@ export default function CreateAgentPage() {
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {formData.description.length}/200 characters
+                  {formData.description.length}/100000 characters
                 </p>
               </div>
             </div>
@@ -405,7 +405,7 @@ export default function CreateAgentPage() {
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {formData.personality.length}/500 characters • Use {"{{"}{" "}
+                    {formData.personality.length}/100000 characters • Use {"{{"}{" "}
                     variable {"}"} for dynamic content
                   </p>
                 </div>
@@ -427,7 +427,7 @@ export default function CreateAgentPage() {
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {formData.intent.length}/300 characters
+                    {formData.intent.length}/100000 characters
                   </p>
                 </div>
 
@@ -698,14 +698,12 @@ export default function CreateAgentPage() {
 
   const handleNext = () => {
     if (currentStep < totalSteps && canProceed()) {
-      console.log("Moving to step:", currentStep + 1);
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      console.log("Moving back to step:", currentStep - 1);
       setCurrentStep(currentStep - 1);
     }
   };

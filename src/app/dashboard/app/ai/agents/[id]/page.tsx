@@ -558,19 +558,12 @@ function AgentDetailClientPage({
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{agent.name}</h1>
-            <p className="text-muted-foreground">
-              {agent.description || "No description provided"}
-            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {!editing ? (
             <>
-              {/* <Button variant="outline" onClick={() => setEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button> */}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -691,76 +684,70 @@ function AgentDetailClientPage({
                   )}
                 </div>
 
+                {/* Description Field */}
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
-                  {editing ? (
-                    <Input
-                      id="description"
-                      value={editForm.description}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Brief description of the agent's purpose..."
-                    />
-                  ) : (
-                    <div className="p-2 bg-muted rounded-md">
-                      {agent.description || "No description provided"}
-                    </div>
-                  )}
+                  <Textarea
+                    id="description"
+                    value={editForm.description || ""}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Brief description of the agent's purpose..."
+                    readOnly={!editing}
+                    rows={8}
+                    className={
+                      !editing
+                        ? "bg-muted border-0 focus-visible:ring-0 cursor-default"
+                        : ""
+                    }
+                  />
                 </div>
 
                 <div className="grid gap-4">
                   {/* Personality Field */}
                   <div className="grid gap-2">
                     <Label htmlFor="personality">AI Personality & Role</Label>
-                    {editing ? (
-                      <Textarea
-                        id="personality"
-                        value={editForm.personality}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            personality: e.target.value,
-                          }))
-                        }
-                        placeholder="Define the AI's personality and role..."
-                        rows={3}
-                      />
-                    ) : (
-                      <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">
-                          {agent.personality || "No personality defined"}
-                        </p>
-                      </div>
-                    )}
+                    <Textarea
+                      id="personality"
+                      value={editForm.personality || ""}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          personality: e.target.value,
+                        }))
+                      }
+                      placeholder="Define the AI's personality and role..."
+                      rows={8}
+                      readOnly={!editing} // 👈 disables typing when not editing
+                      className={!editing ? "bg-muted cursor-default" : ""}
+                    />
                   </div>
 
                   {/* Intent Field */}
                   <div className="grid gap-2">
                     <Label htmlFor="intent">Primary Goal & Intent</Label>
-                    {editing ? (
-                      <Textarea
-                        id="intent"
-                        value={editForm.intent}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            intent: e.target.value,
-                          }))
-                        }
-                        placeholder="Define the primary goal and intent..."
-                        rows={3}
-                      />
-                    ) : (
-                      <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">
-                          {agent.intent || "No intent defined"}
-                        </p>
-                      </div>
-                    )}
+                    <Textarea
+                      id="intent"
+                      value={editForm.intent || ""}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          intent: e.target.value,
+                        }))
+                      }
+                      placeholder="Define the primary goal and intent..."
+                      rows={8}
+                      readOnly={!editing}
+                      className={
+                        !editing
+                          ? "bg-muted border-0 focus-visible:ring-0 cursor-default resize-none"
+                          : ""
+                      }
+                    />
                   </div>
 
                   {/* Additional Information Field */}
@@ -768,31 +755,28 @@ function AgentDetailClientPage({
                     <Label htmlFor="additionalInformation">
                       Additional Guidelines
                     </Label>
-                    {editing ? (
-                      <Textarea
-                        id="additionalInformation"
-                        value={editForm.additionalInformation}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            additionalInformation: e.target.value,
-                          }))
-                        }
-                        placeholder="Additional guidelines and instructions..."
-                        rows={4}
-                      />
-                    ) : (
-                      <div className="p-3 bg-muted rounded-md">
-                        <p className="text-sm">
-                          {agent.additionalInformation ||
-                            "No additional guidelines"}
-                        </p>
-                      </div>
-                    )}
+                    <Textarea
+                      id="additionalInformation"
+                      value={editForm.additionalInformation || ""}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          additionalInformation: e.target.value,
+                        }))
+                      }
+                      placeholder="Additional guidelines and instructions..."
+                      rows={8}
+                      readOnly={!editing}
+                      className={
+                        !editing
+                          ? "bg-muted border-0 focus-visible:ring-0 cursor-default resize-none"
+                          : ""
+                      }
+                    />
                   </div>
 
                   {/* System Prompt Preview (Read-only) */}
-                  {/* {!editing && (
+                  {!editing && (
                     <div className="grid gap-2">
                       <Label>Generated System Prompt</Label>
                       <div className="p-3 bg-muted rounded-md">
@@ -801,7 +785,7 @@ function AgentDetailClientPage({
                         </pre>
                       </div>
                     </div>
-                  )} */}
+                  )}
                 </div>
 
                 {/* {editing && (
