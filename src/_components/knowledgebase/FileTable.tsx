@@ -9,16 +9,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileIcon, Trash2, Eye } from "lucide-react";
+import { FileIcon, Trash2 } from "lucide-react";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 interface FileTableProps {
   files: any[];
+  handleDeleteKBSource: (srcId: string, kbId: string) => Promise<void> | void;
 }
 
-export default function FileTable({ files }: FileTableProps) {
+export default function FileTable({
+  files,
+  handleDeleteKBSource,
+}: FileTableProps) {
   if (!files?.length) {
     return (
-      <div className="border rounded-lg mt-4">
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
@@ -38,18 +43,18 @@ export default function FileTable({ files }: FileTableProps) {
   }
 
   return (
-    <div className="border rounded-lg mt-4">
+    <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>File Name</TableHead>
             <TableHead>Uploaded At</TableHead>
             <TableHead>Size (KB)</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {files?.map((file) => (
+          {files.map((file) => (
             <TableRow key={file.id}>
               <TableCell className="font-medium">
                 {file?.data?.fileName}
@@ -60,15 +65,17 @@ export default function FileTable({ files }: FileTableProps) {
               <TableCell>
                 {((file?.data?.size || 0) / 1024).toFixed(1)}
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+              <TableCell className="text-center">
+                <DeleteConfirmDialog
+                  title="Remove File from Knowledge Base"
+                  description={`This file will be permanently removed from the knowledge base. This action cannot be undone.`}
+                  onConfirm={() => handleDeleteKBSource(file.id, file.kb_id)}
+                  trigger={
+                    <Button variant="ghost" size="icon">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  }
+                />
               </TableCell>
             </TableRow>
           ))}

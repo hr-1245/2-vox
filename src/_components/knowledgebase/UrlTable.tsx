@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -9,20 +10,33 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Trash2, FileText } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { Button } from "@/components/ui/button";
 
-export default function UrlTable({ urls = [] }: any) {
+export default function UrlTable({ urls = [], handleDeleteKBSource }: any) {
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]">
-              <Checkbox />
-            </TableHead>
+            {/* <TableHead className="w-[50px]"><Checkbox /></TableHead> */}
             <TableHead>Path</TableHead>
             <TableHead>Created at</TableHead>
-            <TableHead className="text-right">Action</TableHead>
+            <TableHead className="w-[120px] text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -30,9 +44,7 @@ export default function UrlTable({ urls = [] }: any) {
           {urls?.length > 0 ? (
             urls.map((item: any) => (
               <TableRow key={item?.id}>
-                <TableCell>
-                  <Checkbox />
-                </TableCell>
+                {/* <TableCell><Checkbox /></TableCell> */}
                 <TableCell>
                   <a
                     href={item?.data?.url}
@@ -44,10 +56,17 @@ export default function UrlTable({ urls = [] }: any) {
                   </a>
                 </TableCell>
                 <TableCell>{item?.created_at?.split("T")?.[0]}</TableCell>
-                <TableCell className="text-right flex justify-end gap-3 pr-2">
-                  <button title="Delete">
-                    <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                  </button>
+                <TableCell className="text-center">
+                  <DeleteConfirmDialog
+                    title="Remove Web Source from Knowledge Base"
+                    description={`This web URL will be permanently removed from the knowledge base. This action cannot be undone.`}
+                    onConfirm={() => handleDeleteKBSource(item.id, item.kb_id)}
+                    trigger={
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))

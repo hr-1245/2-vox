@@ -7,24 +7,28 @@ import FileTable from "./FileTable";
 import UrlTable from "./UrlTable";
 import FaqTable from "./FaqTable";
 import { FileText, MessageSquare, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+
+type SourceKey = "files" | "faqs" | "webUrls";
 
 export default function KnowledgeSourceTabs({ kb }: { kb: any }) {
   const router = useRouter();
 
-  // --- Track active tab ---
+  // --- Local reactive copy ---
+  const [sources, setSources] = useState(kb?.sources || {});
   const [activeTab, setActiveTab] = useState("all");
 
-  const counts = {
-    files: kb?.sources?.files?.data?.length || 0,
-    faqs: kb?.sources?.faqs?.data?.length || 0,
-    webUrls: kb?.sources?.webUrls?.data?.length || 0,
+  const counts: Record<SourceKey, number> = {
+    files: sources?.files?.data?.length || 0,
+    faqs: sources?.faqs?.data?.length || 0,
+    webUrls: sources?.webUrls?.data?.length || 0,
   };
 
   const cards: {
-    key: keyof typeof counts;
+    key: SourceKey;
     label: string;
     icon: React.ReactNode;
-    tab: string;
+    tab: SourceKey;
   }[] = [
     {
       key: "files",
@@ -51,6 +55,38 @@ export default function KnowledgeSourceTabs({ kb }: { kb: any }) {
     router.replace(`?tab=${tab}`, { scroll: false });
   }
 
+  const handleDeleteKBSource = async (
+    srcId: string,
+    kbId: string,
+    type?: "files" | "webUrls" | "faqs"
+  ) => {
+    try {
+      const res = await fetch(`/api/ai/knowledgebase/delete-source/${srcId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kbId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete source");
+
+      // ✅ Optimistically remove deleted source from UI
+      if (type) {
+        setSources((prev: any) => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            data: prev[type]?.data?.filter((item: any) => item.id !== srcId),
+          },
+        }));
+      }
+
+      toast.success("Source deleted successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting source");
+    }
+  };
+
   return (
     <Tabs
       value={activeTab}
@@ -64,8 +100,7 @@ export default function KnowledgeSourceTabs({ kb }: { kb: any }) {
         <TabsTrigger value="faqs">FAQs</TabsTrigger>
       </TabsList>
 
-      {/* ------------- ALL SOURCES ------------- */}
-      <TabsContent value="all" className="mt-6">
+      <TabsContent value="all" className="mt-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {cards.map((c) => (
             <div
@@ -85,17 +120,31 @@ export default function KnowledgeSourceTabs({ kb }: { kb: any }) {
         </div>
       </TabsContent>
 
-      {/* ------------- DEDICATED TABS ------------- */}
       <TabsContent value="files" className="mt-4">
-        <FileTable files={kb?.sources?.files?.data} />
+        <FileTable
+          files={sources?.files?.data}
+          handleDeleteKBSource={(id: string, kbId: string) =>
+            handleDeleteKBSource(id, kbId, "files")
+          }
+        />
       </TabsContent>
 
       <TabsContent value="webUrls" className="mt-4">
-        <UrlTable urls={kb?.sources?.webUrls?.data} />
+        <UrlTable
+          urls={sources?.webUrls?.data}
+          handleDeleteKBSource={(id: string, kbId: string) =>
+            handleDeleteKBSource(id, kbId, "webUrls")
+          }
+        />
       </TabsContent>
 
       <TabsContent value="faqs" className="mt-4">
-        <FaqTable faqs={kb?.sources?.faqs?.data} />
+        <FaqTable
+          faqs={sources?.faqs?.data}
+          handleDeleteKBSource={(id: string, kbId: string) =>
+            handleDeleteKBSource(id, kbId, "faqs")
+          }
+        />
       </TabsContent>
     </Tabs>
   );

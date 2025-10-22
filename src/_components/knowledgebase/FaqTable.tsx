@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Plus, Minus, Trash2 } from "lucide-react";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { Button } from "@/components/ui/button";
 
-export default function FaqTable({ faqs = [] }: any) {
+export default function FaqTable({ faqs = [], handleDeleteKBSource }: any) {
   const [openFaq, setOpenFaq] = useState<string | null>(null);
 
   const toggleFaq = (id: string) => {
@@ -61,11 +63,18 @@ export default function FaqTable({ faqs = [] }: any) {
                           <p className="font-medium text-white">{answer}</p>
 
                           {/* Action buttons */}
-                          <div className="flex gap-3 ml-4">
-                            <button title="Delete">
-                              <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                            </button>
-                          </div>
+                          <DeleteConfirmDialog
+                            title="Remove FAQ from Knowledge Base"
+                            description={`This FAQ entry will be permanently removed from the knowledge base. This action cannot be undone.`}
+                            onConfirm={() =>
+                              handleDeleteKBSource(faq.id, faq.kb_id)
+                            }
+                            trigger={
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            }
+                          />
                         </div>
                       </div>
                     )}
