@@ -194,7 +194,7 @@ export function KBTable({
               <th className="px-4 py-3 text-left">Name</th>
               <th className="px-4 py-3 text-center">FAQs</th>
               <th className="px-4 py-3 text-center">Files</th>
-              <th className="px-4 py-3 text-center">Websites</th>
+              <th className="px-4 py-3 text-center">Web URLs</th>
               <th className="px-4 py-3 text-left">Created at</th>
               {showActions && <th className="px-4 py-3">Actions</th>}
             </tr>

@@ -73,8 +73,7 @@ const AddKnowledgeBasePage = () => {
       </h1>
       <p className="mt-3 text-sm md:text-base text-gray-300 text-center max-w-2xl mx-auto leading-relaxed">
         Transform your content into intelligent conversations. Upload files,
-        import data, and train your AI agent with multiple content sources in
-        just a few simple steps.
+        import data, and train your AI agent with multiple content sources in a few simple steps.
       </p>
 
       {/* Chooose Your Content Source */}

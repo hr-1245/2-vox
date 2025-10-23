@@ -35,7 +35,7 @@ export default function UrlTable({ urls = [], handleDeleteKBSource }: any) {
           <TableRow>
             {/* <TableHead className="w-[50px]"><Checkbox /></TableHead> */}
             <TableHead>Path</TableHead>
-            <TableHead>Created at</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead className="w-[120px] text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>

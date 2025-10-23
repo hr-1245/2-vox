@@ -332,9 +332,9 @@ export default function ChooseYouContentSource({
           },
           {
             id: 2,
-            title: "Website Crawl",
+            title: "Crawl Website",
             desc: "Point your agent to a website and let it extract content automatically.",
-            action: "Enter URL to Crawl",
+            action: "Enter URL to crawl",
             icon: <Globe className="w-8 h-8 text-gray-300" />,
           },
           {
