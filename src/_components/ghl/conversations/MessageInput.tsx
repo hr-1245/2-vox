@@ -1291,6 +1291,7 @@ MessageInputProps) {
 
         const payload = buildPayload();
         const token = await getClientGhlToken();
+        console.log("token: ", token);
 
         // via socket
         sendMessage({

@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function KnowledgeBasePage() {
   const [open, setOpen] = useState(false);
@@ -25,6 +26,8 @@ export default function KnowledgeBasePage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [tableKey, setTableKey] = useState(0);
+
+  const router = useRouter();
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -50,13 +53,14 @@ export default function KnowledgeBasePage() {
       }
 
       toast.success("Knowledge base created ✅");
-      setOpen(false);
+      router.push(`/dashboard/app/ai/knowledgebase/${json?.data?.id}`);
       setName("");
       setDescription("");
       setTableKey((k) => k + 1);
     } catch (err: any) {
       toast.error(err.message || "Network error");
     } finally {
+      setOpen(false);
       setLoading(false);
     }
   };

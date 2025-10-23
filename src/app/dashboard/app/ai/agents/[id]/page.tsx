@@ -816,19 +816,24 @@ function AgentDetailClientPage({
                 key={type.value}
                 className="flex items-center space-x-2 cursor-pointer"
               >
-                <Checkbox
-                  checked={selectedMessageTypes.includes(type.value)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedMessageTypes((prev) => [...prev, type.value]);
-                    } else {
-                      setSelectedMessageTypes((prev) =>
-                        prev.filter((v) => v !== type.value)
-                      );
-                    }
-                  }}
-                  disabled={!editing}
-                />
+                {editing && (
+                  <Checkbox
+                    checked={selectedMessageTypes.includes(type.value)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedMessageTypes((prev) => [
+                          ...prev,
+                          type.value,
+                        ]);
+                      } else {
+                        setSelectedMessageTypes((prev) =>
+                          prev.filter((v) => v !== type.value)
+                        );
+                      }
+                    }}
+                    disabled={!editing}
+                  />
+                )}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{type.label}</span>
                 </div>

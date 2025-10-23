@@ -177,7 +177,7 @@ export function KBTable({
         <table className="w-full text-sm text-gray-300">
           <thead className="bg-[#1E1E1E] text-gray-200">
             <tr>
-              {selectable && (
+              {selectable && (!editMode || isEditing) && (
                 <th className="px-4 py-3 text-center w-10">
                   <input
                     type="checkbox"
@@ -206,7 +206,7 @@ export function KBTable({
                 key={kb?.id}
                 className="border-t border-gray-800 hover:bg-[#1E1E1E]"
               >
-                {selectable && (
+                {selectable && (!editMode || isEditing) && (
                   <td className="px-4 py-3 text-center">
                     <input
                       type="checkbox"
