@@ -774,18 +774,6 @@ function AgentDetailClientPage({
                       }
                     />
                   </div>
-
-                  {/* System Prompt Preview (Read-only) */}
-                  {!editing && (
-                    <div className="grid gap-2">
-                      <Label>Generated System Prompt</Label>
-                      <div className="p-3 bg-muted rounded-md">
-                        <pre className="whitespace-pre-wrap text-sm font-mono">
-                          {agent.systemPrompt || "No system prompt generated"}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* {editing && (
@@ -816,24 +804,37 @@ function AgentDetailClientPage({
                 key={type.value}
                 className="flex items-center space-x-2 cursor-pointer"
               >
-                {editing && (
-                  <Checkbox
-                    checked={selectedMessageTypes.includes(type.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedMessageTypes((prev) => [
-                          ...prev,
-                          type.value,
-                        ]);
-                      } else {
-                        setSelectedMessageTypes((prev) =>
-                          prev.filter((v) => v !== type.value)
-                        );
-                      }
-                    }}
-                    disabled={!editing}
-                  />
-                )}
+                {/* {editing && ( */}
+                {/* <Checkbox
+                  checked={selectedMessageTypes.includes(type.value)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedMessageTypes((prev) => [...prev, type.value]);
+                    } else {
+                      setSelectedMessageTypes((prev) =>
+                        prev.filter((v) => v !== type.value)
+                      );
+                    }
+                  }}
+                  disabled={!editing}
+                /> */}
+                <input
+                  type="checkbox"
+                  checked={selectedMessageTypes.includes(type.value)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (checked) {
+                      setSelectedMessageTypes((prev) => [...prev, type.value]);
+                    } else {
+                      setSelectedMessageTypes((prev) =>
+                        prev.filter((v) => v !== type.value)
+                      );
+                    }
+                  }}
+                  className="w-4 h-4 accent-[#ef3d6d]"
+                  disabled={!editing}
+                />
+                {/* )} */}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{type.label}</span>
                 </div>
@@ -855,6 +856,20 @@ function AgentDetailClientPage({
               isEditing={editing}
             />
           </Card>
+
+          {/* System Prompt Preview (Read-only) */}
+          {!editing && (
+            <div className="grid gap-2">
+              <Card className="px-7">
+                <h1 className="font-bold">Generated System Prompt</h1>
+                <div className="p-3 bg-muted rounded-md">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">
+                    {agent.systemPrompt || "No system prompt generated"}
+                  </pre>
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Test Agent */}
           <Card>

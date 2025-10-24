@@ -43,7 +43,7 @@ export function ConversationsList({
   return (
     <>
       <div className="divide-y divide-border max-w-full overflow-hidden">
-      {conversations.map((conversation) => (
+      {conversations?.map((conversation) => (
         <ConversationItem
           key={conversation.id}
           conversation={conversation}

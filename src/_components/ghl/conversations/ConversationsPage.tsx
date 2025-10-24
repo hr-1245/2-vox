@@ -17,6 +17,7 @@ import {
 import { useConversations, type Conversation } from "./hooks/useConversations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSocket } from "../../../../context/SocketProvider";
 
 interface ConversationsPageProps {
   locationId?: string;
@@ -27,6 +28,8 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filters] = useState({ limit: 20 }); // Reduced initial limit for better UX
+
+  const { socket } = useSocket();
 
   const {
     conversations,
@@ -40,16 +43,31 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     refresh,
   } = useConversations({
     initialFilters: filters,
-    locationId: locationId,
+    locationId,
   });
 
   // Auto-load conversations on mount
-
   useEffect(() => {
     if (!isLoading && conversations.length === 0 && !error) {
       fetchConversations(filters);
     }
-  }, []);
+  }, [locationId]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (response: any) => {
+      if (!response) return;
+
+      // console.log("conversations: ", conversations);
+    };
+
+    socket.on("new_message", handleNewMessage);
+
+    return () => {
+      socket.off("new_message", handleNewMessage);
+    };
+  }, [socket, conversations]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -108,12 +126,6 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
               )}
             </div>
           </div>
-
-          {isLoading && (
-            <div className="flex items-center text-muted-foreground">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
