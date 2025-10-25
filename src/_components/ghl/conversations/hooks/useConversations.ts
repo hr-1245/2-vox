@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Conversation } from "@/lib/leadconnector/types/conversationTypes";
 import { autoEnableVoxAiAutopilot } from "@/utils/autopilot/voxAiAutoEnable";
 
@@ -28,6 +28,7 @@ interface UseConversationsReturn {
   ) => Promise<void>;
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateConversationFromSocket: (message: any) => void;
 }
 
 interface ApiResponse {
@@ -88,6 +89,18 @@ export function useConversations(
 
   // Extract locationId from options for vox-ai auto-enable
   const { locationId } = options;
+
+  const conversationsRef = useRef<Conversation[]>([]);
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  const currentRequestKeyRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -212,8 +225,8 @@ export function useConversations(
   //   []
   // );
 
-  const currentRequestKeyRef = useRef<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // const currentRequestKeyRef = useRef<string | null>(null);
+  // const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchConversations = useCallback(
     async (
@@ -369,7 +382,38 @@ export function useConversations(
   const refresh = useCallback(async () => {
     setNextCursor(undefined);
     await fetchConversations(lastFilters, false);
-  }, [lastFilters, fetchConversations]);
+  }, [fetchConversations]);
+
+  const updateConversationFromSocket = useCallback((message: any) => {
+    setConversations((prevConversations) => {
+      const index = prevConversations.findIndex(
+        (conv) => conv.contactId === message.contactId
+      );
+
+      if (index === -1) {
+        console.warn(
+          "⚠️ Conversation not found for incoming message:",
+          message
+        );
+        return prevConversations;
+      }
+
+      const updatedConvo = {
+        ...prevConversations[index],
+        lastMessageBody:
+          message.text || prevConversations[index].lastMessageBody,
+        lastMessageDate: Date.now(),
+      };
+
+      // Move updated conversation to top
+      const newList = [
+        updatedConvo,
+        ...prevConversations.filter((_, i) => i !== index),
+      ];
+
+      return newList;
+    });
+  }, []);
 
   return {
     conversations,
@@ -381,5 +425,6 @@ export function useConversations(
     fetchConversations,
     loadMore,
     refresh,
+    updateConversationFromSocket,
   };
 }
