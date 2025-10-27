@@ -1,13 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Conversation } from '@/lib/leadconnector/types/conversationTypes';
-import { LoadingIcon } from '@/_components/atoms/LoadingIcon';
-import { formatMessageDate, formatMessageType, formatPhoneNumber } from './utils/formatters';
-import { MessageType } from './types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ConversationDetailsPopup } from './ConversationDetailsPopup';
+import React, { useState } from "react";
+import { Conversation } from "@/lib/leadconnector/types/conversationTypes";
+import { LoadingIcon } from "@/_components/atoms/LoadingIcon";
+import {
+  formatMessageDate,
+  formatMessageType,
+  formatPhoneNumber,
+} from "./utils/formatters";
+import { MessageType } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConversationDetailsPopup } from "./ConversationDetailsPopup";
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -18,9 +22,10 @@ interface ConversationsListProps {
 export function ConversationsList({
   conversations,
   isLoading,
-  onConversationClick
+  onConversationClick,
 }: ConversationsListProps) {
-  const [detailsConversation, setDetailsConversation] = useState<Conversation | null>(null);
+  const [detailsConversation, setDetailsConversation] =
+    useState<Conversation | null>(null);
 
   // Loading state
   if (isLoading && conversations.length === 0) {
@@ -43,15 +48,17 @@ export function ConversationsList({
   return (
     <>
       <div className="divide-y divide-border max-w-full overflow-hidden">
-      {conversations?.map((conversation) => (
-        <ConversationItem
-          key={conversation.id}
-          conversation={conversation}
-          onClick={() => onConversationClick(conversation)}
-            onViewDetails={(conversation) => setDetailsConversation(conversation)}
-        />
-      ))}
-    </div>
+        {conversations?.map((conversation) => (
+          <ConversationItem
+            key={conversation.id}
+            conversation={conversation}
+            onClick={() => onConversationClick(conversation)}
+            onViewDetails={(conversation) =>
+              setDetailsConversation(conversation)
+            }
+          />
+        ))}
+      </div>
 
       <ConversationDetailsPopup
         conversation={detailsConversation}
@@ -62,16 +69,20 @@ export function ConversationsList({
   );
 }
 
-const ConversationItem = ({ 
-  conversation, 
-  onClick, 
-  onViewDetails 
-}: { 
+const ConversationItem = ({
+  conversation,
+  onClick,
+  onViewDetails,
+}: {
   conversation: Conversation;
   onClick: () => void;
   onViewDetails: (conversation: Conversation) => void;
 }) => {
-  const contactName = conversation.contactName || conversation.email || conversation.phone || 'Unknown Contact';
+  const contactName =
+    conversation.contactName ||
+    conversation.email ||
+    conversation.phone ||
+    "Unknown Contact";
 
   return (
     <div
@@ -85,17 +96,19 @@ const ConversationItem = ({
             <span className="text-sm font-semibold text-muted-foreground">
               {contactName.charAt(0).toUpperCase()}
             </span>
-            
+
             {/* Status indicators */}
             <div className="absolute -bottom-0.5 -right-0.5 flex flex-col gap-0.5">
               {conversation.unreadCount > 0 && (
                 <div className="w-3 h-3 rounded-full bg-primary flex items-center justify-center">
                   <span className="text-[10px] text-white font-bold">
-                    {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
+                    {conversation.unreadCount > 9
+                      ? "9+"
+                      : conversation.unreadCount}
                   </span>
                 </div>
               )}
-              {conversation.tags?.includes('vox-ai') && (
+              {conversation.tags?.includes("vox-ai") && (
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               )}
             </div>
@@ -111,7 +124,7 @@ const ConversationItem = ({
                 {contactName}
               </h3>
             </div>
-            
+
             {/* Time */}
             <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
               {formatMessageDate(conversation.lastMessageDate)}
@@ -131,20 +144,36 @@ const ConversationItem = ({
               <p className="text-sm text-muted-foreground line-clamp-2 flex-1 leading-relaxed">
                 {conversation.lastMessageBody}
               </p>
-              
+
               {/* Message meta */}
               <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                {conversation.lastMessageDirection === 'outbound' ? (
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                {conversation.lastMessageDirection === "outbound" ? (
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 ) : (
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 )}
-                
-                {conversation.lastOutboundMessageAction === 'automated' && (
+
+                {conversation.lastOutboundMessageAction === "automated" && (
                   <span className="text-yellow-600 font-medium">🤖</span>
                 )}
               </div>
@@ -157,24 +186,31 @@ const ConversationItem = ({
           {/* Tags */}
           {conversation.tags && conversation.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 justify-end max-w-[120px]">
-              {conversation.tags.includes('vox-ai') ? (
+              {conversation.tags.includes("vox-ai") ? (
                 <Badge className="text-[10px] px-1.5 py-0 h-5 bg-green-100 text-green-700 border-green-200 font-medium">
                   🤖 AI
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-5"
+                >
                   {conversation.tags[0]}
                 </Badge>
               )}
-              
+
               {conversation.tags.length > 1 && (
-                <Badge variant="outline" className="text-[10px] px-1 py-0 h-5" title={`Tags: ${conversation.tags.join(', ')}`}>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1 py-0 h-5"
+                  title={`Tags: ${conversation.tags.join(", ")}`}
+                >
                   +{conversation.tags.length - 1}
                 </Badge>
               )}
             </div>
           )}
-          
+
           {/* View details button */}
           <Button
             variant="ghost"
@@ -186,8 +222,18 @@ const ConversationItem = ({
             }}
             title="View details"
           >
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </Button>
         </div>

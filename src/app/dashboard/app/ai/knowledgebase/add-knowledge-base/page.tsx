@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const AddKnowledgeBasePage = () => {
+  const [training, setTraining] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [websiteLinks, setWebsiteLinks] = useState<string[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
@@ -55,10 +56,15 @@ const AddKnowledgeBasePage = () => {
         return;
       }
 
-      toast.success("Knowledge base created ✅");
+      // Start training UI state
+      setTraining(true); // 👈 new state variable
       setLoading(false);
 
-      router.push("/dashboard/app/ai/knowledgebase");
+      // Wait at least 10 seconds to simulate agent training
+      setTimeout(() => {
+        toast.success("Your AI agent is ready 🎯");
+        router.push("/dashboard/app/ai/knowledgebase");
+      }, 10000);
     } catch (err: any) {
       toast.error(err.message || "KB creation failed");
       setLoading(false);
@@ -73,8 +79,18 @@ const AddKnowledgeBasePage = () => {
       </h1>
       <p className="mt-3 text-sm md:text-base text-gray-300 text-center max-w-2xl mx-auto leading-relaxed">
         Transform your content into intelligent conversations. Upload files,
-        import data, and train your AI agent with multiple content sources in a few simple steps.
+        import data, and train your AI agent with multiple content sources in a
+        few simple steps.
       </p>
+
+      {training && (
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="w-12 h-12 border-4 border-[#ef3d6d] border-t-transparent rounded-full animate-spin" />
+          <p className="mt-4 text-lg font-medium text-white text-center">
+            Your AI agent is training on new sources...
+          </p>
+        </div>
+      )}
 
       {/* Chooose Your Content Source */}
       <ChooseYouContentSource

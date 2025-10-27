@@ -17,6 +17,7 @@ interface UseConversationsOptions {
 
 interface UseConversationsReturn {
   conversations: Conversation[];
+  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   isLoading: boolean;
   isLoadingMore: boolean;
   error: string | null;
@@ -28,7 +29,6 @@ interface UseConversationsReturn {
   ) => Promise<void>;
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
-  updateConversationFromSocket: (message: any) => void;
 }
 
 interface ApiResponse {
@@ -101,132 +101,6 @@ export function useConversations(
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
-
-  // const abortControllerRef = useRef<AbortController | null>(null);
-
-  // const fetchConversations = useCallback(
-  //   async (
-  //     filters: { limit?: number; query?: string; cursor?: string } = {},
-  //     append: boolean = false
-  //   ) => {
-  //     try {
-  //       // Cancel any existing request
-  //       if (abortControllerRef.current) {
-  //         abortControllerRef.current.abort();
-  //       }
-
-  //       // Create new abort controller
-  //       abortControllerRef.current = new AbortController();
-
-  //       const isLoadMore = append && filters.cursor;
-
-  //       if (isLoadMore) {
-  //         setIsLoadingMore(true);
-  //       } else {
-  //         setIsLoading(true);
-  //         setError(null);
-  //         setLastFilters(filters);
-  //       }
-
-  //       // Build query parameters
-  //       const queryParams = new URLSearchParams();
-  //       if (filters.limit) queryParams.set("limit", filters.limit.toString());
-  //       if (filters.query) queryParams.set("query", filters.query);
-  //       if (filters.cursor) queryParams.set("startAfterDate", filters.cursor);
-
-  //       const requestKey = queryParams.toString();
-
-  //       // Check if we already have this request in flight
-  //       let requestPromise = requestCache.get(requestKey);
-
-  //       if (!requestPromise) {
-
-  //         // Create new request
-  //         requestPromise = fetch(
-  //           `/api/leadconnector/conversations/search?${queryParams.toString()}`,
-  //           {
-  //             signal: abortControllerRef.current.signal,
-  //             headers: {
-  //               "Cache-Control": "no-cache", // Bypass browser cache but use server cache
-  //             },
-  //           }
-  //         ).then(async (response) => {
-  //           if (!response.ok) {
-  //             const errorData = await response.json().catch(() => ({}));
-  //             throw new Error(
-  //               getErrorMessage(
-  //                 errorData.error || errorData.message,
-  //                 response.status
-  //               )
-  //             );
-  //           }
-  //           return response.json();
-  //         });
-
-  //         // Cache the request
-  //         requestCache.set(requestKey, requestPromise);
-
-  //         // Clear old requests after delay
-  //         clearOldRequests();
-  //       } else {
-  //       }
-
-  //       const data: ApiResponse = await requestPromise;
-
-  //       if (!data.success) {
-  //         throw new Error(data.error || "Failed to fetch conversations");
-  //       }
-
-  //       const newConversations = data.data?.conversations || [];
-
-  //       if (isLoadMore) {
-  //         // Append new conversations
-  //         setConversations((prev) => [...prev, ...newConversations]);
-  //       } else {
-  //         // Replace conversations
-  //         setConversations(newConversations);
-  //       }
-
-  //       setHasMore(data.data?.hasMore || false);
-  //       setTotal(data.data?.total || 0);
-  //       setNextCursor(data.data?.nextCursor);
-  //       setError(null);
-
-  //       // 🤖 CRITICAL VOX-AI FEATURE: Auto-enable autopilot for vox-ai tagged conversations
-  //       if (locationId && newConversations.length > 0) {
-  //         try {
-  //           await autoEnableVoxAiAutopilot(newConversations, locationId);
-  //         } catch (error) {
-  //           console.error(
-  //             "⚠️ Non-critical error auto-enabling vox-ai autopilot:",
-  //             error
-  //           );
-  //           // Don't throw - this is non-critical for conversation loading
-  //         }
-  //       }
-  //     } catch (error: any) {
-  //       if (error.name === "AbortError") {
-  //         return;
-  //       }
-
-  //       console.error("❌ Error fetching conversations:", error);
-  //       setError(error.message || "Failed to load conversations");
-
-  //       if (!append) {
-  //         setConversations([]);
-  //         setHasMore(false);
-  //         setTotal(0);
-  //       }
-  //     } finally {
-  //       setIsLoading(false);
-  //       setIsLoadingMore(false);
-  //     }
-  //   },
-  //   []
-  // );
-
-  // const currentRequestKeyRef = useRef<string | null>(null);
-  // const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchConversations = useCallback(
     async (
@@ -384,39 +258,9 @@ export function useConversations(
     await fetchConversations(lastFilters, false);
   }, [fetchConversations]);
 
-  const updateConversationFromSocket = useCallback((message: any) => {
-    setConversations((prevConversations) => {
-      const index = prevConversations.findIndex(
-        (conv) => conv.contactId === message.contactId
-      );
-
-      if (index === -1) {
-        console.warn(
-          "⚠️ Conversation not found for incoming message:",
-          message
-        );
-        return prevConversations;
-      }
-
-      const updatedConvo = {
-        ...prevConversations[index],
-        lastMessageBody:
-          message.text || prevConversations[index].lastMessageBody,
-        lastMessageDate: Date.now(),
-      };
-
-      // Move updated conversation to top
-      const newList = [
-        updatedConvo,
-        ...prevConversations.filter((_, i) => i !== index),
-      ];
-
-      return newList;
-    });
-  }, []);
-
   return {
     conversations,
+    setConversations,
     isLoading,
     isLoadingMore,
     error,
@@ -425,6 +269,5 @@ export function useConversations(
     fetchConversations,
     loadMore,
     refresh,
-    updateConversationFromSocket,
   };
 }
