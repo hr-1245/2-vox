@@ -1,10 +1,8 @@
-import LeadConnectorPage from '@/_components/ghl/leadconnector/LeadConnectorPage'
-import React from 'react'
+import LeadConnectorPage from "@/_components/ghl/leadconnector/LeadConnectorPage";
+import React from "react";
 
 function page() {
-    return (
-        <LeadConnectorPage  />
-    )
+  return <LeadConnectorPage />;
 }
 
-export default page
+export default page;

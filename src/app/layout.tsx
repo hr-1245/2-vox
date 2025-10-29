@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "@/_components/blocks/layouts/ClientLayout";
 import { SocketProvider } from "../../context/SocketProvider";
+import { ConversationProvider } from "../../context/ConversationProvider";
 
 export const metadata: Metadata = {
   title: "VOX Live Chat Portal",
@@ -21,7 +22,9 @@ export default async function RootLayout({
 }) {
   return (
     <SocketProvider>
-      <ClientLayout>{children}</ClientLayout>
+      <ConversationProvider>
+        <ClientLayout>{children}</ClientLayout>
+      </ConversationProvider>
     </SocketProvider>
   );
 }

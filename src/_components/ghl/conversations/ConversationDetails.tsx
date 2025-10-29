@@ -1895,6 +1895,8 @@ export function ConversationDetails({
         return;
       }
 
+      console.log("last message: ", messages[messages.length - 1]);
+
       // --- Case 1: Inbound from user (no nested message object) ---
       if (response?.message && response.type === 19) {
         const inboundMsg = {
@@ -1907,7 +1909,7 @@ export function ConversationDetails({
           contactId: response.contactId,
           dateAdded: new Date().toISOString(),
           source: "user",
-          messageType: "TYPE_WHATSAPP",
+          messageType: messages[messages.length - 1].messageType,
           contentType: "text/plain",
           phone: response.phone,
         };
@@ -1927,7 +1929,7 @@ export function ConversationDetails({
           contactId: response.contactId,
           dateAdded: new Date().toISOString(),
           source: "ai",
-          messageType: "TYPE_WHATSAPP",
+          messageType: messages[messages.length - 1].messageType,
           contentType: "text/plain",
           phone: response.phone,
         };
@@ -1948,7 +1950,7 @@ export function ConversationDetails({
           contactId: msg.contactId,
           dateAdded: msg.dateAdded || new Date().toISOString(),
           source: msg.source || "app",
-          messageType: msg.messageType || "TYPE_WHATSAPP",
+          messageType: messages[messages.length - 1].messageType,
           contentType: msg.contentType || "text/plain",
           attachments: msg.attachments || [],
           locationId: msg.locationId || "",

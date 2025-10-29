@@ -22,6 +22,7 @@ export async function createClient() {
     cookies: {
       async get(name: string) {
         try {
+          if (typeof window !== "undefined") return;
           const cookieStore = await cookies();
           return cookieStore.get(name)?.value;
         } catch (error) {

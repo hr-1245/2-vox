@@ -18,6 +18,7 @@ import { useConversations, type Conversation } from "./hooks/useConversations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSocket } from "../../../../context/SocketProvider";
+import { useConversations as conversationContext } from "../../../../context/ConversationProvider";
 
 interface ConversationsPageProps {
   locationId?: string;
@@ -29,7 +30,9 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters] = useState({ limit: 20 }); // Reduced initial limit for better UX
 
+  // Context
   const { socket } = useSocket();
+  const { setConversationsUnreadCount } = conversationContext();
 
   const {
     conversations,
@@ -46,6 +49,21 @@ export function ConversationsPage({ locationId }: ConversationsPageProps = {}) {
     initialFilters: filters,
     locationId,
   });
+
+  // whenever conversations update, calculate total unread count
+  useEffect(() => {
+    if (!Array.isArray(conversations)) return;
+
+    // Count how many conversation objects have unreadCount > 0
+    const totalUnreadConversations = conversations.filter((conv) => {
+      const n = conv?.unreadCount;
+      // handle numbers or numeric strings defensively
+      const num = typeof n === "string" ? Number(n) : n;
+      return typeof num === "number" && num > 0;
+    }).length;
+
+    setConversationsUnreadCount(totalUnreadConversations);
+  }, [conversations, setConversationsUnreadCount]);
 
   // Auto-load conversations on mount (and when locationId becomes available)
   useEffect(() => {

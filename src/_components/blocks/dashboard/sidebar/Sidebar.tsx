@@ -1,104 +1,103 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import {
-  Menu,
-  X,
-  ChevronRight,
-  MessageSquare,
-  Bot,
-  Settings,
-  Zap,
-  Database,
-  Mic,
-  LogOut,
-} from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import SidebarItem, { SidebarItem as SidebarItemType } from "./SidebarItem";
 import { logout } from "@/app/auth/actions/auth";
-
-const sidebarItems: SidebarItemType[] = [
-  {
-    title: "Overview",
-    href: "/dashboard",
-    icon: "LayoutDashboard",
-    protected: true,
-  },
-  {
-    title: "Communication",
-    icon: "Building2",
-    protected: true,
-    subItems: [
-      {
-        title: "LeadConnector",
-        href: "/dashboard/app/leadconnector",
-        icon: "MessageSquare",
-        subItems: [
-          {
-            title: "Dashboard",
-            href: "/dashboard/app/leadconnector",
-            icon: "Users",
-          },
-          {
-            title: "Conversations",
-            href: "/dashboard/app/leadconnector/conversations",
-            icon: "MessageSquare",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "AI & Automation",
-    icon: "BrainCircuit",
-    protected: true,
-    subItems: [
-      {
-        title: "AI Agent Wizard",
-        href: "/dashboard/app/ai/agents/new",
-        icon: "Bot",
-        protected: true,
-        badge: "Create",
-      },
-      {
-        title: "AI Agents",
-        href: "/dashboard/app/ai/agents",
-        icon: "Settings",
-        protected: true,
-      },
-      // {
-      //   title: "Autopilot Dashboard",
-      //   href: "/dashboard/app/ai/autopilot",
-      //   icon: "Bot",
-      //   protected: true,
-      //   badge: "Auto"
-      // },
-      {
-        title: "Knowledge Bases",
-        href: "/dashboard/app/ai/knowledgebase",
-        icon: "BookOpen",
-        protected: true,
-      },
-    ],
-  },
-  {
-    title: "Settings",
-    href: "/dashboard/profile",
-    icon: "Settings",
-    protected: true,
-  },
-];
+import { useConversations as conversationContext } from "../../../../../context/ConversationProvider";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  const { conversationsUnreadCount } = conversationContext();
+
   const toggleSidebar = () => {
     setIsMobileOpen(!isMobileOpen);
   };
+
+  const sidebarItems: SidebarItemType[] = [
+    {
+      title: "Overview",
+      href: "/dashboard",
+      icon: "LayoutDashboard",
+      protected: true,
+    },
+    {
+      title: "Communication",
+      icon: "Building2",
+      protected: true,
+      subItems: [
+        {
+          title: "LeadConnector",
+          href: "/dashboard/app/leadconnector",
+          icon: "MessageSquare",
+          subItems: [
+            {
+              title: "Dashboard",
+              href: "/dashboard/app/leadconnector",
+              icon: "Users",
+            },
+            {
+              title: "Conversations",
+              href: "/dashboard/app/leadconnector/conversations",
+              icon: "MessageSquare",
+              badge: `${
+                conversationsUnreadCount > 9
+                  ? "9+"
+                  : conversationsUnreadCount > 0
+                  ? conversationsUnreadCount
+                  : 0
+              }`,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: "AI & Automation",
+      icon: "BrainCircuit",
+      protected: true,
+      subItems: [
+        {
+          title: "AI Agent Wizard",
+          href: "/dashboard/app/ai/agents/new",
+          icon: "Bot",
+          protected: true,
+          badge: "Create",
+        },
+        {
+          title: "AI Agents",
+          href: "/dashboard/app/ai/agents",
+          icon: "Settings",
+          protected: true,
+        },
+        // {
+        //   title: "Autopilot Dashboard",
+        //   href: "/dashboard/app/ai/autopilot",
+        //   icon: "Bot",
+        //   protected: true,
+        //   badge: "Auto"
+        // },
+        {
+          title: "Knowledge Bases",
+          href: "/dashboard/app/ai/knowledgebase",
+          icon: "BookOpen",
+          protected: true,
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      href: "/dashboard/profile",
+      icon: "Settings",
+      protected: true,
+    },
+  ];
 
   return (
     <>
